@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>業務考核系統｜登入（樣品）</title>
+<style>
+/* 公版 tokens（取自 2motor-design-system/assets/tokens.css，未改值） */
+:root{
+  --glass-bg:rgba(255,255,255,0.62);
+  --glass-bg-strong:rgba(255,255,255,0.80);
+  --glass-blur:24px; --glass-sat:160%;
+  --rim:rgba(255,255,255,0.9);
+  --specular:inset 0 1px 1px rgba(255,255,255,0.9);
+  --hairline:0 0 0 0.5px rgba(15,23,42,0.06);
+  --shadow:0 8px 30px rgba(17,24,39,0.08);
+  --shadow-lg:0 20px 60px rgba(17,24,39,0.16);
+  --r-sm:10px; --r-ctrl:14px; --r-card:28px; --r-xl:34px; --r-pill:999px;
+  --accent:#2F6BFF; --accent-soft:rgba(47,107,255,0.12); --accent-deep:#1E4FD0;
+  --ink:#0F172A; --ink-2:#475569; --ink-3:#94A3B8; --ink-line:rgba(15,23,42,0.08);
+  --warning:#D97706; --warning-soft:rgba(217,119,6,0.12);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang TC","Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",monospace;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --dur-in:600ms; --dur-micro:250ms;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font); color:var(--ink); min-height:100vh; overflow-x:hidden;
+  background:
+    radial-gradient(70% 50% at 80% 0%, rgba(120,150,255,0.10) 0%, transparent 60%),
+    radial-gradient(60% 50% at 8% 100%, rgba(170,150,255,0.08) 0%, transparent 60%),
+    linear-gradient(180deg,#F7F8FB 0%,#EEF1F6 100%);
+  -webkit-font-smoothing:antialiased;
+}
+.glass{
+  background:var(--glass-bg);
+  backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border:0.5px solid var(--rim);
+  box-shadow:var(--specular),var(--hairline),var(--shadow);
+  border-radius:var(--r-card); position:relative; overflow:hidden;
+}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 26%)}
+.glass > *{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.banner{background:var(--warning-soft);color:var(--warning);text-align:center;font-weight:600;font-size:14px;padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--ink-line)}
+.wrap{min-height:calc(100vh - 46px);display:flex;align-items:center;justify-content:center;padding:var(--sp-6) var(--sp-4)}
+.card{width:100%;max-width:420px;padding:var(--sp-8) var(--sp-6)}
+h1{font-size:22px;font-weight:700;margin-bottom:var(--sp-2)}
+.sub{color:var(--ink-2);font-size:14px;line-height:1.6;margin-bottom:var(--sp-6)}
+button{font-family:inherit;cursor:pointer}
+.btn{width:100%;display:flex;align-items:center;justify-content:center;gap:var(--sp-2);
+  padding:14px var(--sp-4);border-radius:var(--r-ctrl);border:0.5px solid var(--rim);
+  background:var(--glass-bg-strong);color:var(--ink);font-size:15px;font-weight:600;
+  box-shadow:var(--specular),var(--hairline),var(--shadow);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn:focus-visible,.acct:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn svg{width:20px;height:20px}
+.accts{display:none;margin-top:var(--sp-6)}
+.accts.show{display:block}
+.accts h2{font-size:13px;color:var(--ink-2);font-weight:600;margin-bottom:var(--sp-3)}
+.acct{width:100%;text-align:left;display:block;padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-2);
+  border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);color:var(--ink);
+  transition:background var(--dur-micro) var(--ease),border-color var(--dur-micro) var(--ease)}
+.acct:hover{background:var(--accent-soft);border-color:var(--accent)}
+.acct b{display:block;font-size:15px}
+.acct span{font-size:12px;color:var(--ink-2)}
+.foot{text-align:center;color:var(--ink-3);font-size:12px;margin-top:var(--sp-6)}
+</style>
+</head>
+<body>
+<div class="banner">樣品：假資料，非真實名單</div>
+<div class="wrap">
+  <main class="card glass">
+    <h1>業務考核系統</h1>
+    <p class="sub">請使用公司 Google 帳號登入。這是示範畫面，按下後會列出三個假帳號供選擇。</p>
+    <button class="btn" id="loginBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      使用公司 Google 帳號登入
+    </button>
+    <div class="accts" id="accts" aria-live="polite">
+      <h2>選擇示範帳號</h2>
+      <button class="acct" type="button" data-role="cs"><b>客服部</b><span>看全部門市，可新增與編輯人員</span></button>
+      <button class="acct" type="button" data-role="hq"><b>總公司主管</b><span>看全部門市，只能查看</span></button>
+      <button class="acct" type="button" data-role="manager"><b>某門市店長</b><span>只看自己門市，只能查看</span></button>
+    </div>
+    <p class="foot">由 貳輪嶼 製作</p>
+  </main>
+</div>
+<script>
+(function () {
+  var accts = document.getElementById('accts');
+  document.getElementById('loginBtn').addEventListener('click', function () {
+    accts.classList.add('show');
+  });
+  accts.addEventListener('click', function (e) {
+    var el = e.target.closest('.acct');
+    if (!el) return;
+    try {
+      // 店長預設為「測試一店」，進名冊後可再換
+      sessionStorage.setItem('sampleIdentity', JSON.stringify({ role: el.dataset.role, store: '測試一店' }));
+    } catch (err) {}
+    location.href = 'roster.html';
+  });
+})();
+</script>
+</body>
+</html>
