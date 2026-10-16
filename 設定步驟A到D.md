@@ -20,8 +20,10 @@
 
 ## B. 建立 GitHub 倉庫並開啟 Pages
 
-這一步我來做（會先問你同意才推上去）。完成後我會給你一個網址，格式像：
-`https://ching1927.github.io/倉庫名稱/`
+**已完成。** 倉庫：`https://github.com/ching1927/sales-assessment`
+
+- 網頁網址（Site URL 用這個）：`https://ching1927.github.io/sales-assessment/`
+- 登入後導向網址（Redirect URLs 用這個）：`https://ching1927.github.io/sales-assessment/roster.html`
 
 倉庫是公開的，**只放網頁程式，不放名單與個資**（`.gitignore` 已擋住匯入檔）。
 
