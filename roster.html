@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>業務考核系統｜人員名冊</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+select,input{font-family:inherit;font-size:14px;color:var(--ink)}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;font-size:13px;color:var(--ink-2)}
+.who .badge{background:var(--accent-soft);color:var(--accent-deep);font-weight:600;padding:6px 12px;border-radius:var(--r-pill);font-size:13px}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);color:var(--ink);
+  font-size:14px;font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn[disabled]{opacity:.6;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-deep)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:6px 4px}
+.msg{margin-bottom:var(--sp-4)}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.toolbar .grow{flex:1 1 180px;min-width:140px}
+.count{margin-left:auto;color:var(--ink-2);font-size:13px}
+.tablebox{padding:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;min-width:860px;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:rgba(255,255,255,0.8)}
+tbody tr:last-child td{border-bottom:none}
+tr.off td{color:var(--ink-3)}
+.mono{font-family:var(--mono)}
+.sub2{color:var(--ink-3);font-size:12px;margin-left:6px}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
+.tag.new{background:var(--info-soft);color:var(--accent-deep)}
+.tag.reg{background:var(--track);color:var(--ink-2)}
+.tag.unk{background:var(--warning-soft);color:var(--warning)}
+.tag.on{background:var(--success-soft);color:var(--success)}
+.tag.out{background:var(--danger-soft);color:var(--danger)}
+.days{color:var(--ink-3);font-size:12px;margin-left:6px}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+.sw{position:relative;width:46px;height:28px;border-radius:var(--r-pill);border:none;background:var(--track);transition:background var(--dur-micro) var(--ease);vertical-align:middle}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform var(--dur-micro) var(--ease)}
+.sw[aria-checked="true"]{background:var(--accent)}
+.sw[aria-checked="true"]::after{transform:translateX(18px)}
+.yn{margin-left:8px;font-size:13px;color:var(--ink-2)}
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:440px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--glass-bg-strong);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));margin:auto;color:var(--ink)}
+dialog::backdrop{background:rgba(15,23,42,0.30)}
+.dlg{padding:var(--sp-6);max-height:90vh;overflow-y:auto}
+.dlg h2{font-size:18px;margin-bottom:var(--sp-4)}
+.field{display:block;margin-bottom:var(--sp-3);font-size:13px;color:var(--ink-2);font-weight:600}
+.field input,.field select{display:block;width:100%;margin-top:6px;font-weight:400}
+.err{color:var(--danger);font-size:13px;min-height:18px;margin-bottom:var(--sp-2)}
+.actions{display:flex;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-2)}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+@media (max-width:480px){
+  .top h1{font-size:19px}
+  .toolbar .ctrl{flex:1 1 100%}
+  .count{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <div class="top">
+      <h1>人員名冊</h1>
+      <div class="who">
+        <span>目前身分</span>
+        <span id="whoEmail"></span>
+        <span class="badge" id="whoBadge"></span>
+        <button class="link" id="logout" type="button">登出</button>
+      </div>
+    </div>
+
+    <div class="notice bad msg" id="msg" role="alert" hidden></div>
+
+    <section class="toolbar glass" aria-label="篩選">
+      <select class="ctrl" id="storeFilter" aria-label="門市篩選"></select>
+      <input class="ctrl grow" id="search" type="search" placeholder="搜尋編號、姓名或暱稱" aria-label="搜尋">
+      <button class="btn primary" id="addBtn" type="button" hidden>新增人員</button>
+      <span class="count" id="count" aria-live="polite"></span>
+    </section>
+
+    <section class="tablebox glass">
+      <div class="scroll" tabindex="0" aria-label="人員名冊表格，可左右捲動">
+        <table>
+          <thead>
+            <tr>
+              <th>員工編號</th><th>姓名／暱稱</th><th>門市</th><th>職級</th><th>到職日</th>
+              <th>身分標籤</th><th>在職狀態</th><th>納入考核</th><th id="thOps" hidden>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty" hidden>沒有符合條件的人員</div>
+    </section>
+    <p class="note">新人／正式由系統依到職日自動計算：到職起 90 天內為新人，超過為正式；到職日沒填的顯示「未填到職日」。</p>
+  </div>
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<dialog id="dlg">
+  <form class="dlg" id="form" method="dialog" novalidate>
+    <h2 id="dlgTitle"></h2>
+    <label class="field">員工編號（MI-xxxx，工讀為 PT-xxxx）
+      <input class="ctrl" id="fId" autocomplete="off" placeholder="例：MI-0123">
+    </label>
+    <label class="field">暱稱
+      <input class="ctrl" id="fNick" autocomplete="off">
+    </label>
+    <label class="field">姓名（暱稱與姓名至少填一個）
+      <input class="ctrl" id="fFull" autocomplete="off">
+    </label>
+    <label class="field">門市
+      <select class="ctrl" id="fStore"></select>
+    </label>
+    <label class="field">職級
+      <select class="ctrl" id="fPos"></select>
+    </label>
+    <label class="field">到職日（可留空，之後補填）
+      <input class="ctrl" id="fHire" type="date">
+    </label>
+    <label class="field">在職狀態
+      <select class="ctrl" id="fStatus"><option>在職</option><option>離職</option></select>
+    </label>
+    <label class="field">納入考核
+      <select class="ctrl" id="fInc"><option value="1">是</option><option value="0">否</option></select>
+    </label>
+    <div class="err" id="fErr" role="alert"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="fCancel">取消</button>
+      <button class="btn primary" type="submit" id="fSave">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>
+(function () {
+  var POSITIONS = ['店長', '業務', '收車業務', '業務/助理', '助理', '工讀'];
+  var DEFAULT_INC = { '業務': true, '收車業務': true, '業務/助理': true, '店長': false, '助理': false, '工讀': false };
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+  var TAG = { '新人': 'new', '正式': 'reg', '未填到職日': 'unk' };
+  var ID_RE = /^(MI|PT)-[0-9]{4}$/;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var me = null;        // app_users 那一列
+  var stores = [];      // [{code,name}]
+  var people = [];
+  var storeName = {};
+  var busy = false;
+  var editingId = null;
+
+  function isCS() { return !!me && me.role === 'cs_admin'; }
+  function isManager() { return !!me && me.role === 'store_manager'; }
+
+  function showMsg(t) { var m = $('msg'); m.textContent = t; m.hidden = !t; }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { Api.signOut().then(function () { goLogin(''); }); }
+
+  function showBlocked(text) {
+    $('loading').hidden = true;
+    $('app').hidden = true;
+    $('blockedText').textContent = text;
+    $('blocked').hidden = false;
+  }
+
+  // 到職後第幾天（只供畫面顯示；新人／正式以資料庫的 tenure_group 為準），用台北時間的今天
+  function daysSince(dateStr) {
+    var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).split('-');
+    var p = dateStr.split('-');
+    return Math.round((Date.UTC(+today[0], +today[1] - 1, +today[2]) - Date.UTC(+p[0], +p[1] - 1, +p[2])) / 86400000);
+  }
+
+  function nameCell(p) {
+    var nick = (p.nickname || '').trim(), full = (p.full_name || '').trim();
+    if (nick && full) return esc(nick) + '<span class="sub2">' + esc(full) + '</span>';
+    return esc(nick || full);
+  }
+
+  function fillSelect(sel, items, firstAll) {
+    sel.innerHTML = (firstAll ? '<option value="">全部門市</option>' : '') +
+      items.map(function (s) { return '<option value="' + esc(s.code) + '">' + esc(s.name) + '</option>'; }).join('');
+  }
+
+  function render() {
+    var q = $('search').value.trim().toLowerCase();
+    var storeSel = isManager() ? '' : $('storeFilter').value;
+    var cs = isCS();
+    var rows = people.filter(function (p) {
+      if (storeSel && p.store_code !== storeSel) return false;
+      if (q) {
+        var hay = (p.id + ' ' + (p.nickname || '') + ' ' + (p.full_name || '')).toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+    $('tbody').innerHTML = rows.map(function (p) {
+      var noHire = !p.hire_date;
+      var tg = p.tenure_group;
+      var inc = cs
+        ? '<button type="button" class="sw" role="switch" aria-checked="' + (p.include_in_assessment ? 'true' : 'false') + '" aria-label="納入考核：' + esc(p.nickname || p.full_name || p.id) + '" data-toggle="' + esc(p.id) + '"></button><span class="yn">' + (p.include_in_assessment ? '是' : '否') + '</span>'
+        : (p.include_in_assessment ? '是' : '否');
+      return '<tr class="' + (p.status === '離職' ? 'off' : '') + '">' +
+        '<td class="mono">' + esc(p.id) + '</td>' +
+        '<td>' + nameCell(p) + '</td>' +
+        '<td>' + esc(storeName[p.store_code] || p.store_code) + '</td>' +
+        '<td>' + esc(p.job_title) + '</td>' +
+        '<td class="mono">' + (noHire ? '未填' : esc(p.hire_date) + '<span class="days">第 ' + daysSince(p.hire_date) + ' 天</span>') + '</td>' +
+        '<td><span class="tag ' + (TAG[tg] || 'unk') + '">' + esc(tg || '未填到職日') + '</span></td>' +
+        '<td><span class="tag ' + (p.status === '在職' ? 'on' : 'out') + '">' + esc(p.status) + '</span></td>' +
+        '<td>' + inc + '</td>' +
+        (cs ? '<td><button type="button" class="btn sm" data-edit="' + esc(p.id) + '">編輯</button></td>' : '') +
+        '</tr>';
+    }).join('');
+    $('empty').hidden = rows.length > 0;
+    $('count').textContent = '共 ' + rows.length + ' 人';
+  }
+
+  function reload() {
+    return Promise.all([Api.loadStores(), Api.loadEmployees()]).then(function (r) {
+      stores = r[0]; people = r[1];
+      storeName = {};
+      stores.forEach(function (s) { storeName[s.code] = s.name; });
+      var cur = $('storeFilter').value;
+      fillSelect($('storeFilter'), stores, true);
+      if (storeName[cur]) $('storeFilter').value = cur;
+      fillSelect($('fStore'), stores, false);
+      render();
+    });
+  }
+
+  function applyUI() {
+    var label = ROLE_LABEL[me.role] || '';
+    if (isManager()) label += '・' + (storeName[me.store_code] || me.store_code || '');
+    $('whoBadge').textContent = label;
+    $('storeFilter').hidden = isManager();
+    $('addBtn').hidden = !isCS();
+    $('thOps').hidden = !isCS();
+    $('fPos').innerHTML = POSITIONS.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
+  }
+
+  function start() {
+    Api.getSession().then(function (session) {
+      if (!session) { goLogin(''); return; }
+      var email = (session.user && session.user.email) || '';
+      if (!/@2motor\.tw$/i.test(email)) {
+        Api.signOut().then(function () { goLogin('domain'); });
+        return;
+      }
+      $('whoEmail').textContent = email;
+      return Api.loadMe(email).then(function (row) {
+        if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+        me = row;
+        return reload().then(function () {
+          applyUI();
+          render();
+          $('loading').hidden = true;
+          $('app').hidden = false;
+        });
+      });
+    }).catch(function (e) {
+      showBlocked((e && e.userMessage) || '載入失敗，請重新整理頁面。');
+    });
+  }
+
+  // 篩選、搜尋、登出
+  $('storeFilter').addEventListener('change', render);
+  $('search').addEventListener('input', render);
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  Api.onSignedOut(function () { goLogin(''); });
+
+  // 納入考核開關與編輯（只有客服部看得到控制項；事件也再擋一次）
+  $('tbody').addEventListener('click', function (e) {
+    if (!isCS()) return;
+    var t = e.target.closest('[data-toggle]');
+    if (t) {
+      if (busy) return;
+      var p = people.filter(function (x) { return x.id === t.dataset.toggle; })[0];
+      if (!p) return;
+      busy = true; showMsg('');
+      Api.updateEmployee(p.id, { include_in_assessment: !p.include_in_assessment })
+        .then(reload)
+        .catch(function (err) { showMsg(err.userMessage || Api.explain(err)); return reload().catch(function () {}); })
+        .then(function () { busy = false; });
+      return;
+    }
+    var ed = e.target.closest('[data-edit]');
+    if (ed) openForm(ed.dataset.edit);
+  });
+  $('addBtn').addEventListener('click', function () { if (isCS()) openForm(null); });
+
+  // 表單
+  var dlg = $('dlg');
+  function ensurePosOption(v) {
+    var found = Array.prototype.some.call($('fPos').options, function (o) { return o.value === v; });
+    if (!found) {
+      var o = document.createElement('option');
+      o.textContent = v; o.value = v;
+      $('fPos').appendChild(o);
+    }
+  }
+  function openForm(id) {
+    editingId = id;
+    $('fErr').textContent = '';
+    $('dlgTitle').textContent = id ? '編輯人員' : '新增人員';
+    var p = id ? people.filter(function (x) { return x.id === id; })[0] : null;
+    if (id && !p) return;
+    if (p) ensurePosOption(p.job_title);
+    $('fId').value = p ? p.id : '';
+    $('fId').disabled = !!p;
+    $('fNick').value = p ? (p.nickname || '') : '';
+    $('fFull').value = p ? (p.full_name || '') : '';
+    $('fStore').value = p ? p.store_code : (stores[0] ? stores[0].code : '');
+    $('fPos').value = p ? p.job_title : POSITIONS[1];
+    $('fHire').value = p ? (p.hire_date || '') : '';
+    $('fStatus').value = p ? p.status : '在職';
+    $('fInc').value = (p ? p.include_in_assessment : DEFAULT_INC[$('fPos').value]) ? '1' : '0';
+    dlg.showModal();
+  }
+  // 新增時，換職級會帶出預設的納入考核（編輯時不自動改，避免蓋掉逐人調整）
+  $('fPos').addEventListener('change', function () {
+    if (!editingId) $('fInc').value = DEFAULT_INC[this.value] ? '1' : '0';
+  });
+  $('fCancel').addEventListener('click', function () { dlg.close(); });
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!isCS()) { dlg.close(); return; }
+    if (busy) return;
+    var id = $('fId').value.trim().toUpperCase();
+    var nick = $('fNick').value.trim();
+    var full = $('fFull').value.trim();
+    var err = '';
+    if (!editingId) {
+      if (!ID_RE.test(id)) err = '員工編號格式為 MI-0000（工讀為 PT-0000）';
+      else if (people.some(function (x) { return x.id === id; })) err = '這個員工編號已存在';
+    }
+    if (!err && !nick && !full) err = '暱稱與姓名至少要填一個';
+    if (!err && !$('fStore').value) err = '請選擇門市';
+    if (err) { $('fErr').textContent = err; return; }
+    var data = {
+      nickname: nick || null, full_name: full || null, store_code: $('fStore').value,
+      job_title: $('fPos').value, hire_date: $('fHire').value || null,
+      status: $('fStatus').value, include_in_assessment: $('fInc').value === '1'
+    };
+    busy = true; $('fSave').disabled = true; $('fErr').textContent = '';
+    var job;
+    if (editingId) job = Api.updateEmployee(editingId, data);
+    else { data.id = id; job = Api.insertEmployee(data); }
+    job.then(function () { dlg.close(); showMsg(''); return reload(); })
+      .catch(function (er) { $('fErr').textContent = er.userMessage || Api.explain(er); })
+      .then(function () { busy = false; $('fSave').disabled = false; });
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>

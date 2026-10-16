@@ -13,6 +13,15 @@
 - 門市篩選與搜尋｜`樣品/roster.html`｜客服部、主管可篩門市；搜尋框可用編號或姓名找人
 - 手機版面｜`樣品/roster.html`｜寬度 375px 時控制項直向排列，表格可橫向捲動
 
+## 階段 1 正式版（已寫好，尚未對真資料庫實測；要先完成 設定步驟A到D.md）
+
+- 正式登入頁｜`index.html`｜按 Google 登入；非公司帳號或帳號未開通會顯示提示
+- 公司網域與開通檢查｜`roster.html`｜非 @2motor.tw 登出並回登入頁；app_users 查不到者只顯示「帳號尚未開通」
+- 正式名冊頁｜`roster.html`｜讀 employees_with_tenure；客服部可新增、編輯、切換納入考核；主管與店長唯讀
+- 名冊資料存取｜`js/api.js`、`js/config.js`｜只含網址與公開金鑰；寫入被權限擋下時顯示白話訊息
+- 匯入檔產生器｜`supabase/import/gen_import.js`｜執行後產生本機匯入 SQL（含個資，不進倉庫），終端機只印數量彙總
+- 設定步驟｜`設定步驟A到D.md`｜Supabase 建表與匯入、GitHub Pages、Google 憑證、Supabase 登入設定
+
 ## 階段 1 資料庫設計稿（尚未執行）
 
 - 三張表與權限規則｜`supabase/roster_schema.sql`｜待老闆同意後在 Supabase 執行；驗證步驟見 `supabase/README_roster.md`

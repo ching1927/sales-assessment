@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>業務考核系統｜登入</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:var(--sp-6) var(--sp-4)}
+.card{width:100%;max-width:420px;padding:var(--sp-8) var(--sp-6)}
+h1{font-size:22px;font-weight:700;margin-bottom:var(--sp-2)}
+.sub{color:var(--ink-2);font-size:14px;line-height:1.6;margin-bottom:var(--sp-6)}
+.notice{margin-bottom:var(--sp-4)}
+.btn{width:100%;display:flex;align-items:center;justify-content:center;gap:var(--sp-2);
+  padding:14px var(--sp-4);border-radius:var(--r-ctrl);border:0.5px solid var(--rim);
+  background:var(--glass-bg-strong);color:var(--ink);font-size:15px;font-weight:600;
+  box-shadow:var(--specular),var(--hairline),var(--shadow);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn[disabled]{opacity:.6;cursor:default;transform:none}
+.btn svg{width:20px;height:20px}
+.foot{margin-top:var(--sp-6)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card glass">
+    <h1>業務考核系統</h1>
+    <p class="sub">請使用公司 Google 帳號（@2motor.tw）登入。</p>
+    <div class="notice" id="notice" role="alert" hidden></div>
+    <button class="btn" id="loginBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      使用公司 Google 帳號登入
+    </button>
+    <p class="foot">由 貳輪嶼 製作</p>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var REASONS = {
+    domain: '請使用公司帳號（@2motor.tw）登入。',
+    noaccount: '你的帳號尚未開通，請聯絡客服部。'
+  };
+  function showNotice(text, bad) {
+    var n = $('notice');
+    n.textContent = text; // textContent，不會被當成 HTML
+    n.className = 'notice' + (bad ? ' bad' : '');
+    n.hidden = false;
+  }
+
+  var reason = new URLSearchParams(location.search).get('reason');
+  if (reason && Object.prototype.hasOwnProperty.call(REASONS, reason)) showNotice(REASONS[reason], false);
+
+  // 已登入者直接進名冊（非公司帳號會在名冊頁被登出並帶 reason=domain 回來）
+  Api.getSession().then(function (s) { if (s) location.replace('roster.html'); });
+
+  $('loginBtn').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    $('notice').hidden = true;
+    Api.signIn().catch(function (e) {
+      btn.disabled = false;
+      showNotice(e.userMessage || '登入失敗，請稍後再試。', true);
+    });
+  });
+})();
+</script>
+</body>
+</html>
