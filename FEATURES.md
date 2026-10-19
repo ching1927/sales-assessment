@@ -18,6 +18,7 @@
 - 正式登入頁｜`index.html`｜按 Google 登入；非公司帳號或帳號未開通會顯示提示
 - 公司網域與開通檢查｜`roster.html`｜非 @2motor.tw 登出並回登入頁；app_users 查不到者只顯示「帳號尚未開通」
 - 正式名冊頁｜`roster.html`｜讀 employees_with_tenure；客服部可新增、編輯、切換納入考核；主管與店長唯讀
+- 門市排序｜`js/api.js`｜門市選單與名冊列表依「總公司、中和、新莊、樹林、桃園中壢、新竹、旗艦、南台中、太平、台南、高雄、花蓮」排列，同門市內依員工編號；不在清單內的排最後
 - 名冊資料存取｜`js/api.js`、`js/config.js`｜只含網址與公開金鑰；寫入被權限擋下時顯示白話訊息
 - 匯入檔產生器｜`supabase/import/gen_import.js`｜執行後產生本機匯入 SQL（含個資，不進倉庫），終端機只印數量彙總
 - 設定步驟｜`設定步驟A到D.md`｜Supabase 建表與匯入、GitHub Pages、Google 憑證、Supabase 登入設定

@@ -3,6 +3,12 @@
   var cfg = window.APP_CONFIG;
   var sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY);
   var PAGE = 1000;
+  // 門市顯示順序（老闆指定）；不在清單內的排最後。門市代號與名稱相同。
+  var STORE_ORDER = ['總公司', '中和', '新莊', '樹林', '桃園中壢', '新竹', '旗艦', '南台中', '太平', '台南', '高雄', '花蓮'];
+  function storeRank(code) {
+    var i = STORE_ORDER.indexOf(code);
+    return i < 0 ? STORE_ORDER.length : i;
+  }
 
   // 把資料庫／網路錯誤換成白話繁體中文（不顯示原始錯誤碼）
   function explain(err) {
@@ -51,7 +57,11 @@
         .then(function (r) { return r.data || null; });
     },
     loadStores: function () {
-      return wrap(sb.from('stores').select('code,name').order('code')).then(function (r) { return r.data || []; });
+      return wrap(sb.from('stores').select('code,name').order('code')).then(function (r) {
+        return (r.data || []).sort(function (a, b) {
+          return storeRank(a.code) - storeRank(b.code) || (a.code < b.code ? -1 : a.code > b.code ? 1 : 0);
+        });
+      });
     },
     // 分頁讀完（避免超過單次上限），不假設資料量
     loadEmployees: function () {
@@ -60,7 +70,11 @@
         return wrap(sb.from('employees_with_tenure').select('*').order('id').range(from, from + PAGE - 1)).then(function (r) {
           var rows = r.data || [];
           all = all.concat(rows);
-          return rows.length === PAGE ? next(from + PAGE) : all;
+          if (rows.length === PAGE) return next(from + PAGE);
+          // 依門市順序排，同門市內依員工編號
+          return all.sort(function (a, b) {
+            return storeRank(a.store_code) - storeRank(b.store_code) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+          });
         });
       }
       return next(0);
