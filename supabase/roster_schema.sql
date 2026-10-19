@@ -203,3 +203,17 @@ create policy app_users_cs_write on public.app_users
   for all to authenticated
   using (public.roster_my_role() = 'cs_admin')
   with check (public.roster_my_role() = 'cs_admin');
+
+-- ---------- 保持專案運作用 ----------
+-- GitHub 排程（.github/workflows/keepalive.yml）每 3 天呼叫一次，避免免費專案因閒置被暫停。
+-- 只回傳現在時間，不讀任何資料表；未登入也能呼叫。
+create or replace function public.roster_keepalive()
+returns timestamptz
+language sql
+stable
+as $$
+  select now();
+$$;
+
+revoke all on function public.roster_keepalive() from public;
+grant execute on function public.roster_keepalive() to anon, authenticated;

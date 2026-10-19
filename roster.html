@@ -250,6 +250,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       fillSelect($('storeFilter'), stores, true);
       if (storeName[cur]) $('storeFilter').value = cur;
       fillSelect($('fStore'), stores, false);
+      $('fStore').insertAdjacentHTML('afterbegin', '<option value="">請選擇門市</option>');
       render();
     });
   }
@@ -336,7 +337,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('fId').disabled = !!p;
     $('fNick').value = p ? (p.nickname || '') : '';
     $('fFull').value = p ? (p.full_name || '') : '';
-    $('fStore').value = p ? p.store_code : (stores[0] ? stores[0].code : '');
+    $('fStore').value = p ? p.store_code : '';
     $('fPos').value = p ? p.job_title : POSITIONS[1];
     $('fHire').value = p ? (p.hire_date || '') : '';
     $('fStatus').value = p ? p.status : '在職';

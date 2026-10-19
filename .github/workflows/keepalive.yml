@@ -1,0 +1,32 @@
+# 定時呼叫一次資料庫，避免 Supabase 免費專案因閒置被暫停。
+# 每 3 天一次（UTC 02:00＝台北 10:00），也可在 GitHub 的 Actions 頁面手動執行。
+# 呼叫失敗（例如專案已被暫停）時，這個工作會顯示失敗，GitHub 會寄通知信。
+# 網址與 publishable 金鑰是公開用的，不是祕密。
+# 需要資料庫有 roster_keepalive() 函式（見 supabase/roster_schema.sql 最後一段）。
+name: 保持 Supabase 專案運作
+
+on:
+  schedule:
+    - cron: '0 2 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 呼叫資料庫
+        env:
+          SUPABASE_URL: https://uphowxeilvjaoffefoxs.supabase.co
+          SUPABASE_KEY: sb_publishable_wz55AD4hF1yahiyoseC6EQ_B1oMkaU2
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST \
+            "$SUPABASE_URL/rest/v1/rpc/roster_keepalive" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "回應狀態碼：$code"
+          if [ "$code" != "200" ]; then
+            echo "資料庫沒有正常回應，專案可能已被暫停，請到 Supabase 恢復。"
+            exit 1
+          fi
