@@ -71,9 +71,11 @@
           var rows = r.data || [];
           all = all.concat(rows);
           if (rows.length === PAGE) return next(from + PAGE);
-          // 依門市順序排，同門市內依員工編號
+          // 依門市順序排；同門市內店長排最前，其餘依員工編號
           return all.sort(function (a, b) {
-            return storeRank(a.store_code) - storeRank(b.store_code) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+            return storeRank(a.store_code) - storeRank(b.store_code) ||
+              (b.job_title === '店長') - (a.job_title === '店長') ||
+              (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
           });
         });
       }

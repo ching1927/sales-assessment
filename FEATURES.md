@@ -20,7 +20,7 @@
 - 正式名冊頁｜`roster.html`｜讀 employees_with_tenure；客服部可新增、編輯、切換納入考核；主管與店長唯讀
 - 新增人員門市必選｜`roster.html`｜按「新增人員」，門市預設為「請選擇門市」；沒選就送出會提示「請選擇門市」
 - 定時保持專案運作｜`.github/workflows/keepalive.yml`｜每 3 天呼叫一次資料庫函式 roster_keepalive()，失敗（例如專案被暫停）時 GitHub 寄通知；需先在資料庫執行 `supabase/roster_schema.sql` 最後一段
-- 門市排序｜`js/api.js`｜門市選單與名冊列表依「總公司、中和、新莊、樹林、桃園中壢、新竹、旗艦、南台中、太平、台南、高雄、花蓮」排列，同門市內依員工編號；不在清單內的排最後
+- 門市排序｜`js/api.js`｜門市選單與名冊列表依「總公司、中和、新莊、樹林、桃園中壢、新竹、旗艦、南台中、太平、台南、高雄、花蓮」排列；同門市內店長排最前，其餘依員工編號；不在清單內的門市排最後
 - 名冊資料存取｜`js/api.js`、`js/config.js`｜只含網址與公開金鑰；寫入被權限擋下時顯示白話訊息
 - 匯入檔產生器｜`supabase/import/gen_import.js`｜執行後產生本機匯入 SQL（含個資，不進倉庫），終端機只印數量彙總
 - 設定步驟｜`設定步驟A到D.md`｜Supabase 建表與匯入、GitHub Pages、Google 憑證、Supabase 登入設定
