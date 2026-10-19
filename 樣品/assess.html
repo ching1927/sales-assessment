@@ -172,6 +172,28 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 .actions{display:flex;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
 .foot{text-align:center;color:var(--ink-3);font-size:12px;margin:var(--sp-6) 0 var(--sp-4)}
 .pad-bottom{height:110px}
+
+/* 題組腳本面板：手機／平板是由下往上的面板，桌機是左欄常駐 */
+.script{position:fixed;left:0;right:0;bottom:0;z-index:40;max-height:75vh;display:flex;flex-direction:column;
+  background:#fff;border-radius:var(--r-card) var(--r-card) 0 0;box-shadow:var(--shadow-lg);
+  transform:translateY(105%);visibility:hidden;transition:transform var(--dur-micro) var(--ease),visibility 0s linear var(--dur-micro)}
+.script.open{transform:none;visibility:visible;transition:transform var(--dur-micro) var(--ease)}
+.script .shead{display:flex;gap:var(--sp-3);align-items:flex-start;justify-content:space-between;padding:var(--sp-4) var(--sp-4) var(--sp-2);border-bottom:1px solid var(--ink-line)}
+.script .shead h2{font-size:16px;line-height:1.4}
+.script .sbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--sp-2) var(--sp-4) var(--sp-4)}
+.script .sstep{margin-top:10px;padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:14px;line-height:1.6}
+.script .sstep b{display:block;color:var(--ink-2);font-size:12px;margin-top:4px}
+.script .sstep b.no{margin-top:0;color:var(--accent-deep);font-size:13px}
+.script-btn{position:fixed;right:16px;bottom:120px;z-index:30;min-height:48px;padding:0 18px;border-radius:var(--r-pill);border:0.5px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-size:15px;box-shadow:var(--shadow)}
+.script-back{position:fixed;inset:0;z-index:35;background:rgba(15,23,42,0.30)}
+@media (min-width:1024px){
+  .page.wide{max-width:1180px}
+  .split{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:var(--sp-4);align-items:start}
+  .script{position:sticky;top:var(--sp-4);left:auto;right:auto;bottom:auto;z-index:1;max-height:calc(100vh - 32px);
+    border-radius:var(--r-card);box-shadow:var(--shadow);transform:none;visibility:visible;transition:none}
+  .script .sclose{display:none}
+  .script-btn,.script-back{display:none!important}
+}
 @media (max-width:480px){
   .top h1{font-size:19px}
   .steps li{font-size:12px;padding:8px 2px}
@@ -183,7 +205,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 </head>
 <body>
 <div class="banner">樣品：假資料，非真實名單與題庫</div>
-<div class="page">
+<div class="page" id="pageEl">
   <div class="top">
     <h1>進行考核</h1>
     <div class="who">
@@ -215,6 +237,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     <button class="btn primary" id="fixGo" type="button" data-act="to4">前往結算</button>
   </div>
 </div>
+
+<div class="script-back" id="scriptBack" hidden></div>
+<button class="script-btn" id="scriptBtn" type="button" aria-controls="scriptPane" aria-expanded="false" hidden>看腳本</button>
 
 <dialog id="dlg">
   <div class="dlg">
@@ -333,8 +358,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     try {
       if (S.pid) {
         sessionStorage.setItem(S_KEY, JSON.stringify(S));
-        var n = new Date().toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
-        $('saved').textContent = '已自動暫存（' + n + '）';
+        $('saved').textContent = '已自動暫存';
       } else {
         sessionStorage.removeItem(S_KEY);
         $('saved').textContent = '';
@@ -436,8 +460,13 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       return '<button type="button" data-act="tab" data-i="' + i + '" aria-pressed="' + (i === S.cur) + '">題組 ' + (i + 1) + '・' + esc(x.cat) +
         '<small style="color:' + (itemDone(x) ? 'var(--success)' : 'var(--warning)') + '">' + (itemDone(x) ? '已評完' : '未評完') + '</small></button>';
     }).join('') + '</div>';
-    h += '<section class="panel glass"><h2>3 評分：' + esc(it.name) + '</h2><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' +
-      '<details><summary>題組內容（步驟與考點，供評分參考）</summary>' + stepHtml(it) + '</details>';
+    h += '<div class="split">' +
+      '<aside class="script' + (scriptOpen ? ' open' : '') + '" id="scriptPane" aria-label="題組腳本"><div class="shead"><h2>題組腳本：' + esc(it.code) + ' ' + esc(it.name) + '<br><span class="tag new">' + esc(it.cat) + '</span></h2>' +
+      '<button type="button" class="btn sclose" id="scriptClose">關閉</button></div><div class="sbody">' +
+      it.steps.map(function (s, i) {
+        return '<div class="sstep"><b class="no">步驟 ' + (i + 1) + '</b><b>考官操作</b>' + esc(s.op || '—') + '<b>考點</b>' + esc(s.point || '—') + '</div>';
+      }).join('') + '</div></aside><div>';
+    h += '<section class="panel glass"><h2>3 評分：' + esc(it.name) + '</h2><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>';
     var nas = naCount(it);
     h += '<p class="hint" style="margin-top:12px">七個面向各選一個等級。「不適用」每個題組最多 ' + MAX_NA + ' 個。</p>';
     DIMS.forEach(function (d) {
@@ -454,14 +483,16 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填，只有客服部看得到）</label>' +
       '<textarea class="ctrl" id="noteBox" data-note="' + S.cur + '" placeholder="例如：第 2 步回答不夠具體">' + esc(it.note || '') + '</textarea>';
     h += '<div class="nav"><button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
-      '<button class="btn" type="button" data-act="nextItem"' + (S.cur === S.items.length - 1 ? ' disabled' : '') + '>下一個題組</button></div></section>';
+      '<button class="btn" type="button" data-act="nextItem"' + (S.cur === S.items.length - 1 ? ' disabled' : '') + '>下一個題組</button></div></section></div></div>';
     $('stage').innerHTML = h;
   }
 
   function renderBar() {
     var show = S.step === 3 && !finished && S.pid;
     $('fixbar').hidden = !show; $('padBottom').hidden = !show;
-    if (!show) return;
+    $('scriptBtn').hidden = !show;
+    $('pageEl').classList.toggle('wide', !!show);
+    if (!show) { setScript(false); return; }
     var it = S.items[S.cur], res = itemResult(it);
     var got = DIMS.filter(function (d) { return it.levels[d.name]; }).length;
     var txt;
@@ -528,6 +559,20 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function keyOf(el) {
     return [el.getAttribute('data-act'), el.getAttribute('data-id'), el.getAttribute('data-v'), el.getAttribute('data-cat'), el.getAttribute('data-i'), el.getAttribute('data-dim'), el.getAttribute('data-lv')].join('|');
   }
+
+  // ---- 題組腳本面板（手機／平板開關；只切 class，不重繪，所以評分與捲動都不會被重設）----
+  var scriptOpen = false;
+  function setScript(open) {
+    scriptOpen = open;
+    var pane = $('scriptPane');
+    if (pane) pane.classList.toggle('open', open);
+    $('scriptBack').hidden = !open;
+    $('scriptBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  $('scriptBtn').addEventListener('click', function () { setScript(!scriptOpen); });
+  $('scriptBack').addEventListener('click', function () { setScript(false); });
+  $('stage').addEventListener('click', function (e) { if (e.target.closest('#scriptClose')) { setScript(false); $('scriptBtn').focus(); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && scriptOpen) { setScript(false); $('scriptBtn').focus(); } });
 
   // ---- 抽題 ----
   function doDraw() {
