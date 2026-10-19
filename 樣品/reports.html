@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>業務考核系統｜成績單（樣品）</title>
+<style>
+/* 公版 tokens（取自 2motor-design-system/assets/tokens.css，未改值） */
+:root{
+  --glass-bg:rgba(255,255,255,0.62);
+  --glass-bg-strong:rgba(255,255,255,0.80);
+  --glass-blur:24px; --glass-sat:160%;
+  --rim:rgba(255,255,255,0.9);
+  --specular:inset 0 1px 1px rgba(255,255,255,0.9);
+  --hairline:0 0 0 0.5px rgba(15,23,42,0.06);
+  --shadow:0 8px 30px rgba(17,24,39,0.08);
+  --shadow-lg:0 20px 60px rgba(17,24,39,0.16);
+  --r-sm:10px; --r-ctrl:14px; --r-card:28px; --r-xl:34px; --r-pill:999px;
+  --accent:#2F6BFF; --accent-soft:rgba(47,107,255,0.12); --accent-deep:#1E4FD0;
+  --ink:#0F172A; --ink-2:#475569; --ink-3:#94A3B8; --ink-line:rgba(15,23,42,0.08);
+  --success:#16A34A; --warning:#D97706; --danger:#DC2626; --info:#2F6BFF;
+  --success-soft:rgba(22,163,74,0.12); --warning-soft:rgba(217,119,6,0.12);
+  --danger-soft:rgba(220,38,38,0.10); --info-soft:rgba(47,107,255,0.12);
+  --track:rgba(15,23,42,0.10);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang TC","Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",monospace;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --dur-in:600ms; --dur-micro:250ms;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font); color:var(--ink); min-height:100vh; overflow-x:hidden;
+  background:
+    radial-gradient(70% 50% at 80% 0%, rgba(120,150,255,0.10) 0%, transparent 60%),
+    radial-gradient(60% 50% at 8% 100%, rgba(170,150,255,0.08) 0%, transparent 60%),
+    linear-gradient(180deg,#F7F8FB 0%,#EEF1F6 100%);
+  -webkit-font-smoothing:antialiased;
+}
+.glass{
+  background:var(--glass-bg);
+  backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border:0.5px solid var(--rim);
+  box-shadow:var(--specular),var(--hairline),var(--shadow);
+  border-radius:var(--r-card); position:relative; overflow:hidden;
+}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 26%)}
+.glass > *{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.5}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.banner{background:var(--warning-soft);color:var(--warning);text-align:center;font-weight:600;font-size:14px;padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--ink-line)}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;font-size:13px;color:var(--ink-2)}
+.who .badge{background:var(--accent-soft);color:var(--accent-deep);font-weight:600;padding:6px 12px;border-radius:var(--r-pill);font-size:13px}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:6px 4px;text-decoration:none}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.toolbar .grow{flex:1 1 180px;min-width:140px}
+.count{margin-left:auto;color:var(--ink-2);font-size:13px}
+.tablebox{padding:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+#listTable{min-width:760px}
+th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:rgba(255,255,255,0.8)}
+td.num,th.num{text-align:right}
+tbody tr:last-child td{border-bottom:none}
+tr.off td{color:var(--ink-3)}
+.mono{font-family:var(--mono)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
+.tag.new{background:var(--info-soft);color:var(--accent-deep)}
+.tag.reg{background:var(--track);color:var(--ink-2)}
+.tag.unk{background:var(--warning-soft);color:var(--warning)}
+.tag.on{background:var(--success-soft);color:var(--success)}
+.tag.out{background:var(--danger-soft);color:var(--danger)}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3)}
+.foot{text-align:center;color:var(--ink-3);font-size:12px;margin:var(--sp-6) 0 var(--sp-4)}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
+.msg.warn{background:var(--warning-soft);color:var(--warning);font-weight:600}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.msg.ok{background:var(--success-soft);color:var(--success);font-weight:600}
+
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:440px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:#fff;margin:auto}
+dialog.wide{max-width:780px;max-height:92vh}
+dialog::backdrop{background:rgba(15,23,42,0.30)}
+.dlg{padding:var(--sp-6)}
+.dlg h2{font-size:19px;margin-bottom:var(--sp-3)}
+.dlg h3{font-size:15px;margin:var(--sp-4) 0 var(--sp-2)}
+.dlg p{font-size:14px;line-height:1.6;color:var(--ink-2)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--ink-2)}
+.wk{display:inline-block;margin:2px 4px 2px 0;padding:3px 10px;border-radius:var(--r-pill);background:var(--warning-soft);color:var(--warning);font-weight:700;font-size:13px}
+.vbox{display:inline-block;padding:4px 14px;border-radius:var(--r-pill);font-weight:800;font-size:16px}
+.vbox.on{background:var(--success-soft);color:var(--success)}
+.vbox.new{background:var(--info-soft);color:var(--accent-deep)}
+.vbox.unk{background:var(--warning-soft);color:var(--warning)}
+.vbox.out{background:var(--danger-soft);color:var(--danger)}
+.item{border:1px solid var(--ink-line);border-radius:var(--r-ctrl);padding:12px 14px;margin-top:var(--sp-3)}
+.item h4{font-size:15px;margin:6px 0}
+.stepli{margin:8px 0 0 0;padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.5;list-style:none}
+.stepli b{color:var(--ink-2);font-size:12px}
+.remark{margin-top:8px;padding:10px 12px;border-radius:var(--r-sm);background:var(--accent-soft);font-size:13px;line-height:1.5}
+tr.weakrow{background:var(--warning-soft)}
+.void-box{padding:10px 14px;border-radius:var(--r-sm);background:var(--danger-soft);color:var(--danger);font-weight:600;font-size:14px;margin-bottom:var(--sp-3)}
+.actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
+.field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
+.field textarea{display:block;width:100%;min-height:80px;margin-top:6px;font-weight:400}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);font-size:14px;color:var(--ink)}
+.chk input{width:22px;height:22px;flex:0 0 auto}
+@media (max-width:480px){
+  .top h1{font-size:19px}
+  .toolbar .ctrl{flex:1 1 100%}
+  .count{margin-left:0}
+  .dlg{padding:var(--sp-4)}
+}
+</style>
+</head>
+<body>
+<div class="banner">樣品：假資料，非真實名單與題庫</div>
+<div class="page">
+  <div class="top">
+    <h1>成績單</h1>
+    <div class="who">
+      <span>目前身分</span>
+      <span class="badge" id="whoBadge"></span>
+      <select class="ctrl" id="storeSelf" aria-label="我的門市（示範用）" hidden></select>
+      <select class="ctrl" id="roleSwitch" aria-label="切換身分">
+        <option value="" disabled selected>切換身分</option>
+        <option value="cs">客服部</option>
+        <option value="hq">總公司主管</option>
+        <option value="manager">店長</option>
+      </select>
+      <a class="link" id="toAssess" href="assess.html" hidden>進行考核</a>
+      <a class="link" href="roster.html">人員名冊</a>
+      <button class="link" id="logout" type="button">登出</button>
+    </div>
+  </div>
+
+  <section class="toolbar glass" aria-label="篩選">
+    <select class="ctrl" id="storeFilter" aria-label="門市篩選"></select>
+    <select class="ctrl" id="verdictFilter" aria-label="判定篩選">
+      <option value="">全部判定</option><option>優秀</option><option>及格</option><option>需複訓</option><option>不及格</option>
+    </select>
+    <input class="ctrl grow" id="search" type="search" placeholder="搜尋考生編號、姓名或暱稱" aria-label="搜尋考生">
+    <span class="count" id="count" aria-live="polite"></span>
+  </section>
+
+  <section class="tablebox glass">
+    <div class="scroll" tabindex="0" aria-label="成績單列表，可左右捲動">
+      <table id="listTable">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty" hidden>沒有符合條件的成績單</div>
+  </section>
+  <p class="note" id="roleNote"></p>
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<dialog id="dlg" class="wide"></dialog>
+
+<script src="../js/scoring.js"></script>
+<script>
+(function () {
+  var STORES = ['測試一店', '測試二店', '測試三店'];
+  var ROLE_LABEL = { cs: '客服部', hq: '總公司主管', manager: '店長' };
+  var R_KEY = 'sampleReports';
+  var DIMS = Scoring.DIMENSIONS, NA = Scoring.NOT_APPLICABLE;
+  var VCLS = { '優秀': 'on', '及格': 'new', '需複訓': 'unk', '不及格': 'out' };
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmt(x) { return String(Math.round(x * 10) / 10); }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  var $ = function (id) { return document.getElementById(id); };
+
+  var tp = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).split('-');
+  var TODAY = Date.UTC(+tp[0], +tp[1] - 1, +tp[2]);
+  function daysAgo(n) {
+    var d = new Date(TODAY - n * 86400000);
+    return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+  }
+
+  // ---- 身分 ----
+  var identity = null;
+  try { identity = JSON.parse(sessionStorage.getItem('sampleIdentity')); } catch (e) {}
+  if (!identity || !ROLE_LABEL[identity.role]) { location.replace('index.html'); return; }
+  if (STORES.indexOf(identity.store) < 0) identity.store = STORES[0];
+  function saveIdentity() { try { sessionStorage.setItem('sampleIdentity', JSON.stringify(identity)); } catch (e) {} }
+  var isCS = function () { return identity.role === 'cs'; };
+
+  // ---- 假資料 ----
+  var CATNAME = { '基': '基礎', '進': '進階', '綜': '綜合' };
+  function st(a) { return a.map(function (x) { return { op: x[0], point: x[1] }; }); }
+  var GROUPS = {
+    '基-A01': { name: '示範題組 A：客人詢問車況', steps: st([
+      ['考官扮客人：「這台車況怎麼樣？」', '先確認客人關心外觀、機件或保養紀錄'],
+      ['考官追問：「有沒有改裝或事故？」', '依實際資料回答，不確定時不亂答'],
+      ['考官說：「那我再想想。」', '留下下一步聯絡方式，不施壓']]) },
+    '基-A02': { name: '示範題組 B：客人詢問價格與分期', steps: st([
+      ['考官扮客人：「這台多少錢？可以分期嗎？」', '總價與分期條件要講清楚'],
+      ['考官追問：「可以再便宜一點嗎？」', '依公司規定回應，不亂承諾'],
+      ['考官問：「那我要準備什麼資料？」', '清楚列出所需文件']]) },
+    '進-B01': { name: '示範題組 C：客人比較兩間門市', steps: st([
+      ['考官扮客人：「隔壁店比你們便宜。」', '不貶低同業，聚焦自家價值'],
+      ['考官追問：「那你們多了什麼？」', '說明保固與售後的具體內容'],
+      ['考官說：「好吧，我考慮一下。」', '主動約定後續聯絡']]) },
+    '進-B02': { name: '示範題組 D：客人要求退訂', steps: st([
+      ['考官扮客人：「我想取消訂車。」', '先安撫，再確認原因'],
+      ['考官問：「訂金可以退嗎？」', '依規定說明，不模糊帶過'],
+      ['考官問：「那要怎麼辦手續？」', '步驟清楚，提醒時限']]) },
+    '綜-C01': { name: '示範題組 E：客人一次問多件事', steps: st([
+      ['考官扮客人：「車況、價格、保固、交車時間都想知道。」', '逐項整理，不遺漏'],
+      ['考官追問：「保固怎麼算？」', '資訊正確'],
+      ['考官問：「交車要多久？」', '不確定的先說明會再確認'],
+      ['考官說：「幫我整理一下。」', '用條列整理重點']]) },
+    '綜-C02': { name: '示範題組 F：客人情緒不佳', steps: st([
+      ['考官扮客人：「你們上次說的跟現在不一樣！」', '先道歉安撫，不推責'],
+      ['考官說：「我要你們主管出來。」', '保持禮貌，說明處理流程'],
+      ['考官問：「那今天能解決嗎？」', '給明確時程，不亂承諾']]) }
+  };
+  // 七個面向的等級縮寫：y 優、l 良、w 待加強、f 不及格、n 不適用、- 尚未評
+  var KEYS = { y: '優', l: '良', w: '待加強', f: '不及格', n: NA };
+  function L(s) {
+    var o = {};
+    DIMS.forEach(function (d, i) { var c = s.charAt(i); if (c && c !== '-') o[d.name] = KEYS[c]; });
+    return o;
+  }
+  function IT(code, lv, note) {
+    var g = GROUPS[code];
+    return { cat: CATNAME[code.charAt(0)], code: code, name: g.name, steps: g.steps, levels: L(lv), note: note || '' };
+  }
+  function R(id, ago, time, store, pid, name, pos, tenure, manual, status, items, reason) {
+    return { id: id, date: daysAgo(ago) + ' ' + time, examiner: '客服示範考官', pid: pid, name: name, store: store, pos: pos,
+      tenure: tenure, manual: manual, status: status, voidReason: reason || '', items: items };
+  }
+  var fake = [
+    R('R-001', 2, '10:30', '測試一店', 'MI-9005', '阿森', '業務', '正式', false, 'submitted',
+      [IT('基-A01', 'yyyyyyy', '回答完整，語氣自然。'), IT('進-B01', 'yyyyyyl', '')]),
+    R('R-002', 4, '15:10', '測試二店', 'MI-9010', '小海', '業務', '正式', false, 'submitted',
+      [IT('綜-C01', 'yylylyy', '第 3 步交車時間說得不夠確定。')]),
+    R('R-003', 6, '11:00', '測試三店', 'MI-9013', '阿宇', '業務', '新人', false, 'submitted',
+      [IT('基-A02', 'lwlwlll', '分期條件有漏講。'), IT('進-B02', 'lwlwlll', '')]),
+    R('R-004', 8, '14:20', '測試一店', 'MI-9011', '小滿', '業務', '新人', false, 'submitted',
+      [IT('綜-C02', 'fwwwwwn', '情緒安撫不足，直接講規定。')]),
+    R('R-005', 10, '09:40', '測試二店', 'MI-9014', '阿豆', '收車業務', '新人', false, 'void',
+      [IT('基-A01', 'lllllll', '')], '考官誤選了考生，已重新評分。'),
+    R('R-006', 1, '16:05', '測試一店', 'MI-9012', '阿北', '業務/助理', '新人', false, 'draft',
+      [IT('基-A02', 'yl-----', '評到一半先暫存。'), IT('進-B01', '-------', '')]),
+    R('R-007', 12, '13:15', '測試二店', 'MI-9015', '阿空', '業務', '新人', true, 'submitted',
+      [IT('進-B02', 'lylylyl', '到職日空白，考前手動指定為新人。')])
+  ];
+  var stored = [];
+  try { stored = JSON.parse(sessionStorage.getItem(R_KEY)) || []; } catch (e) { stored = []; }
+  stored.forEach(function (r) { r.fromStore = true; });
+  var reports = stored.concat(fake);
+  reports.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+  function persistStored() {
+    var list = reports.filter(function (r) { return r.fromStore; }).map(function (r) {
+      var c = {}; Object.keys(r).forEach(function (k) { if (k !== 'fromStore') c[k] = r[k]; }); return c;
+    });
+    try { sessionStorage.setItem(R_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  // ---- 算分（全部走 Scoring）----
+  function calc(r) {
+    var res = Scoring.scoreAssessment(r.items.map(function (i) { return i.levels; }), r.tenure);
+    return res.ok ? res : null;
+  }
+  function visible(r) {
+    if (isCS()) return true;
+    if (r.status !== 'submitted') return false;
+    return identity.role === 'hq' || r.store === identity.store;
+  }
+  function statusTag(r) {
+    if (r.status === 'void') return '<span class="tag out">已作廢</span>';
+    if (r.status === 'draft') return '<span class="tag unk">暫存中</span>';
+    return '<span class="tag on">已送出</span>';
+  }
+
+  // ---- 列表 ----
+  function fillSelect(sel, items, firstAll) {
+    sel.innerHTML = (firstAll ? '<option value="">全部門市</option>' : '') +
+      items.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
+  }
+  fillSelect($('storeFilter'), STORES, true);
+  fillSelect($('storeSelf'), STORES, false);
+
+  function applyIdentityUI() {
+    var label = ROLE_LABEL[identity.role];
+    $('whoBadge').textContent = identity.role === 'manager' ? label + '・' + identity.store : label;
+    $('storeSelf').hidden = identity.role !== 'manager';
+    $('storeSelf').value = identity.store;
+    $('storeFilter').hidden = identity.role === 'manager';
+    $('toAssess').hidden = !isCS();
+    $('roleSwitch').selectedIndex = 0;
+    $('roleNote').textContent = isCS()
+      ? '客服部可看全部成績單，包含暫存中與已作廢，並可作廢已送出的成績單。'
+      : '只顯示已送出且未作廢的成績單；題組名稱、步驟、考點與考官備註只有客服部看得到。';
+    $('thead').innerHTML = '<tr><th>日期</th><th>考生</th><th>門市</th><th>考核時身分</th><th class="num">總分</th><th>判定</th>' +
+      (isCS() ? '<th>狀態</th>' : '') + '<th>操作</th></tr>';
+    closeDetail();
+    render();
+  }
+
+  function render() {
+    var q = $('search').value.trim().toLowerCase();
+    var storeSel = identity.role === 'manager' ? identity.store : $('storeFilter').value;
+    var vSel = $('verdictFilter').value;
+    var cs = isCS();
+    var rows = reports.filter(function (r) {
+      if (!visible(r)) return false;
+      if (storeSel && r.store !== storeSel) return false;
+      if (q && r.pid.toLowerCase().indexOf(q) < 0 && r.name.toLowerCase().indexOf(q) < 0) return false;
+      if (vSel) { var c = calc(r); if (!c || c.verdict !== vSel || r.status === 'draft') return false; }
+      return true;
+    });
+    $('tbody').innerHTML = rows.map(function (r) {
+      var c = r.status === 'draft' ? null : calc(r);
+      return '<tr class="' + (r.status === 'void' ? 'off' : '') + '">' +
+        '<td class="mono">' + esc(r.date) + '</td>' +
+        '<td>' + esc(r.name) + ' <span class="mono" style="font-size:12px;color:var(--ink-3)">' + esc(r.pid) + '</span></td>' +
+        '<td>' + esc(r.store) + '</td>' +
+        '<td>' + esc(r.tenure) + (cs && r.manual ? ' <span class="tag unk">手動指定</span>' : '') + '</td>' +
+        '<td class="num">' + (c ? fmt(c.total) : '—') + '</td>' +
+        '<td>' + (c ? '<span class="tag ' + VCLS[c.verdict] + '">' + esc(c.verdict) + '</span>' : '<span class="tag reg">尚未結算</span>') + '</td>' +
+        (cs ? '<td>' + statusTag(r) + '</td>' : '') +
+        '<td><button type="button" class="btn sm" data-open="' + esc(r.id) + '">查看</button></td></tr>';
+    }).join('');
+    $('empty').hidden = rows.length > 0;
+    $('count').textContent = '共 ' + rows.length + ' 張';
+  }
+
+  // ---- 詳細內容 ----
+  function itemRes(it) { return Scoring.scoreItem(it.levels); }
+
+  // 客服部：完整內容
+  function detailCS(r) {
+    var c = r.status === 'draft' ? null : calc(r);
+    var h = '<div class="dlg"><h2>成績單詳細內容</h2>';
+    if (r.status === 'void') h += '<div class="void-box">已作廢。原因：' + esc(r.voidReason) + '</div>';
+    if (r.status === 'draft') h += '<div class="msg warn">這是暫存中的草稿，尚未結算送出。</div>';
+    h += '<dl class="kv"><dt>日期</dt><dd>' + esc(r.date) + '</dd><dt>考官</dt><dd>' + esc(r.examiner) + '</dd>' +
+      '<dt>考生</dt><dd>' + esc(r.name) + '（' + esc(r.pid) + '）' + esc(r.store) + '・' + esc(r.pos) + '</dd>' +
+      '<dt>考核時身分</dt><dd>' + esc(r.tenure) + (r.manual ? ' <span class="tag unk">手動指定</span>' : '') + '</dd>' +
+      '<dt>狀態</dt><dd>' + statusTag(r) + '</dd>' +
+      '<dt>總分</dt><dd>' + (c ? fmt(c.total) + '（合格線 ' + c.passLine + ' 分）' : '尚未結算') + '</dd>' +
+      '<dt>判定</dt><dd>' + (c ? '<span class="vbox ' + VCLS[c.verdict] + '">' + esc(c.verdict) + '</span>' : '—') + '</dd>' +
+      '<dt>最弱面向</dt><dd>' + (c ? c.weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') : '—') + '</dd></dl>';
+    r.items.forEach(function (it, i) {
+      var ir = itemRes(it), weak = c ? c.weakest : [];
+      h += '<div class="item"><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
+        '<b style="float:right">題組分數 ' + (ir.ok ? fmt(ir.score) : '—') + '</b><h4>題組 ' + (i + 1) + '：' + esc(it.name) + '</h4>' +
+        '<details><summary class="link" style="cursor:pointer">步驟與考點</summary><ul style="list-style:none">' +
+        it.steps.map(function (s, k) { return '<li class="stepli"><b>步驟 ' + (k + 1) + ' 考官操作</b><br>' + esc(s.op) + '<br><b>考點</b><br>' + esc(s.point) + '</li>'; }).join('') + '</ul></details>' +
+        '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' +
+        DIMS.map(function (d) {
+          var lv = it.levels[d.name], pt = ir.ok ? ir.dimPoints[d.name] : null;
+          return '<tr' + (weak.indexOf(d.name) >= 0 ? ' class="weakrow"' : '') + '><td>' + esc(d.name) + (weak.indexOf(d.name) >= 0 ? '（最弱）' : '') + '</td><td class="num">' + d.weight + '</td><td>' + (lv ? esc(lv) : '未評') + '</td><td class="num">' + (lv === NA ? '不適用' : pt === null ? '—' : fmt(pt)) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + '</div></div>';
+    });
+    h += '<div class="actions">' + (r.status === 'submitted' ? '<button class="btn danger" type="button" data-void="' + esc(r.id) + '">作廢這張成績單</button>' : '') +
+      '<button class="btn" type="button" data-close="1">關閉</button></div></div>';
+    return h;
+  }
+
+  // 總公司主管／店長：只有日期、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數
+  function detailLimited(r) {
+    var c = calc(r);
+    if (!c) return '<div class="dlg"><p>這張成績單沒有可顯示的內容。</p><div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
+    var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(r.date) + '</dd><dt>考官</dt><dd>' + esc(r.examiner) + '</dd>' +
+      '<dt>考生</dt><dd>' + esc(r.name) + '（' + esc(r.pid) + '）' + esc(r.store) + '</dd>' +
+      '<dt>考生身分</dt><dd>' + esc(r.tenure) + '</dd>' +
+      '<dt>總分</dt><dd>' + fmt(c.total) + '（合格線 ' + c.passLine + ' 分）</dd>' +
+      '<dt>判定</dt><dd><span class="vbox ' + VCLS[c.verdict] + '">' + esc(c.verdict) + '</span></dd>' +
+      '<dt>最弱面向</dt><dd>' + c.weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') + '</dd></dl>';
+    r.items.forEach(function (it, i) {
+      var ir = c.itemScores[i];
+      h += '<div class="item"><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
+        '<b style="float:right">題組分數 ' + fmt(ir.score) + '</b><div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">得分</th></tr></thead><tbody>' +
+        DIMS.map(function (d) {
+          var pt = ir.dimPoints[d.name];
+          return '<tr><td>' + esc(d.name) + '</td><td class="num">' + (pt === null ? '不適用' : fmt(pt) + ' / ' + d.weight) + '</td></tr>';
+        }).join('') + '</tbody></table></div></div>';
+    });
+    h += '<div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
+    return h;
+  }
+
+  var dlg = $('dlg');
+  function closeDetail() {
+    removeVoidDlg();
+    if (dlg.open) dlg.close();
+    dlg.innerHTML = '';
+  }
+  dlg.addEventListener('close', function () { dlg.innerHTML = ''; });
+
+  $('tbody').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-open]');
+    if (!b) return;
+    var r = reports.filter(function (x) { return x.id === b.dataset.open; })[0];
+    if (!r || !visible(r)) return;
+    dlg.innerHTML = isCS() ? detailCS(r) : detailLimited(r);
+    dlg.showModal();
+  });
+  dlg.addEventListener('click', function (e) {
+    if (e.target.closest('[data-close]')) { closeDetail(); return; }
+    var v = e.target.closest('[data-void]');
+    if (v && isCS()) openVoidDlg(v.dataset.void);
+  });
+
+  // ---- 作廢（只有客服部；對話框在點擊時才建立，其他身分的 DOM 裡不存在）----
+  var voidDlg = null;
+  function removeVoidDlg() { if (voidDlg) { if (voidDlg.open) voidDlg.close(); voidDlg.remove(); voidDlg = null; } }
+  function openVoidDlg(id) {
+    if (!isCS()) return;
+    var r = reports.filter(function (x) { return x.id === id; })[0];
+    if (!r || r.status !== 'submitted') return;
+    removeVoidDlg();
+    voidDlg = document.createElement('dialog');
+    voidDlg.innerHTML = '<form class="dlg" novalidate><h2>作廢成績單</h2>' +
+      '<p>作廢不會刪除紀錄，會保留作廢原因；店長與總公司主管將看不到這張成績單，之後可重新評分。</p>' +
+      '<p style="margin-top:8px"><b>' + esc(r.name) + '（' + esc(r.pid) + '）' + esc(r.date) + '</b></p>' +
+      '<label class="field">作廢原因（必填）<textarea class="ctrl" id="vReason" placeholder="例如：考官誤選考生"></textarea></label>' +
+      '<label class="chk"><input type="checkbox" id="vSure"><span>我確認要作廢這張成績單</span></label>' +
+      '<div class="msg err" id="vErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" id="vNo">取消</button><button class="btn danger" type="submit" id="vYes" disabled>確認作廢</button></div></form>';
+    document.body.appendChild(voidDlg);
+    var reason = voidDlg.querySelector('#vReason'), sure = voidDlg.querySelector('#vSure'), yes = voidDlg.querySelector('#vYes'), err = voidDlg.querySelector('#vErr');
+    function sync() { yes.disabled = !(reason.value.trim() && sure.checked); }
+    reason.addEventListener('input', sync); sure.addEventListener('change', sync);
+    voidDlg.querySelector('#vNo').addEventListener('click', removeVoidDlg);
+    voidDlg.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!isCS()) return;
+      var t = reason.value.trim();
+      if (!t || !sure.checked) { err.textContent = '請填作廢原因並勾選確認。'; err.hidden = false; return; }
+      r.status = 'void'; r.voidReason = t;
+      if (r.fromStore) persistStored();
+      removeVoidDlg();
+      dlg.innerHTML = detailCS(r);
+      render();
+    });
+    voidDlg.showModal();
+  }
+
+  // ---- 篩選、切換身分 ----
+  $('storeFilter').addEventListener('change', render);
+  $('verdictFilter').addEventListener('change', render);
+  $('search').addEventListener('input', render);
+  $('roleSwitch').addEventListener('change', function () { identity.role = this.value; saveIdentity(); applyIdentityUI(); });
+  $('storeSelf').addEventListener('change', function () { identity.store = this.value; saveIdentity(); applyIdentityUI(); });
+  $('logout').addEventListener('click', function () {
+    try { sessionStorage.removeItem('sampleIdentity'); } catch (e) {}
+    location.href = 'index.html';
+  });
+
+  applyIdentityUI();
+})();
+</script>
+</body>
+</html>

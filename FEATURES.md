@@ -25,7 +25,11 @@
 - 匯入檔產生器｜`supabase/import/gen_import.js`｜執行後產生本機匯入 SQL（含個資，不進倉庫），終端機只印數量彙總
 - 設定步驟｜`設定步驟A到D.md`｜Supabase 建表與匯入、GitHub Pages、Google 憑證、Supabase 登入設定
 
-## 階段 2 評分（尚未接上畫面與資料庫）
+## 階段 2 評分
+
+- 進行考核樣品（假資料）｜`樣品/assess.html`｜登入後依序選考生（到職日空白須手動選新人／正式）→ 抽題 → 七面向評分（不適用每題組最多 2 個）→ 結算 → 送出；兩題組 77.5 與 100.0 平均顯示 88.8
+- 成績單樣品（假資料）｜`樣品/reports.html`｜客服部看到題組名稱、步驟、考點、備註並可作廢；主管與店長只看到已送出未作廢的精簡版，頁面內完全沒有題組名稱、步驟、考點、備註
+- 樣品名冊頁導覽｜`樣品/roster.html`｜右上角多了「進行考核」與「成績單」連結
 
 - 評分計算模組｜`js/scoring.js`｜`node tests/scoring.test.js` 印出「通過 N 項」且結束碼 0；範例（良優良待加強優良優）題組分數 77.5
 - 考核資料庫設計稿｜`supabase/assess_schema.sql`、`supabase/assess_verify_fake.sql`｜**尚未在 Supabase 執行**；在 SQL Editor 先執行 schema，再執行 verify（交易內執行並復原），結果表全部通過；說明見 `supabase/README_assess.md`
