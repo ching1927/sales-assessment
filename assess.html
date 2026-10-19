@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>業務考核系統｜進行考核</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button:disabled{cursor:not-allowed;opacity:.5}
+
+.page{max-width:900px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;font-size:13px;color:var(--ink-2)}
+.who .badge{background:var(--accent-soft);color:var(--accent-deep);font-weight:600;padding:6px 12px;border-radius:var(--r-pill);font-size:13px}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.btn{padding:9px 16px;min-height:44px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover:not(:disabled){background:var(--accent-deep)}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:36px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:10px 6px;text-decoration:none}
+.link.warn{color:var(--danger)}
+.mono{font-family:var(--mono)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
+.tag.new{background:var(--info-soft);color:var(--accent-deep)}
+.tag.reg{background:var(--track);color:var(--ink-2)}
+.tag.unk{background:var(--warning-soft);color:var(--warning)}
+.tag.on{background:var(--success-soft);color:var(--success)}
+.tag.out{background:var(--danger-soft);color:var(--danger)}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+.blocked .btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink);margin:0 4px}
+
+/* 步驟條 */
+.steps{display:flex;gap:var(--sp-2);margin-bottom:var(--sp-4);align-items:stretch}
+.steps ol{display:flex;gap:var(--sp-2);list-style:none;flex:1;min-width:0}
+.steps li{flex:1;min-width:0;padding:10px 6px;border-radius:var(--r-ctrl);background:var(--track);color:var(--ink-2);font-size:13px;font-weight:600;text-align:center;line-height:1.3}
+.steps li .n{display:block;font-size:12px;font-weight:700}
+.steps li.cur{background:var(--accent);color:#fff}
+.steps li.done{background:var(--success-soft);color:var(--success)}
+.panel{padding:var(--sp-4);margin-bottom:var(--sp-4)}
+.panel h2{font-size:17px;margin-bottom:var(--sp-3)}
+.hint{color:var(--ink-2);font-size:13px;margin-bottom:var(--sp-3);line-height:1.5}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin-top:var(--sp-2)}
+.msg.warn{background:var(--warning-soft);color:var(--warning);font-weight:600}
+.msg.ok{background:var(--success-soft);color:var(--success);font-weight:600}
+.msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:space-between;margin-top:var(--sp-4)}
+
+/* 選考生 */
+.plist{display:grid;gap:var(--sp-2)}
+.pcard{display:block;width:100%;text-align:left;padding:12px 14px;min-height:56px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong)}
+.pcard[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pcard .l1{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:700}
+.pcard .l2{color:var(--ink-2);font-size:13px;margin-top:4px}
+.seg{display:flex;gap:var(--sp-2);margin-top:var(--sp-3)}
+.seg button{flex:1;min-height:48px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);font-weight:700;font-size:15px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dcard{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;justify-content:space-between;padding:12px 14px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong)}
+.dcard + .dcard{margin-top:var(--sp-2)}
+.dcard .l1{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:700}
+.dcard .l2{color:var(--ink-2);font-size:13px;margin-top:4px;flex-basis:100%}
+.dcard .ops{display:flex;gap:var(--sp-2);align-items:center}
+
+/* 抽題 */
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2)}
+.cat{padding:12px 8px;min-height:92px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);text-align:center}
+.cat[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.cat b{display:block;font-size:16px;margin-bottom:4px}
+.cat span.rest{display:block;font-size:12px;color:var(--ink-2);margin-bottom:8px}
+.bar{height:6px;border-radius:var(--r-pill);background:var(--track);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:var(--r-pill)}
+.drawn{border:1px solid var(--ink-line);border-radius:var(--r-ctrl);padding:12px 14px;margin-bottom:var(--sp-2);background:var(--glass-bg-strong)}
+.drawn h3{font-size:15px;margin:6px 0}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--accent-deep);font-weight:600;font-size:13px;padding:8px 0;min-height:36px}
+.stepli{margin:8px 0 0 0;padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.5;list-style:none}
+.stepli b{color:var(--ink-2);font-size:12px}
+
+/* 評分 */
+.tabs{display:flex;gap:var(--sp-2);overflow-x:auto;margin-bottom:var(--sp-3);padding-bottom:4px}
+.tabs button{flex:0 0 auto;min-height:44px;padding:6px 14px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);font-weight:600;font-size:13px;text-align:left}
+.tabs button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+.tabs button small{display:block;font-weight:600}
+.dim{padding:12px 0;border-bottom:1px solid var(--ink-line)}
+.dim:last-of-type{border-bottom:none}
+.dimhead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px}
+.dimhead b{font-size:15px}
+.dimhead .pt{font-size:13px;color:var(--ink-2);white-space:nowrap}
+.lvrow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.lv{min-height:48px;padding:4px 2px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);font-weight:700;font-size:13px;line-height:1.2}
+.lv[aria-pressed="true"].l0{background:var(--success);border-color:var(--success);color:#fff}
+.lv[aria-pressed="true"].l1{background:var(--accent);border-color:var(--accent);color:#fff}
+.lv[aria-pressed="true"].l2{background:var(--warning);border-color:var(--warning);color:#fff}
+.lv[aria-pressed="true"].l3{background:var(--danger);border-color:var(--danger);color:#fff}
+.lv[aria-pressed="true"].l4{background:var(--ink-2);border-color:var(--ink-2);color:#fff}
+textarea.ctrl{width:100%;min-height:80px;font-size:16px;resize:vertical}
+.fixbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--glass-bg-strong);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));border-top:1px solid var(--ink-line);padding:10px var(--sp-4);box-shadow:0 -6px 24px rgba(17,24,39,0.08)}
+.fixbar .in{max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between}
+.fixbar .sc{font-size:13px;color:var(--ink-2);line-height:1.4}
+.fixbar .sc b{font-size:22px;color:var(--ink)}
+.saved{font-size:12px;color:var(--success);font-weight:600}
+.saved.warn{color:var(--danger)}
+.attach{margin-top:10px;padding:12px;border:1.5px dashed var(--ink-line);border-radius:var(--r-ctrl);background:var(--glass-bg-strong)}
+.attach.drag{border-color:var(--accent);background:var(--accent-soft)}
+.attach .row{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.attach .priv{font-size:12px;color:var(--ink-2);line-height:1.5;flex:1 1 200px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.thumb{border:1px solid var(--ink-line);border-radius:var(--r-sm);padding:6px;background:#fff;text-align:center}
+.thumb .tb{display:block;width:100%;padding:0;border:none;background:none}
+.thumb img{width:100%;height:90px;object-fit:cover;border-radius:6px;display:block;background:var(--track)}
+.thumb .sz{font-size:12px;color:var(--ink-2);margin:4px 0}
+.thumb .btn{width:100%;min-height:44px}
+#lightbox{max-width:min(92vw,900px)}
+#lightbox img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-radius:var(--r-sm)}
+
+/* 結算 */
+.verdict{border-radius:var(--r-card);padding:var(--sp-6) var(--sp-4);text-align:center;border:2px solid;margin-bottom:var(--sp-4)}
+.verdict .vt{font-size:30px;font-weight:800}
+.verdict .vs{font-size:15px;margin-top:6px;font-weight:600}
+.verdict.v-優秀{background:var(--success-soft);color:var(--success);border-color:var(--success)}
+.verdict.v-及格{background:var(--info-soft);color:var(--accent-deep);border-color:var(--accent)}
+.verdict.v-需複訓{background:var(--warning-soft);color:var(--warning);border-color:var(--warning)}
+.verdict.v-不及格{background:var(--danger-soft);color:var(--danger);border-color:var(--danger)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--ink-2)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:rgba(255,255,255,0.8)}
+td.num,th.num{text-align:right}
+tr.sum td{font-weight:700;background:rgba(255,255,255,0.8)}
+.weak{background:var(--warning-soft)}
+.wk{display:inline-block;margin:2px 4px 2px 0;padding:3px 10px;border-radius:var(--r-pill);background:var(--warning-soft);color:var(--warning);font-weight:700;font-size:13px}
+
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:440px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--glass-bg-strong);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));margin:auto;color:var(--ink)}
+dialog::backdrop{background:rgba(15,23,42,0.30)}
+.dlg{padding:var(--sp-6)}
+.dlg h2{font-size:18px;margin-bottom:var(--sp-3)}
+.dlg p{font-size:14px;line-height:1.6;color:var(--ink-2)}
+.actions{display:flex;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.pad-bottom{height:110px}
+
+/* 題組腳本面板：手機／平板是由下往上的面板，桌機是左欄常駐 */
+.script{position:fixed;left:0;right:0;bottom:0;z-index:40;max-height:75vh;display:flex;flex-direction:column;
+  background:#fff;border-radius:var(--r-card) var(--r-card) 0 0;box-shadow:var(--shadow-lg);
+  transform:translateY(105%);visibility:hidden;transition:transform var(--dur-micro) var(--ease),visibility 0s linear var(--dur-micro)}
+.script.open{transform:none;visibility:visible;transition:transform var(--dur-micro) var(--ease)}
+.script .shead{display:flex;gap:var(--sp-3);align-items:flex-start;justify-content:space-between;padding:var(--sp-4) var(--sp-4) var(--sp-2);border-bottom:1px solid var(--ink-line)}
+.script .shead h2{font-size:16px;line-height:1.4}
+.script .sbody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--sp-2) var(--sp-4) var(--sp-4)}
+.script .sstep{margin-top:10px;padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:14px;line-height:1.6}
+.script .sstep b{display:block;color:var(--ink-2);font-size:12px;margin-top:4px}
+.script .sstep b.no{margin-top:0;color:var(--accent-deep);font-size:13px}
+.script-btn{position:fixed;right:16px;bottom:120px;z-index:30;min-height:48px;padding:0 18px;border-radius:var(--r-pill);border:0.5px solid var(--accent);background:var(--accent);color:#fff;font-weight:700;font-size:15px;box-shadow:var(--shadow)}
+.script-back{position:fixed;inset:0;z-index:35;background:rgba(15,23,42,0.30)}
+@media (min-width:1024px){
+  .page.wide{max-width:1180px}
+  .split{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:var(--sp-4);align-items:start}
+  .script{position:sticky;top:var(--sp-4);left:auto;right:auto;bottom:auto;z-index:1;max-height:calc(100vh - 32px);
+    border-radius:var(--r-card);box-shadow:var(--shadow);transform:none;visibility:visible;transition:none}
+  .script .sclose{display:none}
+  .script-btn,.script-back{display:none!important}
+}
+@media (max-width:480px){
+  .top h1{font-size:19px}
+  .steps li{font-size:12px;padding:8px 2px}
+  .cat{padding:10px 4px}
+  .panel{padding:var(--sp-3)}
+  .lv{font-size:12.5px}
+}
+</style>
+</head>
+<body>
+<div class="page" id="pageEl">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <a class="btn" id="blockedGo" href="reports.html" hidden>前往成績單</a>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <div class="top">
+      <h1>進行考核</h1>
+      <div class="who">
+        <span>目前身分</span>
+        <span id="whoEmail"></span>
+        <span class="badge" id="whoBadge"></span>
+        <a class="link" href="reports.html">成績單</a>
+        <a class="link" href="roster.html">人員名冊</a>
+        <button class="link" id="logout" type="button">登出</button>
+      </div>
+    </div>
+
+    <div id="main">
+      <div class="steps">
+        <ol id="stepbar" aria-label="考核步驟"></ol>
+      </div>
+      <div class="top" style="margin:0 0 var(--sp-3)">
+        <span class="saved" id="saved" aria-live="polite"></span>
+        <button class="link warn" id="abandon" type="button" hidden>放棄考核</button>
+      </div>
+      <div id="notice" aria-live="polite"></div>
+      <div id="stage"></div>
+    </div>
+    <div class="pad-bottom" id="padBottom" hidden></div>
+  </div>
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<div class="fixbar" id="fixbar" hidden>
+  <div class="in">
+    <div class="sc"><span id="fixScore" aria-live="polite"></span><br><span id="fixWhy" style="color:var(--warning);font-weight:600" aria-live="polite"></span></div>
+    <button class="btn primary" id="fixGo" type="button">前往結算</button>
+  </div>
+</div>
+
+<div class="script-back" id="scriptBack" hidden></div>
+<button class="script-btn" id="scriptBtn" type="button" aria-controls="scriptPane" aria-expanded="false" hidden>看腳本</button>
+
+<input type="file" id="attachFile" accept="image/jpeg,image/png,image/webp" multiple hidden>
+<dialog id="lightbox"><div class="dlg"><img id="lbImg" alt=""><div class="actions"><button class="btn" type="button" id="lbClose">關閉</button></div></div></dialog>
+
+<dialog id="dlg">
+  <div class="dlg">
+    <h2>放棄這次考核？</h2>
+    <p>放棄後，這位考生這次的評分、備註與附圖都會刪除，已抽出的題組不算已抽過，會回到題池。此動作無法復原。</p>
+    <div class="actions">
+      <button class="btn" type="button" id="dlgNo">繼續考核</button>
+      <button class="btn danger" type="button" id="dlgYes">確定放棄</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/assess-api.js"></script>
+<script>
+(function () {
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+  var DIMS = Scoring.DIMENSIONS, NA = Scoring.NOT_APPLICABLE;
+  var LV_LIST = ['優', '良', '待加強', '不及格', NA];
+  var MAX_NA = 2;
+  var STEP_NAMES = ['選考生', '抽題', '評分', '結算'];
+  var TAG = { '新人': 'new', '正式': 'reg', '未填到職日': 'unk' };
+  var VCLS = { '優秀': 'on', '及格': 'new', '需複訓': 'unk', '不及格': 'out' };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmt(x) { return String(Math.round(Number(x) * 10) / 10); }
+  var $ = function (id) { return document.getElementById(id); };
+
+  function daysSince(dateStr) {
+    var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).split('-');
+    var p = dateStr.split('-');
+    return Math.round((Date.UTC(+today[0], +today[1] - 1, +today[2]) - Date.UTC(+p[0], +p[1] - 1, +p[2])) / 86400000);
+  }
+  function stamp(iso) { return new Date(iso).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 16); }
+  function errText(e) { return (e && e.userMessage) || AssessApi.explain(e); }
+
+  var email = '';
+  var storeName = {};
+  var candidates = [], drafts = [];
+  var pickId = null, manual = null;
+  var busy = false;
+  var finished = null;       // 送出後的資料庫結果
+  var abandonTarget = null;  // 要放棄的考核 id
+
+  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false }; }
+  var S = fresh();
+
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { AssessApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text, showGo) {
+    $('loading').hidden = true; $('app').hidden = true;
+    $('blockedText').textContent = text;
+    $('blockedGo').hidden = !showGo;
+    $('blocked').hidden = false;
+  }
+  function notice(kind, text) {
+    $('notice').innerHTML = text ? '<div class="msg ' + kind + '" role="' + (kind === 'err' ? 'alert' : 'status') + '">' + esc(text) + '</div>' : '';
+  }
+
+  // ====== 自動暫存 ======
+  var dirty = {}, timers = {}, saveChain = Promise.resolve(), saving = 0, saveFailed = false, saveErr = '', uploading = 0, saveEpoch = 0;
+  function itemById(id) { return S.items.filter(function (i) { return i.id === id; })[0]; }
+  function hasUnsaved() { return Object.keys(dirty).length > 0 || saving > 0; }
+  // 還有進行中的上傳或暫存（含排隊中、還在等 600ms 的）時回傳原因，否則回空字串
+  function pendingReason() {
+    if (uploading > 0) return '圖片上傳中，請稍候';
+    if (saving > 0 || Object.keys(timers).length > 0) return '暫存中，請稍候';
+    return '';
+  }
+  function updateSaved() {
+    var el = $('saved');
+    if (saveFailed && Object.keys(dirty).length) { el.textContent = saveErr || '暫存失敗，請稍後再試'; el.classList.add('warn'); }
+    else {
+      el.classList.remove('warn');
+      if (hasUnsaved()) el.textContent = '暫存中…';
+      else el.textContent = (S.aid && S.savedOnce) ? '已自動暫存' : '';
+    }
+    syncPending();
+  }
+  // 依目前狀態更新「前往結算」「送出成績單」按鈕與原因
+  function syncPending() {
+    var why = pendingReason();
+    if (!$('fixbar').hidden) { $('fixGo').disabled = !!why || !allDone(); $('fixWhy').textContent = why; }
+    var sbtn = $('submitBtn');
+    if (sbtn) { sbtn.disabled = busy || !!why; $('submitWhy').textContent = why; }
+  }
+  function markDirty(it) {
+    dirty[it.id] = true;
+    clearTimeout(timers[it.id]);
+    timers[it.id] = setTimeout(function () { flushItem(it.id); }, 600);
+    updateSaved();
+  }
+  function flushItem(id) {
+    clearTimeout(timers[id]); delete timers[id];
+    var epoch = saveEpoch;
+    saveChain = saveChain.then(function () {
+      if (epoch !== saveEpoch) return;   // 已放棄或已送出，這張不再暫存
+      var it = itemById(id);
+      if (!dirty[id] || !it) { delete dirty[id]; updateSaved(); return; }
+      var lv = {};
+      Object.keys(it.levels).forEach(function (k) { if (it.levels[k]) lv[k] = it.levels[k]; });
+      var note = it.note || '';
+      delete dirty[id];   // 請求進行中又有改動會再標回 dirty
+      saving++; updateSaved();
+      return AssessApi.saveItem(id, lv, note).then(function () {
+        if (epoch !== saveEpoch) return;   // 在途請求的回呼：放棄後忽略
+        saving--; saveFailed = false; S.savedOnce = true; updateSaved();
+      }, function (err) {
+        if (epoch !== saveEpoch) return;
+        saving--; dirty[id] = true; saveFailed = true;
+        saveErr = err && err.kind === 'network' ? '暫存失敗，請檢查網路' : '暫存失敗：' + errText(err);
+        updateSaved();
+      });
+    });
+    return saveChain;
+  }
+  function flushAll() {
+    Object.keys(dirty).forEach(function (id) { flushItem(id); });
+    return saveChain.then(function () { return !hasUnsaved(); });
+  }
+  // 放棄或送出後：取消計時器、作廢在途請求的回呼、清掉 dirty
+  function resetSave() {
+    Object.keys(timers).forEach(function (k) { clearTimeout(timers[k]); });
+    saveEpoch++;
+    dirty = {}; timers = {}; saving = 0; saveFailed = false; saveErr = '';
+    $('saved').textContent = ''; $('saved').classList.remove('warn');
+    saveChain = Promise.resolve();
+  }
+  window.addEventListener('beforeunload', function (e) {
+    if (hasUnsaved() || uploading > 0) { e.preventDefault(); e.returnValue = ''; return ''; }
+  });
+
+  // ====== 評分輔助（預覽走 Scoring）======
+  function dimPts(item, dim) {
+    var lv = item.levels[dim];
+    if (!lv || lv === NA) return null;
+    var l = {};
+    DIMS.forEach(function (d) { l[d.name] = d.name === dim ? lv : '優'; });
+    var r = Scoring.scoreItem(l);
+    return r.ok ? r.dimPoints[dim] : null;
+  }
+  function itemDone(item) { return DIMS.every(function (d) { return !!item.levels[d.name]; }); }
+  function naCount(item) { return DIMS.filter(function (d) { return item.levels[d.name] === NA; }).length; }
+  function itemResult(item) { return itemDone(item) ? Scoring.scoreItem(item.levels) : null; }
+  function allDone() { return S.items.length > 0 && S.items.every(function (i) { return itemDone(i); }); }
+  function isManual() { return !!S.emp && S.emp.source === '手動指定'; }
+
+  function normSteps(steps) {
+    return (Array.isArray(steps) ? steps : []).map(function (s) {
+      s = s && typeof s === 'object' ? s : {};
+      return { op: String(s.action != null ? s.action : (s.op != null ? s.op : '')), point: String(s.point != null ? s.point : '') };
+    });
+  }
+  function stepHtml(it) {
+    return '<ul style="list-style:none">' + it.steps.map(function (s, i) {
+      return '<li class="stepli"><b>步驟 ' + (i + 1) + ' 考官操作</b><br>' + esc(s.op) + '<br><b>考點</b><br>' + esc(s.point) + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  // ====== 畫面 ======
+  function renderStepbar() {
+    var cur = finished ? 4 : S.step;
+    $('stepbar').innerHTML = STEP_NAMES.map(function (n, i) {
+      var k = i + 1, c = (k === cur && !finished) ? 'cur' : (k < cur || finished) ? 'done' : '';
+      return '<li class="' + c + '"' + (k === cur ? ' aria-current="step"' : '') + '><span class="n">' + k + (c === 'done' ? '（完成）' : '') + '</span>' + n + '</li>';
+    }).join('');
+    $('abandon').hidden = !(S.aid && !finished);
+  }
+
+  function person() { return candidates.filter(function (p) { return p.id === pickId; })[0]; }
+  function nameOf(p) { return (p.nickname || '').trim() || (p.full_name || '').trim() || p.id; }
+
+  function renderStep1() {
+    var h = '';
+    if (drafts.length) {
+      h += '<section class="panel glass"><h2>我的進行中草稿</h2><p class="hint">這些考核還沒送出，可以繼續或放棄。</p>';
+      drafts.forEach(function (d) {
+        h += '<div class="dcard"><div class="l1"><span>' + esc(d.employee_label) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(d.employee_id) + '</span>' +
+          '<span class="tag ' + (TAG[d.tenure] || 'unk') + '">' + esc(d.tenure) + '</span>' +
+          (d.tenure_source === '手動指定' ? '<span class="tag unk">手動指定</span>' : '') + '</div>' +
+          '<div class="l2">' + esc(storeName[d.store_code] || d.store_code) + '・開始於 ' + esc(stamp(d.created_at)) + '</div>' +
+          '<div class="ops"><button type="button" class="btn sm primary" data-act="resume" data-id="' + esc(d.id) + '">繼續</button>' +
+          '<button type="button" class="link warn" data-act="dropdraft" data-id="' + esc(d.id) + '">放棄</button></div></div>';
+      });
+      h += '</section>';
+    }
+    h += '<section class="panel glass"><h2>1 選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。</p><div class="plist">';
+    if (!candidates.length) h += '<div class="msg info">目前沒有可考核的人員。</div>';
+    candidates.forEach(function (p) {
+      var sel = pickId === p.id, tg = p.hire_date ? (p.tenure_group || '') : '未填到職日';
+      h += '<button type="button" class="pcard" data-act="pick" data-id="' + esc(p.id) + '" aria-pressed="' + sel + '">' +
+        '<div class="l1"><span>' + esc(nameOf(p)) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(p.id) + '</span><span class="tag ' + (TAG[tg] || 'unk') + '">' + esc(tg || '未填到職日') + '</span></div>' +
+        '<div class="l2">' + esc(storeName[p.store_code] || p.store_code) + '・' + esc(p.job_title) + '・到職日 ' + (p.hire_date ? esc(p.hire_date) + '（第 ' + daysSince(p.hire_date) + ' 天）' : '未填') + '</div></button>';
+    });
+    h += '</div>';
+    var p = person(), ready = !!p;
+    if (p && !p.hire_date) {
+      h += '<div class="msg warn">這位考生到職日空白，系統無法判斷身分，請先手動指定「新人」或「正式」。成績單會標示「手動指定」。</div>' +
+        '<div class="seg" role="group" aria-label="手動指定身分">' +
+        ['新人', '正式'].map(function (t) { return '<button type="button" data-act="tenure" data-v="' + t + '" aria-pressed="' + (manual === t) + '">' + t + '</button>'; }).join('') + '</div>';
+      if (!manual) ready = false;
+    }
+    h += '<div class="nav"><span></span><button class="btn primary" type="button" data-act="next1"' + (ready && !busy ? '' : ' disabled') + '>下一步：抽題</button></div></section>';
+    $('stage').innerHTML = h;
+  }
+
+  function renderStep2() {
+    var e = S.emp;
+    var h = '<section class="panel glass"><h2>2 抽題</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。勾選要考的分類，每個分類各抽 1 個題組。</p>';
+    if (!S.drawn) {
+      if (!S.catInfo) { h += '<div class="loading" role="status">載入分類中…</div></section>'; $('stage').innerHTML = h; return; }
+      h += '<div class="cats">' + S.catInfo.map(function (b) {
+        var on = S.cats.indexOf(b.category) >= 0, pct = b.total ? Math.round(b.remaining / b.total * 100) : 0;
+        return '<button type="button" class="cat" data-act="cat" data-cat="' + esc(b.category) + '" aria-pressed="' + on + '"><b>' + esc(b.category) + (on ? '（已勾選）' : '') + '</b>' +
+          '<span class="rest">剩餘 ' + esc(b.remaining) + ' / ' + esc(b.total) + ' 題</span><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div></button>';
+      }).join('') + '</div>';
+      h += '<div class="nav"><button class="btn" type="button" data-act="back2">上一步</button>' +
+        '<button class="btn primary" type="button" data-act="draw"' + (S.cats.length && !busy ? '' : ' disabled') + '>抽 ' + S.cats.length + ' 題</button></div>';
+      if (!S.cats.length) h += '<div class="msg info">請先勾選至少一個分類。</div>';
+    } else {
+      S.items.forEach(function (it) {
+        var note = '';
+        if (it.repeated) note += '<div class="msg warn">此分類題組都考過，已重複抽出。</div>';
+        if (it.newRound) note += '<div class="msg info">此分類本輪題組已抽完，已開始新的一輪。</div>';
+        h += '<div class="drawn"><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span><h3>' + esc(it.name) + '</h3>' + note +
+          '<details><summary>查看步驟與考點</summary>' + stepHtml(it) + '</details></div>';
+      });
+      h += '<div class="nav"><span class="hint" style="margin:0">抽出後不能重抽；要換分類請放棄考核重新開始。</span>' +
+        '<button class="btn primary" type="button" data-act="start3">開始評分</button></div>';
+    }
+    h += '</section>';
+    $('stage').innerHTML = h;
+  }
+
+  function renderStep3() {
+    var it = S.items[S.cur];
+    var h = '<div class="tabs" role="group" aria-label="題組分頁">' + S.items.map(function (x, i) {
+      return '<button type="button" data-act="tab" data-i="' + i + '" aria-pressed="' + (i === S.cur) + '">題組 ' + (i + 1) + '・' + esc(x.cat) +
+        '<small style="color:' + (itemDone(x) ? 'var(--success)' : 'var(--warning)') + '">' + (itemDone(x) ? '已評完' : '未評完') + '</small></button>';
+    }).join('') + '</div>';
+    h += '<div class="split">' +
+      '<aside class="script' + (scriptOpen ? ' open' : '') + '" id="scriptPane" aria-label="題組腳本"><div class="shead"><h2>題組腳本：' + esc(it.code) + ' ' + esc(it.name) + '<br><span class="tag new">' + esc(it.cat) + '</span></h2>' +
+      '<button type="button" class="btn sclose" id="scriptClose">關閉</button></div><div class="sbody">' +
+      it.steps.map(function (s, i) {
+        return '<div class="sstep"><b class="no">步驟 ' + (i + 1) + '</b><b>考官操作</b>' + esc(s.op || '—') + '<b>考點</b>' + esc(s.point || '—') + '</div>';
+      }).join('') + '</div></aside><div>';
+    h += '<section class="panel glass"><h2>3 評分：' + esc(it.name) + '</h2><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>';
+    var nas = naCount(it);
+    h += '<p class="hint" style="margin-top:12px">七個面向各選一個等級。「不適用」每個題組最多 ' + MAX_NA + ' 個。</p>';
+    DIMS.forEach(function (d) {
+      var cur = it.levels[d.name], pts = dimPts(it, d.name);
+      var ptxt = !cur ? '尚未評分' : cur === NA ? '不適用' : fmt(pts) + ' / ' + d.weight + ' 分';
+      h += '<div class="dim"><div class="dimhead"><b>' + esc(d.name) + '（配分 ' + d.weight + '）</b><span class="pt">' + ptxt + '</span></div><div class="lvrow" role="group" aria-label="' + esc(d.name) + '等級">';
+      LV_LIST.forEach(function (lv, i) {
+        var dis = (lv === NA && cur !== NA && nas >= MAX_NA);
+        h += '<button type="button" class="lv l' + i + '" data-act="lv" data-dim="' + esc(d.name) + '" data-lv="' + esc(lv) + '" aria-pressed="' + (cur === lv) + '"' + (dis ? ' disabled' : '') + '>' + esc(lv) + '</button>';
+      });
+      h += '</div></div>';
+    });
+    if (nas >= MAX_NA) h += '<div class="msg warn">此題組已有 ' + MAX_NA + ' 個面向標「不適用」，已達上限，其餘面向的「不適用」暫時不能選。要再選請先取消其中一個。</div>';
+    h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填，只有客服部看得到）</label>' +
+      '<textarea class="ctrl" id="noteBox" data-note="' + S.cur + '" placeholder="例如：第 2 步回答不夠具體">' + esc(it.note || '') + '</textarea>';
+    h += attachHtml(it);
+    h += '<div class="nav"><button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
+      '<button class="btn" type="button" data-act="nextItem"' + (S.cur === S.items.length - 1 ? ' disabled' : '') + '>下一個題組</button></div></section></div></div>';
+    $('stage').innerHTML = h;
+    hydrateImages($('stage'));
+  }
+
+  function renderBar() {
+    var show = S.step === 3 && !finished && !!S.aid;
+    $('fixbar').hidden = !show; $('padBottom').hidden = !show;
+    $('scriptBtn').hidden = !show;
+    $('pageEl').classList.toggle('wide', !!show);
+    if (!show) { setScript(false); return; }
+    var it = S.items[S.cur], res = itemResult(it);
+    var got = DIMS.filter(function (d) { return it.levels[d.name]; }).length;
+    var txt;
+    if (res && res.ok) txt = '題組 ' + (S.cur + 1) + ' 目前分數：<b>' + fmt(res.score) + '</b> 分';
+    else {
+      var sum = 0;
+      DIMS.forEach(function (d) { var p = dimPts(it, d.name); if (p !== null) sum += p; });
+      txt = '題組 ' + (S.cur + 1) + ' 已評 ' + got + ' / 7 面向，累計 <b>' + fmt(sum) + '</b> 分（評完才有題組分數）';
+    }
+    var left = S.items.filter(function (x) { return !itemDone(x); }).length;
+    txt += '<br>' + (left ? '還有 ' + left + ' 個題組沒評完，不能結算' : '所有題組都已評完');
+    $('fixScore').innerHTML = txt;
+    syncPending();
+  }
+
+  function renderStep4() {
+    var res = Scoring.scoreAssessment(S.items.map(function (i) { return i.levels; }), S.emp.tenure);
+    if (!res.ok) { $('stage').innerHTML = '<section class="panel glass"><div class="msg err">' + esc(res.error) + '</div><div class="nav"><button class="btn" type="button" data-act="back3">回評分</button></div></section>'; return; }
+    var h = '<div class="msg info" role="status" style="margin-bottom:var(--sp-3)">以下是預覽；按「送出成績單」後，以資料庫計算的結果為準。</div>';
+    h += '<div class="verdict v-' + esc(res.verdict) + '" role="status"><div class="vt">判定：' + esc(res.verdict) + '</div>' +
+      '<div class="vs">總分 ' + fmt(res.total) + ' 分（合格線 ' + res.passLine + ' 分・' + esc(S.emp.tenure) + '）</div></div>';
+    h += '<section class="panel glass"><h2>4 結算</h2><dl class="kv">' +
+      '<dt>考生</dt><dd>' + esc(S.emp.label) + '（' + esc(S.emp.id) + '）' + esc(storeName[S.emp.store] || S.emp.store) + '</dd>' +
+      '<dt>考核時身分</dt><dd>' + esc(S.emp.tenure) + (isManual() ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + '</dd>' +
+      '<dt>總分</dt><dd>' + fmt(res.total) + '（' + S.items.length + ' 個題組的平均）</dd>' +
+      '<dt>最弱面向</dt><dd>' + res.weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') + '</dd></dl></section>';
+    h += '<section class="panel glass"><h2>各題組七面向分數</h2>' + dimTable(
+      S.items.map(function (it) { return { code: it.code, levels: it.levels, pts: null, score: null }; }),
+      res.itemScores.map(function (r) { return { dim: r.dimPoints, score: r.score }; }), res.weakest) +
+      '<p class="hint" style="margin-top:8px">不適用的面向不計入，其餘面向配分等比放大成 100 分。</p></section>';
+    h += '<div class="nav"><button class="btn" type="button" data-act="back3">回去修改評分</button>' +
+      '<button class="btn primary" type="button" id="submitBtn" data-act="submit"' + (busy || pendingReason() ? ' disabled' : '') + '>送出成績單</button></div>' +
+      '<div class="hint" id="submitWhy" style="text-align:right;margin-top:8px;color:var(--warning);font-weight:600" aria-live="polite">' + esc(pendingReason()) + '</div>';
+    $('stage').innerHTML = h;
+  }
+
+  // 七面向表格：heads = [{code, levels}]，vals = [{dim:{面向:分數|null}, score}]
+  function dimTable(heads, vals, weakest) {
+    var h = '<div class="scroll"><table><thead><tr><th>面向（配分）</th>' +
+      heads.map(function (it, i) { return '<th class="num">題組 ' + (i + 1) + '<br>' + esc(it.code) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    DIMS.forEach(function (d) {
+      var isW = weakest.indexOf(d.name) >= 0;
+      h += '<tr' + (isW ? ' class="weak"' : '') + '><td>' + esc(d.name) + '（' + d.weight + '）' + (isW ? '【最弱】' : '') + '</td>' +
+        heads.map(function (it, i) {
+          var pt = vals[i].dim ? vals[i].dim[d.name] : null;
+          return '<td class="num">' + esc(it.levels[d.name] || '') + '　' + (pt === null || pt === undefined ? '—' : fmt(pt)) + '</td>';
+        }).join('') + '</tr>';
+    });
+    h += '<tr class="sum"><td>題組分數</td>' + vals.map(function (v) { return '<td class="num">' + (v.score === null || v.score === undefined ? '—' : fmt(v.score)) + '</td>'; }).join('') + '</tr></tbody></table></div>';
+    return h;
+  }
+
+  // 送出後：全部以資料庫回傳為準
+  function renderDone() {
+    var f = finished, db = f.db, total = Number(db.total_score), weakest = db.weakest_dims || [];
+    var h = '';
+    if (f.mismatch) h += '<div class="msg err" role="alert" style="margin-bottom:var(--sp-3)">預覽與資料庫計算不一致，請通知管理人員。以下顯示的是資料庫的計算結果。</div>';
+    h += '<div class="msg ok" role="status" style="margin-bottom:var(--sp-3)">已存入成績單</div>';
+    h += '<div class="verdict v-' + esc(db.verdict) + '" role="status"><div class="vt">判定：' + esc(db.verdict) + '</div>' +
+      '<div class="vs">總分 ' + fmt(total) + ' 分（合格線 ' + esc(db.pass_line) + ' 分・' + esc(db.tenure) + '）</div></div>';
+    h += '<section class="panel glass"><dl class="kv">' +
+      '<dt>考生</dt><dd>' + esc(f.emp.label) + '（' + esc(f.emp.id) + '）' + esc(storeName[f.emp.store] || f.emp.store) + '</dd>' +
+      '<dt>考核時身分</dt><dd>' + esc(db.tenure) + (f.emp.source === '手動指定' ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + '</dd>' +
+      '<dt>總分</dt><dd>' + fmt(total) + '（' + esc(db.item_count) + ' 個題組的平均）</dd>' +
+      '<dt>最弱面向</dt><dd>' + weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') + '</dd></dl></section>';
+    h += '<section class="panel glass"><h2>各題組分數</h2>' + dimTable(
+      f.rows.map(function (r) { return { code: r.code, levels: r.levels || {} }; }),
+      f.rows.map(function (r) { return { dim: r.dim_points, score: r.item_score }; }), weakest) + '</section>';
+    h += '<div class="nav"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="reports.html">前往成績單</a></div>';
+    $('stage').innerHTML = h;
+  }
+
+  function render() {
+    var a = document.activeElement, key = a && a.getAttribute && a.getAttribute('data-act') ? keyOf(a) : null;
+    renderStepbar();
+    if (finished) renderDone();
+    else if (S.step === 1) renderStep1();
+    else if (S.step === 2) renderStep2();
+    else if (S.step === 3) renderStep3();
+    else renderStep4();
+    renderBar();
+    if (key) {
+      var all = document.querySelectorAll('[data-act]');
+      for (var i = 0; i < all.length; i++) { if (keyOf(all[i]) === key && !all[i].disabled) { all[i].focus(); break; } }
+    }
+  }
+  function keyOf(el) {
+    return [el.getAttribute('data-act'), el.getAttribute('data-id'), el.getAttribute('data-v'), el.getAttribute('data-cat'), el.getAttribute('data-i'), el.getAttribute('data-dim'), el.getAttribute('data-lv')].join('|');
+  }
+
+  // ====== 題組腳本面板（只切 class，不重繪）======
+  var scriptOpen = false;
+  function setScript(open) {
+    scriptOpen = open;
+    var pane = $('scriptPane');
+    if (pane) pane.classList.toggle('open', open);
+    $('scriptBack').hidden = !open;
+    $('scriptBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  $('scriptBtn').addEventListener('click', function () { setScript(!scriptOpen); });
+  $('scriptBack').addEventListener('click', function () { setScript(false); });
+  $('stage').addEventListener('click', function (e) { if (e.target.closest('#scriptClose')) { setScript(false); $('scriptBtn').focus(); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && scriptOpen) { setScript(false); $('scriptBtn').focus(); } });
+
+  // ====== 考官備註附圖（存 Storage，一律用簽名網址顯示）======
+  var MAX_IMGS = 5, MAX_BYTES = 8 * 1024 * 1024, MAX_EDGE = 1600, MAX_OUT = 2 * 1024 * 1024;
+  var OK_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  var EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  var imgMsgs = [];
+  var uploadChain = Promise.resolve();
+  function fmtSize(b) { return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1048576).toFixed(1) + ' MB'; }
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var b = new Uint8Array(16); crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    var x = Array.prototype.map.call(b, function (n) { return (n < 16 ? '0' : '') + n.toString(16); }).join('');
+    return x.slice(0, 8) + '-' + x.slice(8, 12) + '-' + x.slice(12, 16) + '-' + x.slice(16, 20) + '-' + x.slice(20);
+  }
+
+  function attachHtml(it) {
+    var imgs = it.imgs || [];
+    var h = '<div class="attach" id="attachZone" tabindex="0" aria-label="附圖區，可貼上、拖曳或選擇圖片">' +
+      '<p class="hint" style="margin-bottom:8px"><b>附圖</b>（<span id="attachCount">' + imgs.length + '</span> / ' + MAX_IMGS + ' 張）：在備註框按 Ctrl+V 貼上圖片，或把圖片拖進這裡，或按「選擇圖片」。只收 png、jpeg、webp，單張原檔不超過 8MB。</p>' +
+      '<div class="row"><button type="button" class="btn" id="pickBtn">選擇圖片</button>' +
+      '<span class="priv">圖片可能含客人個資，請只附必要的內容；送出後總公司主管與該門市店長也看得到圖片。</span></div>';
+    return h + '<div id="attachDyn">' + attachDynHtml(it) + '</div></div>';
+  }
+  function attachDynHtml(it) {
+    var imgs = it.imgs || [], h = '';
+    if (imgMsgs.length) h += '<div class="msg warn" role="alert">' + imgMsgs.map(esc).join('；') + '</div>';
+    if (uploading > 0) h += '<div class="msg info" role="status">圖片上傳中…</div>';
+    if (imgs.length) {
+      h += '<div class="thumbs">' + imgs.map(function (m, i) {
+        var u = AssessApi.peekUrl(m.path);
+        return '<div class="thumb"><button type="button" class="tb" data-zoom="' + i + '" aria-label="放大檢視備註附圖 ' + (i + 1) + '"><img data-path="' + esc(m.path) + '"' + (u ? ' src="' + esc(u) + '"' : '') + ' alt="備註附圖 ' + (i + 1) + '"></button>' +
+          '<div class="sz">備註附圖 ' + (i + 1) + '・' + fmtSize(m.size || 0) + '</div>' +
+          '<button type="button" class="btn" data-rm="' + i + '"' + (m.removing ? ' disabled' : '') + '>移除</button></div>';
+      }).join('') + '</div>';
+    }
+    return h;
+  }
+  // 把還沒有 src 的縮圖補上簽名網址
+  function hydrateImages(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('img[data-path]'), function (img) {
+      if (img.getAttribute('src')) return;
+      var path = img.getAttribute('data-path');
+      AssessApi.signedUrl(path).then(function (u) { if (img.isConnected) img.src = u; }, function () {});
+    });
+  }
+  // 簽名網址過期或失效時（圖片載入失敗），重取一次
+  document.addEventListener('error', function (e) {
+    var img = e.target;
+    if (!img || img.tagName !== 'IMG' || !img.hasAttribute('data-path') || img.getAttribute('data-retry')) return;
+    img.setAttribute('data-retry', '1');
+    var path = img.getAttribute('data-path');
+    AssessApi.forgetUrl(path);
+    AssessApi.signedUrl(path).then(function (u) { img.src = u; }, function () {});
+  }, true);
+
+  function updateAttach() {
+    var dyn = $('attachDyn'), it = S.items[S.cur];
+    if (!dyn || !it || S.step !== 3 || finished) return;
+    dyn.innerHTML = attachDynHtml(it);
+    $('attachCount').textContent = (it.imgs || []).length;
+    hydrateImages(dyn);
+  }
+
+  // 縮到最長邊 1600px、轉 JPEG；品質 0.82 → 0.7 → 0.6 直到 ≤ 2MB
+  function shrink(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var cv;
+        try {
+          var w = im.naturalWidth, hh = im.naturalHeight, m = Math.max(w, hh), sc = m > MAX_EDGE ? MAX_EDGE / m : 1;
+          var cw = Math.max(1, Math.round(w * sc)), ch = Math.max(1, Math.round(hh * sc));
+          cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+          var cx = cv.getContext('2d');
+          cx.fillStyle = '#fff'; cx.fillRect(0, 0, cw, ch); // 透明 png 轉白底
+          cx.drawImage(im, 0, 0, cw, ch);
+        } catch (e) { URL.revokeObjectURL(url); reject(e); return; }
+        URL.revokeObjectURL(url);
+        var qs = [0.82, 0.7, 0.6], qi = 0;
+        (function tryQ() {
+          cv.toBlob(function (b) {
+            if (!b) { reject(new Error('read')); return; }
+            if (b.size <= MAX_OUT) { resolve({ blob: b, mime: 'image/jpeg', size: b.size }); return; }
+            if (qi >= qs.length - 1) { reject(new Error('big')); return; }
+            qi++; tryQ();
+          }, 'image/jpeg', qs[qi]);
+        })();
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); reject(new Error('read')); };
+      im.src = url;
+    });
+  }
+
+  // 縮圖 → 上傳 Storage → 登記資料列；登記失敗要把剛上傳的檔案刪掉
+  // aid、itemId 在使用者加入圖片當下就取好，不在上傳當下才讀 S.aid
+  function uploadOne(aid, it, f) {
+    var itemId = it.id;
+    return shrink(f).then(function (r) {
+      var path = aid + '/' + itemId + '/' + uuid() + '.' + EXT[r.mime];
+      return AssessApi.uploadImage(path, r.blob, r.mime).then(function () {
+        return AssessApi.addImage(itemId, path, r.mime, r.size).then(function (id) {
+          it.imgs.push({ id: id, path: path, mime: r.mime, size: r.size });
+        }, function (err) {
+          AssessApi.removeFiles([path]);
+          throw err;
+        });
+      });
+    });
+  }
+
+  function addFiles(files) {
+    var it = S.items[S.cur];
+    if (!it || S.step !== 3 || finished || !S.aid) return;
+    var aid = S.aid;
+    it.imgs = it.imgs || []; imgMsgs = [];
+    var list = Array.prototype.slice.call(files);
+    uploading += list.length;   // 排隊中的也算「上傳中」
+    list.forEach(function (f) {
+      uploadChain = uploadChain.then(function () {
+        function done() { uploading--; syncPending(); }
+        if (S.aid !== aid) { done(); return; }   // 已放棄或換了考核，不再上傳
+        if (OK_TYPES.indexOf(f.type) < 0) { imgMsgs.push('不支援的格式：' + f.name + '（只收 png、jpeg、webp）'); done(); return; }
+        if (f.size > MAX_BYTES) { imgMsgs.push('圖片太大：' + f.name + '（單張原檔不能超過 8MB）'); done(); return; }
+        if (it.imgs.length >= MAX_IMGS) { if (imgMsgs.indexOf('最多 5 張') < 0) imgMsgs.push('最多 5 張'); done(); return; }
+        updateAttach();
+        return uploadOne(aid, it, f).then(done, function (err) {
+          done();
+          imgMsgs.push(err && err.message === 'big' ? '圖片縮圖後仍超過 2MB：' + f.name
+            : err && err.message === 'read' ? '無法讀取圖片：' + f.name
+            : f.name + '：' + errText(err));
+        });
+      });
+    });
+    updateAttach(); syncPending();
+    uploadChain = uploadChain.then(function () { updateAttach(); renderBar(); });
+  }
+
+  function removeImg(it, idx) {
+    var m = (it.imgs || [])[idx];
+    if (!m || m.removing) return;
+    m.removing = true; imgMsgs = []; updateAttach();
+    AssessApi.removeImage(m.id).then(function (path) {
+      var i = it.imgs.indexOf(m); if (i >= 0) it.imgs.splice(i, 1);
+      return AssessApi.removeFiles([path || m.path]).then(function (r) {
+        if (!r.ok) imgMsgs.push('圖片已移除，但檔案沒能從儲存空間刪除，可能留有孤兒檔案，請通知管理人員清理。');
+      });
+    }, function (err) {
+      m.removing = false; imgMsgs.push(errText(err));
+    }).then(function () { updateAttach(); });
+  }
+
+  function openLightbox(path, alt) {
+    AssessApi.signedUrl(path).then(function (u) {
+      $('lbImg').src = u; $('lbImg').alt = alt;
+      if (!$('lightbox').open) $('lightbox').showModal();
+    }, function (err) { imgMsgs = [errText(err)]; updateAttach(); });
+  }
+  $('lbImg').addEventListener('error', function () {
+    // 放大圖載入失敗（網址可能過期）：重取一次
+    var cur = this.getAttribute('data-retry');
+    if (cur || !this.getAttribute('data-path')) return;
+    this.setAttribute('data-retry', '1');
+    var p = this.getAttribute('data-path');
+    AssessApi.forgetUrl(p);
+    AssessApi.signedUrl(p).then(function (u) { $('lbImg').src = u; }, function () {});
+  });
+  $('lbClose').addEventListener('click', function () { $('lightbox').close(); });
+  $('lightbox').addEventListener('click', function (e) { if (e.target === $('lightbox')) $('lightbox').close(); });
+  $('lightbox').addEventListener('close', function () { $('lbImg').removeAttribute('src'); $('lbImg').removeAttribute('data-retry'); $('lbImg').removeAttribute('data-path'); });
+  $('attachFile').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+
+  $('stage').addEventListener('click', function (e) {
+    if (e.target.closest('#pickBtn')) { $('attachFile').click(); return; }
+    var z = e.target.closest('[data-zoom]');
+    if (z) {
+      var m = (S.items[S.cur].imgs || [])[+z.dataset.zoom];
+      if (m) { $('lbImg').setAttribute('data-path', m.path); openLightbox(m.path, '備註附圖 ' + (+z.dataset.zoom + 1)); }
+      return;
+    }
+    var r = e.target.closest('[data-rm]');
+    if (r) removeImg(S.items[S.cur], +r.dataset.rm);
+  });
+  $('stage').addEventListener('paste', function (e) {
+    if (!e.target.closest || !e.target.closest('#noteBox,#attachZone')) return;
+    var cd = e.clipboardData; if (!cd || !cd.items) return;
+    var files = [];
+    for (var i = 0; i < cd.items.length; i++) {
+      if (cd.items[i].kind === 'file' && cd.items[i].type.indexOf('image/') === 0) { var f = cd.items[i].getAsFile(); if (f) files.push(f); }
+    }
+    // 只有「有圖片檔且沒有純文字」才攔截；從 Excel／Word 複製（同時有文字）照常貼進文字框
+    if (!files.length || Array.prototype.indexOf.call(cd.types || [], 'text/plain') >= 0) return;
+    e.preventDefault();
+    addFiles(files);
+  });
+  function hasFiles(e) { return !!(e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0); }
+  $('stage').addEventListener('dragover', function (e) {
+    var z = e.target.closest('#attachZone'); if (!z || !hasFiles(e)) return;
+    e.preventDefault(); z.classList.add('drag');
+  });
+  $('stage').addEventListener('dragleave', function (e) {
+    var z = e.target.closest('#attachZone'); if (z) z.classList.remove('drag');
+  });
+  $('stage').addEventListener('drop', function (e) {
+    var z = e.target.closest('#attachZone'); if (!z || !hasFiles(e)) return;
+    e.preventDefault(); z.classList.remove('drag');
+    if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+  // 拖到附圖區以外的地方不要讓瀏覽器直接打開圖片
+  document.addEventListener('dragover', function (e) { if (hasFiles(e)) e.preventDefault(); });
+  document.addEventListener('drop', function (e) { if (hasFiles(e)) e.preventDefault(); });
+
+  // ====== 資料載入與流程 ======
+  function loadStep1() {
+    return Promise.all([AssessApi.candidates(), AssessApi.myDrafts(email)]).then(function (r) {
+      candidates = r[0]; drafts = r[1];
+      if (pickId && !person()) pickId = null;
+    });
+  }
+  function toStep1() {
+    S = fresh(); pickId = null; manual = null; imgMsgs = []; resetSave();
+    return loadStep1().then(function () { render(); }, function (e) { notice('err', errText(e)); render(); });
+  }
+
+  function itemFromDb(r) {
+    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: r.levels || {}, note: r.note || '', imgs: r.imgs || [] };
+  }
+  function empFromDraft(a) {
+    return { id: a.employee_id, label: a.employee_label, store: a.store_code, tenure: a.tenure, source: a.tenure_source };
+  }
+  // 載入一張草稿並回到對應步驟
+  function openDraft(aid) {
+    return AssessApi.loadDraft(aid).then(function (d) {
+      S = fresh(); resetSave(); imgMsgs = [];
+      S.aid = d.a.id; S.emp = empFromDraft(d.a);
+      S.items = d.items.map(itemFromDb);
+      if (S.items.length) { S.drawn = true; S.step = 3; S.cur = 0; }
+      else { S.step = 2; }
+      return d;
+    });
+  }
+  function loadCats() {
+    return AssessApi.categories().then(function (list) { S.catInfo = list; }, function (e) { S.catInfo = []; notice('err', errText(e)); });
+  }
+
+  function run(job) {
+    if (busy) return;
+    busy = true; notice('', ''); render();
+    return job().then(function () { busy = false; render(); window.scrollTo(0, 0); },
+      function (e) { busy = false; notice('err', errText(e)); render(); });
+  }
+
+  $('stage').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b || b.disabled || busy) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'pick') { if (pickId !== b.dataset.id) { pickId = b.dataset.id; manual = null; } }
+    else if (act === 'tenure') manual = b.dataset.v;
+    else if (act === 'resume') {
+      var rid = b.dataset.id;
+      run(function () { return openDraft(rid).then(function () { if (S.step === 2) return loadCats(); }); });
+      return;
+    }
+    else if (act === 'dropdraft') { abandonTarget = b.dataset.id; $('dlg').showModal(); return; }
+    else if (act === 'next1') {
+      var p = person();
+      if (!p) return;
+      run(function () {
+        return AssessApi.start(p.id, p.hire_date ? null : manual).then(function (aid) { return openDraft(aid); }).then(function () {
+          if (S.items.length) notice('info', '這位考生已有進行中的草稿，已接續上次的評分。');
+          else return loadCats();
+        });
+      });
+      return;
+    }
+    else if (act === 'back2') { toStep1(); return; }
+    else if (act === 'cat') {
+      if (S.drawn) return;
+      var i = S.cats.indexOf(b.dataset.cat); if (i >= 0) S.cats.splice(i, 1); else S.cats.push(b.dataset.cat);
+    }
+    else if (act === 'draw') {
+      var order = S.catInfo.map(function (c) { return c.category; });
+      var cats = S.cats.slice().sort(function (a, c) { return order.indexOf(a) - order.indexOf(c); });
+      run(function () {
+        var aid = S.aid;
+        return AssessApi.draw(aid, cats).then(function (rows) {
+          S.items = rows.map(function (r) {
+            return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round };
+          });
+          S.drawn = true; S.cur = 0;
+        }, function (err) {
+          // 抽題其實成功但回應遺失、重試時被擋（已抽過）：重新載入草稿接續
+          if (!/已抽過|最多一個題組/.test((err && err.userMessage) || '')) throw err;
+          return openDraft(aid).then(function () {
+            if (S.step === 2) return loadCats();
+            notice('info', '這張考核已經抽過題，已重新載入並接續。');
+          }, function () { throw err; });
+        });
+      });
+      return;
+    }
+    else if (act === 'start3') { S.step = 3; S.cur = 0; }
+    else if (act === 'tab') { S.cur = +b.dataset.i; imgMsgs = []; }
+    else if (act === 'prevItem') { S.cur = Math.max(0, S.cur - 1); imgMsgs = []; }
+    else if (act === 'nextItem') { S.cur = Math.min(S.items.length - 1, S.cur + 1); imgMsgs = []; }
+    else if (act === 'lv') {
+      var it = S.items[S.cur], dim = b.dataset.dim, lv = b.dataset.lv;
+      if (lv === NA && it.levels[dim] !== NA && naCount(it) >= MAX_NA) return;
+      it.levels[dim] = lv;
+      markDirty(it);
+    }
+    else if (act === 'back3') S.step = 3;
+    else if (act === 'submit') { submitReport(); return; }
+    else if (act === 'again') { finished = null; notice('', ''); toStep1(); return; }
+    render();
+    if (act === 'start3') window.scrollTo(0, 0);
+  });
+  $('fixGo').addEventListener('click', function () {
+    if (!allDone() || pendingReason()) return;
+    S.step = 4; render(); window.scrollTo(0, 0);
+  });
+  $('stage').addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'noteBox') { var it = S.items[+t.getAttribute('data-note')]; it.note = t.value; markDirty(it); }
+  });
+
+  // ====== 放棄考核 ======
+  var dlg = $('dlg');
+  $('abandon').addEventListener('click', function () { abandonTarget = S.aid; dlg.showModal(); });
+  $('dlgNo').addEventListener('click', function () { dlg.close(); abandonTarget = null; });
+  $('dlgYes').addEventListener('click', function () {
+    var aid = abandonTarget; dlg.close(); abandonTarget = null;
+    if (!aid || busy) return;
+    var isCurrent = aid === S.aid;
+    busy = true; notice('', '');
+    if (isCurrent) resetSave();   // 放棄後不再暫存這張
+    AssessApi.abandon(aid).then(function (paths) {
+      return AssessApi.removeFiles(paths).then(function (r) {
+        return { paths: paths, ok: r.ok };
+      });
+    }).then(function (r) {
+      busy = false;
+      return toStep1().then(function () {
+        if (r.paths.length && !r.ok) notice('warn', '考核已放棄，但有圖片檔案沒能刪除，可能留有孤兒檔案，請通知管理人員清理。');
+        else notice('ok', '已放棄這次考核。');
+      });
+    }, function (e) { busy = false; notice('err', errText(e)); render(); });
+  });
+
+  // ====== 送出成績單：以資料庫結果為準，與預覽比對 ======
+  function sameWeak(a, b) { return (a || []).slice().sort().join('|') === (b || []).slice().sort().join('|'); }
+  function submitReport() {
+    var pre = Scoring.scoreAssessment(S.items.map(function (i) { return i.levels; }), S.emp.tenure);
+    if (!pre.ok || pendingReason()) return;
+    var aid = S.aid, emp = S.emp, items = S.items.slice();
+    busy = true; notice('', ''); render();
+    uploadChain.then(flushAll).then(function (ok) {
+      if (uploading > 0) throw AssessApi.userError('圖片上傳中，請稍候再送出。');
+      if (!ok) throw AssessApi.userError('還有評分或備註沒有暫存成功，請看上方暫存提示，處理後再按一次送出。');
+      return AssessApi.submit(aid);
+    }).then(function (db) {
+      if (!db) throw AssessApi.userError('送出後沒有收到結果，請到成績單確認是否已送出。');
+      return AssessApi.loadItemScores(aid).then(function (rows) { return { db: db, rows: rows }; }, function () { return { db: db, rows: [] }; });
+    }).then(function (r) {
+      var db = r.db, mismatch = false;
+      if (Math.abs(Number(db.total_score) - pre.total) > 0.001 || db.verdict !== pre.verdict || Number(db.pass_line) !== pre.passLine || !sameWeak(db.weakest_dims, pre.weakest)) mismatch = true;
+      var byId = {}; r.rows.forEach(function (x) { byId[x.id] = x; });
+      var rows = items.map(function (it, i) {
+        var d = byId[it.id];
+        if (!d) { mismatch = true; return { code: it.code, levels: it.levels, item_score: null, dim_points: null }; }
+        if (Math.abs(Number(d.item_score) - pre.itemScores[i].score) > 0.001) mismatch = true;
+        return d;
+      });
+      busy = false;
+      finished = { db: db, rows: rows, emp: emp, mismatch: mismatch };
+      S = fresh(); resetSave(); imgMsgs = [];
+      render(); window.scrollTo(0, 0);
+    }, function (e) { busy = false; notice('err', errText(e)); render(); });
+  }
+
+  // ====== 啟動：登入、網域、開通、角色三道檢查 ======
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  AssessApi.onSignedOut(function () { goLogin(''); });
+
+  AssessApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      AssessApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    $('whoEmail').textContent = email;
+    return AssessApi.loadMe(email).then(function (row) {
+      if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      if (row.role !== 'cs_admin') {
+        showBlocked('只有客服部可以進行考核。即將帶你前往成績單。', true);
+        setTimeout(function () { location.replace('reports.html'); }, 3000);
+        return;
+      }
+      $('whoBadge').textContent = ROLE_LABEL[row.role];
+      return AssessApi.loadStores().then(function (list) {
+        list.forEach(function (s) { storeName[s.code] = s.name; });
+        return loadStep1();
+      }).then(function () {
+        $('loading').hidden = true; $('app').hidden = false;
+        render();
+      });
+    });
+  }).catch(function (e) {
+    showBlocked(errText(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+</body>
+</html>

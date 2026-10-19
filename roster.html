@@ -83,6 +83,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         <span>目前身分</span>
         <span id="whoEmail"></span>
         <span class="badge" id="whoBadge"></span>
+        <a class="link" id="toAssess" href="assess.html" hidden>進行考核</a>
+        <a class="link" href="reports.html">成績單</a>
         <button class="link" id="logout" type="button">登出</button>
       </div>
     </div>
@@ -260,6 +262,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     if (isManager()) label += '・' + (storeName[me.store_code] || me.store_code || '');
     $('whoBadge').textContent = label;
     $('storeFilter').hidden = isManager();
+    $('toAssess').hidden = !isCS();
     $('addBtn').hidden = !isCS();
     $('thOps').hidden = !isCS();
     $('fPos').innerHTML = POSITIONS.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
