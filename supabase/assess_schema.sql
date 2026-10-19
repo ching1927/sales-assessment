@@ -18,14 +18,18 @@
 --             roster_my_email、roster_my_role、roster_my_store、
 --             roster_touch_updated_at、roster_keepalive
 -- 本檔新增的名稱（全部以 assess_ 或 assessment 開頭，與上面皆不重複）：
---   資料表：assessments、assessment_items、assessment_item_secrets
+--   資料表：assessments、assessment_items、assessment_item_secrets、assessment_item_images
+--   Storage：私有 bucket assess-notes；storage.objects 的 policy：
+--         assess_notes_select、assess_notes_insert、assess_notes_delete
 --   檢視：assessment_summaries
 --   函式：assess_dim_order、assess_dim_points、assess_level_pct、assess_check_levels、
 --         assess_score_item、assess_score_session、assess_verdict、assess_assert_cs、
 --         assess_candidates、assess_categories、assess_start、assess_draw、
---         assess_save_item、assess_submit、assess_void、assess_abandon
+--         assess_save_item、assess_submit、assess_void、assess_abandon、
+--         assess_add_image、assess_remove_image、assess_safe_uuid
 --   索引：assessments_employee_idx、assessments_store_status_idx、
---         assessments_one_draft_per_pair、assessment_item_secrets_question_idx
+--         assessments_one_draft_per_pair、assessment_item_secrets_question_idx、
+--         assessment_item_images_item_idx
 --
 -- 怎麼執行（之後老闆同意才做）：
 --   Supabase 專案 → SQL Editor → New query → 貼上整份 → Run。
@@ -49,8 +53,10 @@ begin
      or to_regclass('public.app_users') is null
      or to_regclass('public.questions') is null
      or to_regclass('public.drawn') is null
-     or to_regclass('public.category_last') is null then
-    raise exception '請先執行 roster_schema.sql 與考題抽選器的 schema.sql';
+     or to_regclass('public.category_last') is null
+     or to_regclass('storage.objects') is null
+     or to_regclass('storage.buckets') is null then
+    raise exception '請先執行 roster_schema.sql 與考題抽選器的 schema.sql（且專案需有 Storage）';
   end if;
 end
 $$;
@@ -342,20 +348,47 @@ create table if not exists public.assessment_item_secrets (
 create index if not exists assessment_item_secrets_question_idx
   on public.assessment_item_secrets(question_id);
 
+-- 考官備註的圖片（客服部全看；總公司主管、店長只看自己權限內且已送出的；檔案放在私有 bucket assess-notes）
+-- 注意：備註「文字」、題組名稱、步驟仍在 assessment_item_secrets，只有客服部讀得到
+-- storage_path 慣例：{assessment_id}/{item_id}/{uuid}.jpg
+create table if not exists public.assessment_item_images (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid not null references public.assessment_items(id) on delete cascade,
+  storage_path text not null unique,
+  mime text not null check (mime in ('image/jpeg', 'image/png', 'image/webp')),
+  size_bytes int not null check (size_bytes > 0 and size_bytes <= 2097152),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists assessment_item_images_item_idx
+  on public.assessment_item_images(item_id);
+
+-- 私有 bucket：不公開、單檔 2MB、只收 jpeg／png／webp（重跑會更新成這組設定）
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('assess-notes', 'assess-notes', false, 2097152,
+        array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+  set public = false,
+      file_size_limit = 2097152,
+      allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'];
+
 -- ---------- 權限與 RLS ----------
 
 alter table public.assessments            enable row level security;
 alter table public.assessment_items       enable row level security;
 alter table public.assessment_item_secrets enable row level security;
+alter table public.assessment_item_images  enable row level security;
 
 -- 先全收回；只給 authenticated「讀」，沒有任何人有直接寫入權限（只能透過函式寫）
 revoke all on table public.assessments             from public, anon, authenticated;
 revoke all on table public.assessment_items        from public, anon, authenticated;
 revoke all on table public.assessment_item_secrets from public, anon, authenticated;
+revoke all on table public.assessment_item_images  from public, anon, authenticated;
 
 grant select on public.assessments             to authenticated;
 grant select on public.assessment_items        to authenticated;
 grant select on public.assessment_item_secrets to authenticated;
+grant select on public.assessment_item_images  to authenticated;
 
 -- assessments：客服部全看（含草稿、作廢）；總公司主管只看已送出；店長只看自己門市的已送出
 drop policy if exists assessments_select on public.assessments;
@@ -383,6 +416,97 @@ drop policy if exists assessment_item_secrets_select on public.assessment_item_s
 create policy assessment_item_secrets_select on public.assessment_item_secrets
   for select to authenticated
   using (public.roster_my_role() = 'cs_admin');
+
+-- 安全地把文字轉成 uuid：格式不對回傳 null（不報錯，避免從錯誤訊息洩漏資訊）
+create or replace function public.assess_safe_uuid(p_text text)
+returns uuid
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+  select case
+           when p_text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+           then p_text::uuid
+         end;
+$$;
+
+-- assessment_item_images：可見範圍與題組（assessment_items）一致，也就是與所屬考核一致：
+-- 客服部全看；總公司主管只看已送出；店長只看自己門市且已送出；草稿與作廢的只有客服部。
+-- 子查詢讀 assessment_items → assessments 時會套用它們各自的 policy。
+drop policy if exists assessment_item_images_select on public.assessment_item_images;
+create policy assessment_item_images_select on public.assessment_item_images
+  for select to authenticated
+  using (
+    exists (select 1 from public.assessment_items i where i.id = assessment_item_images.item_id)
+  );
+
+-- Storage：bucket assess-notes 的物件
+--   讀：客服部全看；總公司主管、店長只讀得到「路徑第一段（assessment_id）對應的考核」在其權限內的物件
+--       （主管：已送出；店長：自己門市且已送出——由 assessments 的 RLS 決定）。
+--       第一段不是合法 uuid 時視為無權限（不報錯）。
+--   傳：只有客服部，且路徑必須是 {assessment_id}/{item_id}/{uuid}.jpg|png|webp 格式，
+--       第一段對應的考核必須存在、是草稿、考官是本人，第二段的題組必須屬於該考核。
+--   刪：只有客服部，且第一段對應的考核是「本人的草稿」，或「已不存在」
+--       （考核已被 assess_abandon 刪掉列，前端仍要能清掉孤兒檔）。已送出與作廢的考核圖片不可刪。
+--   其他人與 anon 一律沒有權限。bucket 維持私有（前端用簽名網址顯示）。
+-- （storage.objects 本來就開了 RLS；這裡只新增針對 assess-notes 的 policy，不動其他 bucket 的 policy。
+--  沒有 update policy：檔案不可覆蓋，要換圖請刪掉再傳新的）
+drop policy if exists assess_notes_select on storage.objects;
+create policy assess_notes_select on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'assess-notes'
+    and (
+      public.roster_my_role() = 'cs_admin'
+      or exists (
+        select 1 from public.assessments a
+        where a.id = public.assess_safe_uuid(split_part(storage.objects.name, '/', 1))
+      )
+    )
+  );
+
+drop policy if exists assess_notes_insert on storage.objects;
+create policy assess_notes_insert on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'assess-notes'
+    and public.roster_my_role() = 'cs_admin'
+    and storage.objects.name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$'
+    and exists (
+      select 1
+      from public.assessments a
+      join public.assessment_items i on i.assessment_id = a.id
+      where a.id = public.assess_safe_uuid(split_part(storage.objects.name, '/', 1))
+        and a.status = 'draft'
+        and a.examiner_email = public.roster_my_email()
+        and i.id = public.assess_safe_uuid(split_part(storage.objects.name, '/', 2))
+    )
+  );
+
+drop policy if exists assess_notes_delete on storage.objects;
+create policy assess_notes_delete on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'assess-notes'
+    and public.roster_my_role() = 'cs_admin'
+    and (
+      -- 本人的草稿
+      exists (
+        select 1 from public.assessments a
+        where a.id = public.assess_safe_uuid(split_part(storage.objects.name, '/', 1))
+          and a.status = 'draft'
+          and a.examiner_email = public.roster_my_email()
+      )
+      -- 或：路徑第一段是合法 uuid，但該考核已不存在（清孤兒檔）
+      or (
+        public.assess_safe_uuid(split_part(storage.objects.name, '/', 1)) is not null
+        and not exists (
+          select 1 from public.assessments a
+          where a.id = public.assess_safe_uuid(split_part(storage.objects.name, '/', 1))
+        )
+      )
+    )
+  );
 
 -- ---------- 成績單列表檢視（不含機密欄位） ----------
 -- security_invoker = true：以查詢者本人權限讀底層資料表，RLS 照樣生效，不會繞過。
@@ -848,14 +972,19 @@ $$;
 -- 刪除草稿（題組與機密連帶刪除）；
 -- was_drawn_before = false 的題組從 drawn 刪掉（回到題池），true 的不動。
 -- 已知限制：不還原 category_last；若放棄期間該分類已開新一輪，可能誤刪別場剛抽的 drawn 記錄（極少見）。
+-- 回傳型別由 void 改成 text[]，create or replace 不能改回傳型別，所以先 drop 舊的
+-- （收回／授權在檔尾重做）。回傳該草稿所有圖片的 storage_path 清單，
+-- 前端要依清單刪除 Storage 檔案（資料庫端不直接 delete storage.objects）。
+drop function if exists public.assess_abandon(uuid);
 create or replace function public.assess_abandon(p_assessment_id uuid)
-returns void
+returns text[]
 language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
 declare
   v_a public.assessments%rowtype;
+  v_paths text[];
 begin
   perform public.assess_assert_cs();
 
@@ -870,6 +999,13 @@ begin
   -- 動到 drawn 前先取同一把鎖，避免和別人抽題打架
   perform pg_advisory_xact_lock(hashtext('exam_draw_questions'));
 
+  -- 先收集圖片路徑（刪除考核時圖片列會連帶刪除）
+  select coalesce(array_agg(g.storage_path order by g.created_at, g.storage_path), '{}'::text[])
+    into v_paths
+  from public.assessment_item_images g
+  join public.assessment_items i on i.id = g.item_id
+  where i.assessment_id = v_a.id;
+
   delete from public.drawn d
   where d.question_id in (
     select sx.question_id
@@ -878,7 +1014,108 @@ begin
     where i.assessment_id = v_a.id and not sx.was_drawn_before
   );
 
-  delete from public.assessments where id = v_a.id;  -- items、secrets 由 cascade 一併刪除
+  delete from public.assessments where id = v_a.id;  -- items、secrets、images 由 cascade 一併刪除
+
+  return v_paths;
+end;
+$$;
+
+-- ---------- 備註圖片 ----------
+-- 新增圖片資料列（檔案本身由前端先傳到 Storage 的 assess-notes）。
+-- 只限草稿且本人建立；mime 限 jpeg／png／webp；大小 ≤ 2MB；
+-- 路徑必須以「{assessment_id}/{item_id}/」開頭；每個題組最多 5 張。
+-- 已送出或作廢的成績單，圖片保留、不可再增刪。
+create or replace function public.assess_add_image(p_item_id uuid, p_path text, p_mime text, p_size int)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_me text;
+  v_aid uuid;
+  v_status text;
+  v_owner text;
+  v_prefix text;
+  v_id uuid;
+begin
+  perform public.assess_assert_cs();
+  v_me := public.roster_my_email();
+
+  select a.id, a.status, a.examiner_email into v_aid, v_status, v_owner
+  from public.assessment_items i
+  join public.assessments a on a.id = i.assessment_id
+  where i.id = p_item_id
+  for update of a;
+  if not found then
+    raise exception '找不到題組';
+  end if;
+  if v_status <> 'draft' then
+    raise exception '只有草稿可以增減圖片';
+  end if;
+  if v_owner <> v_me then
+    raise exception '只有建立者本人可以操作這張考核';
+  end if;
+
+  if p_mime is null or p_mime not in ('image/jpeg', 'image/png', 'image/webp') then
+    raise exception '圖片格式只能是 jpeg、png、webp';
+  end if;
+  if p_size is null or p_size < 1 or p_size > 2097152 then
+    raise exception '圖片大小必須在 2MB 以內';
+  end if;
+
+  v_prefix := v_aid::text || '/' || p_item_id::text || '/';
+  if p_path is null or length(p_path) <= length(v_prefix) or left(p_path, length(v_prefix)) <> v_prefix then
+    raise exception '圖片路徑必須以「考核id/題組id/」開頭';
+  end if;
+
+  if (select count(*) from public.assessment_item_images g where g.item_id = p_item_id) >= 5 then
+    raise exception '每個題組最多 5 張圖片';
+  end if;
+
+  insert into public.assessment_item_images (item_id, storage_path, mime, size_bytes)
+  values (p_item_id, p_path, p_mime, p_size)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+-- 移除圖片資料列，回傳 storage_path 讓前端去 Storage 刪檔。只限草稿且本人建立。
+create or replace function public.assess_remove_image(p_image_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_me text;
+  v_status text;
+  v_owner text;
+  v_path text;
+begin
+  perform public.assess_assert_cs();
+  v_me := public.roster_my_email();
+
+  select g.storage_path, a.status, a.examiner_email into v_path, v_status, v_owner
+  from public.assessment_item_images g
+  join public.assessment_items i on i.id = g.item_id
+  join public.assessments a on a.id = i.assessment_id
+  where g.id = p_image_id
+  for update of a;
+  if not found then
+    raise exception '找不到圖片';
+  end if;
+  if v_status <> 'draft' then
+    raise exception '只有草稿可以增減圖片';
+  end if;
+  if v_owner <> v_me then
+    raise exception '只有建立者本人可以操作這張考核';
+  end if;
+
+  delete from public.assessment_item_images where id = p_image_id;
+
+  return v_path;
 end;
 $$;
 
@@ -901,6 +1138,9 @@ revoke execute on function public.assess_save_item(uuid, jsonb, text)     from p
 revoke execute on function public.assess_submit(uuid)                     from public, anon;
 revoke execute on function public.assess_void(uuid, text)                 from public, anon;
 revoke execute on function public.assess_abandon(uuid)                    from public, anon;
+revoke execute on function public.assess_add_image(uuid, text, text, int) from public, anon;
+revoke execute on function public.assess_remove_image(uuid)               from public, anon;
+revoke execute on function public.assess_safe_uuid(text)                  from public, anon;
 -- 內部身分檢查：連 authenticated 都不開放直接呼叫（函式之間以擁有者身分呼叫）
 revoke execute on function public.assess_assert_cs()                      from public, anon, authenticated;
 
@@ -919,3 +1159,6 @@ grant execute on function public.assess_save_item(uuid, jsonb, text)      to aut
 grant execute on function public.assess_submit(uuid)                      to authenticated;
 grant execute on function public.assess_void(uuid, text)                  to authenticated;
 grant execute on function public.assess_abandon(uuid)                     to authenticated;
+grant execute on function public.assess_add_image(uuid, text, text, int)  to authenticated;
+grant execute on function public.assess_remove_image(uuid)                to authenticated;
+grant execute on function public.assess_safe_uuid(text)                   to authenticated;

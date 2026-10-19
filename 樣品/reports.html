@@ -123,6 +123,13 @@ tr.weakrow{background:var(--warning-soft)}
 .field textarea{display:block;width:100%;min-height:80px;margin-top:6px;font-weight:400}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);font-size:14px;color:var(--ink)}
 .chk input{width:22px;height:22px;flex:0 0 auto}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.thumb{border:1px solid var(--ink-line);border-radius:var(--r-sm);padding:6px;background:#fff;text-align:center}
+.thumb .tb{display:block;width:100%;padding:0;border:none;background:none}
+.thumb img{width:100%;height:90px;object-fit:cover;border-radius:6px;display:block}
+.thumb .sz{font-size:12px;color:var(--ink-2);margin-top:4px}
+dialog.lb{max-width:min(92vw,900px)}
+dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-radius:var(--r-sm)}
 @media (max-width:480px){
   .top h1{font-size:19px}
   .toolbar .ctrl{flex:1 1 100%}
@@ -270,6 +277,16 @@ tr.weakrow{background:var(--warning-soft)}
     R('R-007', 12, '13:15', '測試二店', 'MI-9015', '阿空', '業務', '新人', true, 'submitted',
       [IT('進-B02', 'lylylyl', '到職日空白，考前手動指定為新人。')])
   ];
+  // 示範附圖：用內嵌 svg 產生的純示範色塊，不是真實截圖
+  function demoImg(label, color) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">' +
+      '<rect width="640" height="400" fill="' + color + '"/><text x="320" y="210" font-size="44" fill="#fff" text-anchor="middle" font-family="sans-serif">' + label + '</text></svg>';
+    var src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    return { src: src, size: svg.length };
+  }
+  fake[1].items[0].imgs = [demoImg('示範截圖 1', '#2F6BFF'), demoImg('示範截圖 2', '#16A34A')];
+  var DATA_IMG = /^data:image\/(jpeg|png|webp|svg\+xml)[;,]/;
+  function fmtSize(b) { return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1048576).toFixed(1) + ' MB'; }
   var stored = [];
   try { stored = JSON.parse(sessionStorage.getItem(R_KEY)) || []; } catch (e) { stored = []; }
   stored.forEach(function (r) { r.fromStore = true; });
@@ -354,6 +371,16 @@ tr.weakrow{background:var(--warning-soft)}
   // ---- 詳細內容 ----
   function itemRes(it) { return Scoring.scoreItem(it.levels); }
 
+  // 附圖（客服部、總公司主管、店長都看得到；這個函式只讀 imgs，不碰備註文字）
+  function imgsHtml(it) {
+    var list = (it.imgs || []).map(function (m, i) {
+      if (!m || !DATA_IMG.test(m.src)) return '';
+      return '<div class="thumb"><button type="button" class="tb" data-zoom="' + esc(m.src) + '" data-alt="備註附圖 ' + (i + 1) + '" aria-label="放大檢視備註附圖 ' + (i + 1) + '"><img src="' + esc(m.src) + '" alt="備註附圖 ' + (i + 1) + '"></button>' +
+        '<div class="sz">備註附圖 ' + (i + 1) + '・' + fmtSize(m.size || 0) + '</div></div>';
+    }).join('');
+    return '<h3 style="font-size:14px;margin:12px 0 0">附圖</h3>' + (list ? '<div class="thumbs">' + list + '</div>' : '<p class="hint" style="font-size:13px;color:var(--ink-2)">（無附圖）</p>');
+  }
+
   // 客服部：完整內容
   function detailCS(r) {
     var c = r.status === 'draft' ? null : calc(r);
@@ -378,14 +405,14 @@ tr.weakrow{background:var(--warning-soft)}
           var lv = it.levels[d.name], pt = ir.ok ? ir.dimPoints[d.name] : null;
           return '<tr' + (weak.indexOf(d.name) >= 0 ? ' class="weakrow"' : '') + '><td>' + esc(d.name) + (weak.indexOf(d.name) >= 0 ? '（最弱）' : '') + '</td><td class="num">' + d.weight + '</td><td>' + (lv ? esc(lv) : '未評') + '</td><td class="num">' + (lv === NA ? '不適用' : pt === null ? '—' : fmt(pt)) + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
-        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + '</div></div>';
+        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + '</div>' + imgsHtml(it) + '</div>';
     });
     h += '<div class="actions">' + (r.status === 'submitted' ? '<button class="btn danger" type="button" data-void="' + esc(r.id) + '">作廢這張成績單</button>' : '') +
       '<button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
   }
 
-  // 總公司主管／店長：只有日期、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數
+  // 總公司主管／店長：只有日期（附圖開放，備註文字不開放）、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數
   function detailLimited(r) {
     var c = calc(r);
     if (!c) return '<div class="dlg"><p>這張成績單沒有可顯示的內容。</p><div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
@@ -402,7 +429,7 @@ tr.weakrow{background:var(--warning-soft)}
         DIMS.map(function (d) {
           var pt = ir.dimPoints[d.name];
           return '<tr><td>' + esc(d.name) + '</td><td class="num">' + (pt === null ? '不適用' : fmt(pt) + ' / ' + d.weight) + '</td></tr>';
-        }).join('') + '</tbody></table></div></div>';
+        }).join('') + '</tbody></table></div>' + imgsHtml(it) + '</div>';
     });
     h += '<div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
@@ -410,7 +437,7 @@ tr.weakrow{background:var(--warning-soft)}
 
   var dlg = $('dlg');
   function closeDetail() {
-    removeVoidDlg();
+    removeVoidDlg(); removeLightbox();
     if (dlg.open) dlg.close();
     dlg.innerHTML = '';
   }
@@ -426,9 +453,27 @@ tr.weakrow{background:var(--warning-soft)}
   });
   dlg.addEventListener('click', function (e) {
     if (e.target.closest('[data-close]')) { closeDetail(); return; }
+    var z = e.target.closest('[data-zoom]');
+    if (z && DATA_IMG.test(z.dataset.zoom)) { openLightbox(z.dataset.zoom, z.dataset.alt || ''); return; }
     var v = e.target.closest('[data-void]');
     if (v && isCS()) openVoidDlg(v.dataset.void);
   });
+
+  // ---- 放大檢視（點擊時才建立，關閉就移除）----
+  var lb = null;
+  function removeLightbox() { if (lb) { if (lb.open) lb.close(); lb.remove(); lb = null; } }
+  function openLightbox(src, alt) {
+    if (!DATA_IMG.test(src)) return;
+    removeLightbox();
+    lb = document.createElement('dialog');
+    lb.className = 'lb';
+    lb.innerHTML = '<div class="dlg"><img alt="' + esc(alt) + '" src="' + esc(src) + '"><div class="actions"><button class="btn" type="button" id="lbClose">關閉</button></div></div>';
+    document.body.appendChild(lb);
+    lb.querySelector('#lbClose').addEventListener('click', removeLightbox);
+    lb.addEventListener('click', function (e) { if (e.target === lb) removeLightbox(); });
+    lb.addEventListener('close', removeLightbox);
+    lb.showModal();
+  }
 
   // ---- 作廢（只有客服部；對話框在點擊時才建立，其他身分的 DOM 裡不存在）----
   var voidDlg = null;

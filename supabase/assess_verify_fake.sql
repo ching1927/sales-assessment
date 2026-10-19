@@ -360,6 +360,9 @@ begin
     returning id into v_i;
     insert into public.assessment_item_secrets (item_id, question_id, was_drawn_before, title, steps, note)
     values (v_i, v_qa, false, '機密標題', '[{"action":"a","point":"p"}]'::jsonb, '機密備註');
+    -- 每筆考核的題組各附一張備註圖片（直接寫入），測各角色看不看得到
+    insert into public.assessment_item_images (item_id, storage_path, mime, size_bytes)
+    values (v_i, v_x::text || '/' || v_i::text || '/zz-matrix.jpg', 'image/jpeg', 1000);
     v_iids := v_iids || case when v_iids = '' then '' else ',' end || quote_literal(v_i::text);
   end loop;
 
@@ -368,6 +371,8 @@ begin
   perform pg_temp.vr_set('m_sub', v_s::text);
   perform pg_temp.vr_set('m_item', (select id::text from public.assessment_items where assessment_id = v_s));
   perform pg_temp.vr_set('m_draft', v_d::text);
+  perform pg_temp.vr_set('m_void', v_v::text);
+  perform pg_temp.vr_set('m_sub2', v_s2::text);
 exception when others then
   perform pg_temp.vr_rec('區段 2','建立矩陣測試資料意外中斷','無例外', sqlerrm, false);
 end
@@ -379,7 +384,7 @@ declare
   r record;
   v_ids text := pg_temp.vr_get('m_ids');
   v_iids text := pg_temp.vr_get('m_iids');
-  q1 text; q2 text; q3 text; q4 text;
+  q1 text; q2 text; q3 text; q4 text; q5 text;
 begin
   q1 := format($q$select count(*) filter (where status='draft')::text || '/' || count(*) filter (where status='submitted')::text
                        || '/' || count(*) filter (where status='voided')::text
@@ -387,25 +392,27 @@ begin
   q2 := format($q$select count(*)::text from public.assessment_items where assessment_id in (%s)$q$, v_ids);
   q3 := format($q$select count(*)::text from public.assessment_item_secrets where item_id in (%s)$q$, v_iids);
   q4 := format($q$select count(*)::text from public.assessment_summaries where id in (%s)$q$, v_ids);
+  q5 := format($q$select count(*)::text from public.assessment_item_images where item_id in (%s)$q$, v_iids);
 
   for r in
     select * from (values
-      ('客服部',      'authenticated', 'cs1@example.invalid',   '1/2/1', '4', '4', '4'),
-      ('總公司主管',  'authenticated', 'hq@example.invalid',    '0/2/0', '2', '0', '2'),
-      ('店長（門市甲）','authenticated', 'sm1@example.invalid',  '0/1/0', '1', '0', '1'),
-      ('店長（門市乙）','authenticated', 'sm2@example.invalid',  '0/1/0', '1', '0', '1'),
-      ('有登入但沒帳號','authenticated', 'nobody@example.invalid','0/0/0', '0', '0', '0')
-    ) as t(label, rl, email, e_status, e_items, e_secrets, e_view)
+      ('客服部',      'authenticated', 'cs1@example.invalid',   '1/2/1', '4', '4', '4', '4'),
+      ('總公司主管',  'authenticated', 'hq@example.invalid',    '0/2/0', '2', '0', '2', '2'),
+      ('店長（門市甲）','authenticated', 'sm1@example.invalid',  '0/1/0', '1', '0', '1', '1'),
+      ('店長（門市乙）','authenticated', 'sm2@example.invalid',  '0/1/0', '1', '0', '1', '1'),
+      ('有登入但沒帳號','authenticated', 'nobody@example.invalid','0/0/0', '0', '0', '0', '0')
+    ) as t(label, rl, email, e_status, e_items, e_secrets, e_view, e_img)
   loop
     perform pg_temp.vr_eq('權限矩陣', r.label || '：assessments 草稿/已送出/作廢 筆數', r.e_status, pg_temp.vr_as(r.rl, r.email, q1, true));
     perform pg_temp.vr_eq('權限矩陣', r.label || '：assessment_items 筆數', r.e_items, pg_temp.vr_as(r.rl, r.email, q2, true));
     perform pg_temp.vr_eq('權限矩陣', r.label || '：assessment_item_secrets（機密）筆數', r.e_secrets, pg_temp.vr_as(r.rl, r.email, q3, true));
     perform pg_temp.vr_eq('權限矩陣', r.label || '：assessment_summaries 檢視筆數', r.e_view, pg_temp.vr_as(r.rl, r.email, q4, true));
+    perform pg_temp.vr_eq('權限矩陣', r.label || '：assessment_item_images（備註圖片）筆數', r.e_img, pg_temp.vr_as(r.rl, r.email, q5, true));
   end loop;
 
   -- 未登入 anon：四個物件都不能讀
-  perform pg_temp.vr_eq('權限矩陣', '未登入 anon：四個物件都被拒絕讀取', '4/4',
-    (select count(*)::text || '/4' from (values (q1), (q2), (q3), (q4)) as t(sql)
+  perform pg_temp.vr_eq('權限矩陣', '未登入 anon：五個物件（含備註圖片表）都被拒絕讀取', '5/5',
+    (select count(*)::text || '/5' from (values (q1), (q2), (q3), (q4), (q5)) as t(sql)
       where pg_temp.vr_as('anon', null, t.sql, true) like 'ERROR: permission denied%'));
 
   -- 檢視與題組表沒有機密欄位
@@ -466,7 +473,11 @@ begin
     format($q$delete from public.assessment_items where id = %L$q$, v_item),
     format($q$insert into public.assessment_item_secrets (item_id, title) values (%L, 'x')$q$, v_item),
     format($q$update public.assessment_item_secrets set title = 'x' where item_id = %L$q$, v_item),
-    format($q$delete from public.assessment_item_secrets where item_id = %L$q$, v_item)
+    format($q$delete from public.assessment_item_secrets where item_id = %L$q$, v_item),
+    format($q$insert into public.assessment_item_images (item_id, storage_path, mime, size_bytes)
+              values (%L, 'x/y/z.jpg', 'image/jpeg', 10)$q$, v_item),
+    format($q$update public.assessment_item_images set mime = 'image/png' where item_id = %L$q$, v_item),
+    format($q$delete from public.assessment_item_images where item_id = %L$q$, v_item)
   ];
 
   for r in
@@ -484,7 +495,7 @@ begin
         v_n := v_n + 1;
       end if;
     end loop;
-    perform pg_temp.vr_eq('權限矩陣', r.label || '：三張表的 insert／update／delete 共 9 種寫法全被拒', '9/9', v_n::text || '/9');
+    perform pg_temp.vr_eq('權限矩陣', r.label || '：四張表的 insert／update／delete 共 12 種寫法全被拒', '12/12', v_n::text || '/12');
   end loop;
 
   -- 被拒之後資料沒被動到
@@ -513,7 +524,9 @@ begin
     format($q$select public.assess_save_item(%L::uuid, '{}'::jsonb, null)$q$, v_zero),
     format($q$select * from public.assess_submit(%L::uuid)$q$, v_zero),
     format($q$select public.assess_void(%L::uuid, 'x')$q$, v_zero),
-    format($q$select public.assess_abandon(%L::uuid)$q$, v_zero)
+    format($q$select public.assess_abandon(%L::uuid)$q$, v_zero),
+    format($q$select public.assess_add_image(%L::uuid, 'x/y/z.jpg', 'image/jpeg', 100)$q$, v_zero),
+    format($q$select public.assess_remove_image(%L::uuid)$q$, v_zero)
   ];
 
   for r in
@@ -529,7 +542,7 @@ begin
         v_n := v_n + 1;
       end if;
     end loop;
-    perform pg_temp.vr_eq('權限矩陣', r.label || '：8 個對外 assess_* 函式（candidates、categories、start、draw、save_item、submit、void、abandon）全回「沒有權限」', '8/8', v_n::text || '/8');
+    perform pg_temp.vr_eq('權限矩陣', r.label || '：10 個對外 assess_* 函式（candidates、categories、start、draw、save_item、submit、void、abandon、add_image、remove_image）全回「沒有權限」', '10/10', v_n::text || '/10');
   end loop;
 
   v_n := 0;
@@ -538,7 +551,7 @@ begin
       v_n := v_n + 1;
     end if;
   end loop;
-  perform pg_temp.vr_eq('權限矩陣', '未登入 anon：8 個對外 assess_* 函式都不能 execute', '8/8', v_n::text || '/8');
+  perform pg_temp.vr_eq('權限矩陣', '未登入 anon：10 個對外 assess_* 函式都不能 execute', '10/10', v_n::text || '/10');
 
   perform pg_temp.vr_eq('權限矩陣', 'anon 不能呼叫純計算函式', '2/2',
     (select count(*)::text || '/2' from (values
@@ -565,11 +578,12 @@ begin
        from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'assess%'));
   perform pg_temp.vr_eq('權限矩陣', 'authenticated 不能直接呼叫 assess_assert_cs', 'false',
     has_function_privilege('authenticated', 'public.assess_assert_cs()', 'execute')::text);
-  perform pg_temp.vr_eq('權限矩陣', '9 個資料函式（8 個對外＋assess_assert_cs）都是 security definer 且固定 search_path', '無',
+  perform pg_temp.vr_eq('權限矩陣', '11 個資料函式（10 個對外＋assess_assert_cs）都是 security definer 且固定 search_path', '無',
     (select coalesce(string_agg(p.proname, ','), '無') from pg_proc p
       where p.pronamespace = 'public'::regnamespace
         and p.proname in ('assess_candidates', 'assess_categories', 'assess_start', 'assess_draw',
-                          'assess_save_item', 'assess_submit', 'assess_void', 'assess_abandon', 'assess_assert_cs')
+                          'assess_save_item', 'assess_submit', 'assess_void', 'assess_abandon', 'assess_add_image',
+                          'assess_remove_image', 'assess_assert_cs')
         and not (p.prosecdef and coalesce(p.proconfig::text, '') like '%search_path%')));
   perform pg_temp.vr_eq('權限矩陣', '所有 assess* 函式（含 assess_dim_order／dim_points／level_pct 三個純計算輔助）都固定 search_path', '無',
     (select coalesce(string_agg(p.proname, ','), '無') from pg_proc p
@@ -954,6 +968,209 @@ begin
       format($q$select count(*)::text from public.assessments where id in (%s)$q$, v_ids), true));
 exception when others then
   perform pg_temp.vr_rec('區段 3-5','可見性意外中斷','無例外', sqlerrm, false);
+end
+$$;
+
+-- 3-6 備註圖片：上限、格式、路徑、權限、送出後鎖定、放棄回傳路徑清單
+do $$
+declare
+  v_a uuid; v_i uuid; v_pre text; v_img uuid; v_ret text; v_first text;
+  v_b uuid; v_bi uuid; v_prb text; v_paths text[]; v_arr text[]; k int;
+  v_mimes text[] := array['image/jpeg', 'image/png', 'image/webp', 'image/jpeg', 'image/png'];
+begin
+  perform pg_temp.vr_login('cs1@example.invalid');
+
+  -- MI-9908 的草稿（3-1 建立）：抽一題 ZZ分類C 後加圖
+  v_a := public.assess_start('MI-9908');
+  insert into pg_temp.vr_draw select 'IMG', d.* from public.assess_draw(v_a, array['ZZ分類C']) d;
+  select item_id into v_i from pg_temp.vr_draw where tag = 'IMG';
+  v_pre := v_a::text || '/' || v_i::text || '/';
+
+  for k in 1..5 loop
+    v_img := public.assess_add_image(v_i, v_pre || 'img' || k || '.jpg', v_mimes[k], 1000 * k);
+    if k = 1 then v_first := v_pre || 'img1.jpg'; perform pg_temp.vr_set('img_first', v_img::text); end if;
+  end loop;
+  perform pg_temp.vr_eq('流程 圖片','一個題組可加 5 張（jpeg／png／webp 都可）','5',
+    (select count(*)::text from public.assessment_item_images where item_id = v_i));
+
+  perform pg_temp.vr_err('流程 圖片','第 6 張被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, v_pre || 'img6.jpg'),
+    '%最多 5 張%');
+  perform pg_temp.vr_err('流程 圖片','mime 不合（gif）被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/gif', 1000)$q$, v_i, v_pre || 'g.gif'),
+    '%圖片格式%');
+  perform pg_temp.vr_err('流程 圖片','mime 不合（pdf）被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'application/pdf', 1000)$q$, v_i, v_pre || 'p.pdf'),
+    '%圖片格式%');
+  perform pg_temp.vr_err('流程 圖片','超過 2MB 被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 2097153)$q$, v_i, v_pre || 'big.jpg'),
+    '%2MB%');
+  perform pg_temp.vr_err('流程 圖片','大小為 0 被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 0)$q$, v_i, v_pre || 'zero.jpg'),
+    '%2MB%');
+  perform pg_temp.vr_err('流程 圖片','路徑前綴不對被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, 'other/' || v_i::text || '/x.jpg'),
+    '%路徑%');
+  perform pg_temp.vr_err('流程 圖片','路徑只有前綴沒有檔名被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, v_pre),
+    '%路徑%');
+
+  -- 非本人不能加、不能移除
+  perform pg_temp.vr_login('cs2@example.invalid');
+  perform pg_temp.vr_err('流程 圖片','非建立者新增圖片被拒',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, v_pre || 'cs2.jpg'),
+    '%建立者本人%');
+  perform pg_temp.vr_err('流程 圖片','非建立者移除圖片被拒',
+    format($q$select public.assess_remove_image(%L::uuid)$q$, pg_temp.vr_get('img_first')),
+    '%建立者本人%');
+  perform pg_temp.vr_login('cs1@example.invalid');
+
+  -- 移除：回傳路徑、資料列刪除；之後可再補一張；重複路徑被唯一鍵擋下
+  v_ret := public.assess_remove_image(pg_temp.vr_get('img_first')::uuid);
+  perform pg_temp.vr_eq('流程 圖片','移除圖片回傳 storage_path', v_first, v_ret);
+  perform pg_temp.vr_eq('流程 圖片','移除後剩 4 張','4',
+    (select count(*)::text from public.assessment_item_images where item_id = v_i));
+  perform pg_temp.vr_err('流程 圖片','路徑重複被唯一鍵擋下',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, v_pre || 'img2.jpg'),
+    '%unique%');
+  perform public.assess_add_image(v_i, v_pre || 'img7.jpg', 'image/webp', 500);
+  perform pg_temp.vr_eq('流程 圖片','移除後可再補到 5 張','5',
+    (select count(*)::text from public.assessment_item_images where item_id = v_i));
+
+  -- 送出後：圖片保留，不可再增刪
+  perform public.assess_save_item(v_i, pg_temp.vr_mk('良','優','良','待加強','優','良','優'), null);
+  perform public.assess_submit(v_a);
+  perform pg_temp.vr_err('流程 圖片','已送出不能再新增圖片',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, v_pre || 'late.jpg'),
+    '%只有草稿%');
+  perform pg_temp.vr_err('流程 圖片','已送出不能移除圖片',
+    format($q$select public.assess_remove_image(%L::uuid)$q$,
+           (select id from public.assessment_item_images where item_id = v_i limit 1)),
+    '%只有草稿%');
+  perform pg_temp.vr_eq('流程 圖片','已送出後圖片仍保留 5 張','5',
+    (select count(*)::text from public.assessment_item_images where item_id = v_i));
+  perform public.assess_void(v_a, '測試作廢');
+  perform pg_temp.vr_err('流程 圖片','已作廢也不能再新增圖片',
+    format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, v_pre || 'late2.jpg'),
+    '%只有草稿%');
+  perform pg_temp.vr_eq('流程 圖片','作廢後圖片仍保留 5 張','5',
+    (select count(*)::text from public.assessment_item_images where item_id = v_i));
+
+  -- 放棄：回傳該草稿所有圖片的 storage_path 清單，圖片列連帶刪除
+  v_b := public.assess_start('MI-9907');
+  insert into pg_temp.vr_draw select 'IMG2', d.* from public.assess_draw(v_b, array['ZZ分類A']) d;
+  select item_id into v_bi from pg_temp.vr_draw where tag = 'IMG2';
+  v_prb := v_b::text || '/' || v_bi::text || '/';
+  perform public.assess_add_image(v_bi, v_prb || 'a.jpg', 'image/jpeg', 100);
+  perform public.assess_add_image(v_bi, v_prb || 'b.png', 'image/png', 200);
+  v_paths := public.assess_abandon(v_b);
+  select array_agg(p order by p) into v_arr from unnest(v_paths) as t(p);
+  perform pg_temp.vr_eq('流程 圖片','放棄回傳兩張圖片的路徑清單', v_prb || 'a.jpg,' || v_prb || 'b.png', array_to_string(v_arr, ','));
+  perform pg_temp.vr_eq('流程 圖片','放棄後考核與圖片列都刪除','0/0',
+    (select (select count(*) from public.assessments where id = v_b)::text || '/' ||
+            (select count(*) from public.assessment_item_images where item_id = v_bi)::text));
+
+  -- 沒有圖片的草稿放棄 → 回傳空清單
+  v_b := public.assess_start('MI-9907');
+  v_paths := public.assess_abandon(v_b);
+  perform pg_temp.vr_eq('流程 圖片','沒有圖片的草稿放棄 → 空清單','0',
+    coalesce(array_length(v_paths, 1), 0)::text);
+exception when others then
+  perform pg_temp.vr_rec('區段 3-6','備註圖片流程意外中斷','無例外', sqlerrm, false);
+end
+$$;
+
+-- 3-7 Storage：bucket 設定與 storage.objects 的 policy
+-- （metadata 檢查很穩；實際以各角色讀寫 storage.objects 的測試依賴 Supabase storage 的表結構，
+--  若這一段意外中斷，請改照 README 的手動檢查步驟驗證，不代表權限有問題）
+do $$
+declare
+  v_q text;
+  v_n1 text := 'zz-test/obj.jpg';
+  v_n2 text := pg_temp.vr_get('m_draft') || '/x/d.jpg';
+  v_n3 text := pg_temp.vr_get('m_sub')   || '/x/s.jpg';
+  v_n4 text := pg_temp.vr_get('m_void')  || '/x/v.jpg';
+  v_n5 text := pg_temp.vr_get('m_sub2')  || '/x/s2.jpg';
+  v_d  text := pg_temp.vr_get('m_draft');
+  v_s  text := pg_temp.vr_get('m_sub');
+  v_v  text := pg_temp.vr_get('m_void');
+  v_di text := (select id::text from public.assessment_items where assessment_id = pg_temp.vr_get('m_draft')::uuid);
+  v_si text := (select id::text from public.assessment_items where assessment_id = pg_temp.vr_get('m_sub')::uuid);
+  v_vi text := (select id::text from public.assessment_items where assessment_id = pg_temp.vr_get('m_void')::uuid);
+  v_res text;
+  r record;
+begin
+  perform pg_temp.vr_eq('Storage','bucket assess-notes：不公開／2MB／三種 mime','false/2097152/image/jpeg,image/png,image/webp',
+    (select b.public::text || '/' || b.file_size_limit::text || '/' || array_to_string(b.allowed_mime_types, ',')
+       from storage.buckets b where b.id = 'assess-notes'));
+  perform pg_temp.vr_eq('Storage','storage.objects 有 3 條 assess_notes_* policy（DELETE,INSERT,SELECT）','3/DELETE,INSERT,SELECT',
+    (select count(*)::text || '/' || string_agg(cmd, ',' order by cmd)
+       from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like 'assess_notes_%'));
+  perform pg_temp.vr_eq('Storage','三條 policy 都限 authenticated、bucket assess-notes、且判斷 cs_admin','3',
+    (select count(*)::text from pg_policies
+      where schemaname = 'storage' and tablename = 'objects' and policyname like 'assess_notes_%'
+        and roles = '{authenticated}'
+        and coalesce(qual, '') || coalesce(with_check, '') like '%assess-notes%'
+        and coalesce(qual, '') || coalesce(with_check, '') like '%cs_admin%'));
+
+  -- 以擁有者身分放 5 筆假物件列：
+  --   1 個第一段不是 uuid（非法路徑）、門市甲的草稿／已送出／作廢各 1、門市乙的已送出 1，
+  --   再看各角色看不看得到（主管：已送出 2；店長甲：1；店長乙：1；無帳號：0；非法路徑只有客服部看得到且不報錯）
+  insert into storage.objects (bucket_id, name) values
+    ('assess-notes', v_n1), ('assess-notes', v_n2), ('assess-notes', v_n3),
+    ('assess-notes', v_n4), ('assess-notes', v_n5);
+  v_q := format($q$select count(*)::text from storage.objects where bucket_id = 'assess-notes' and name in (%L,%L,%L,%L,%L)$q$,
+                v_n1, v_n2, v_n3, v_n4, v_n5);
+  for r in
+    select * from (values
+      ('客服部（5 筆全看）',              'cs1@example.invalid',    '5'),
+      ('總公司主管（只看已送出 2 筆）',   'hq@example.invalid',     '2'),
+      ('店長甲（只看門市甲已送出 1 筆）', 'sm1@example.invalid',    '1'),
+      ('店長乙（只看門市乙已送出 1 筆）', 'sm2@example.invalid',    '1'),
+      ('有登入但沒帳號',                  'nobody@example.invalid', '0')
+    ) as t(label, email, expected)
+  loop
+    perform pg_temp.vr_eq('Storage', r.label || '：storage.objects 可見筆數', r.expected,
+      pg_temp.vr_as('authenticated', r.email, v_q, true));
+  end loop;
+  perform pg_temp.vr_eq('Storage','anon 看不到物件（0 筆或被拒）','true',
+    (select (a = '0' or a like 'ERROR:%')::text
+       from (select pg_temp.vr_as('anon', null, v_q, true) as a) s));
+  -- insert policy：路徑格式、考核必須是「本人的草稿」、第二段題組必須屬於該考核
+  --（delete 規則不在此測：Supabase 的 storage.protect_delete 會擋直接 delete storage.objects，
+  --  請依 README 第八節用 Storage API／儀表板手動驗證）
+  perform pg_temp.vr_eq('Storage','insert／delete policy 內容含「draft」與本人判斷','2',
+    (select count(*)::text from pg_policies
+      where schemaname = 'storage' and tablename = 'objects'
+        and policyname in ('assess_notes_insert', 'assess_notes_delete')
+        and coalesce(qual, '') || coalesce(with_check, '') like '%draft%'
+        and coalesce(qual, '') || coalesce(with_check, '') like '%roster_my_email%'));
+  for r in
+    select * from (values
+      ('客服部＋自己的草稿＋自己的題組＋合法 jpg 路徑', 'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'OK'),
+      ('客服部＋合法 png 路徑',                          'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.png', 'OK'),
+      ('客服部＋合法 webp 路徑',                         'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.webp', 'OK'),
+      ('另一位客服部（不是草稿建立者）被拒',             'authenticated', 'cs2@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('已送出考核的路徑被拒（即使是同一位考官）',       'authenticated', 'cs1@example.invalid', v_s || '/' || v_si || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('已作廢考核的路徑被拒',                           'authenticated', 'cs1@example.invalid', v_v || '/' || v_vi || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('第二段題組不屬於該考核被拒',                     'authenticated', 'cs1@example.invalid', v_d || '/' || v_si || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('考核不存在的路徑被拒',                           'authenticated', 'cs1@example.invalid', gen_random_uuid()::text || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('副檔名不合（gif）被拒',                          'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.gif', 'ERROR'),
+      ('檔名不是 uuid 被拒',                             'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/photo.jpg', 'ERROR'),
+      ('少一層路徑被拒',                                 'authenticated', 'cs1@example.invalid', v_d || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('總公司主管＋合法路徑也被拒',                     'authenticated', 'hq@example.invalid',  v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('店長＋合法路徑也被拒',                           'authenticated', 'sm1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('有登入但沒帳號＋合法路徑被拒',                   'authenticated', 'nobody@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('未登入 anon＋合法路徑被拒',                      'anon',          null,                  v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR')
+    ) as t(label, rl, email, path, expected)
+  loop
+    v_res := pg_temp.vr_as(r.rl, r.email,
+      format($q$insert into storage.objects (bucket_id, name) values ('assess-notes', %L)$q$, r.path), false);
+    perform pg_temp.vr_eq('Storage', 'insert policy：' || r.label, r.expected,
+      case when v_res like 'ERROR:%' then 'ERROR' else v_res end);
+  end loop;
+exception when others then
+  perform pg_temp.vr_rec('區段 3-7','Storage 檢查意外中斷（請改照 README 手動檢查）','無例外', sqlerrm, false);
 end
 $$;
 
