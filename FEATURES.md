@@ -34,6 +34,12 @@
 - 成績單（所有已開通角色）｜`reports.html`｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含附圖，不含備註文字、題組名稱、步驟、考點
 - 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`reports.html`｜頁首「進行考核」（只有客服部，實心藍膠囊）、「成績單」「人員名冊」（淡藍膠囊）、登出（灰色小字）；身分資訊（信箱與角色標籤，灰色邊框方塊）與導覽之間有分隔線，手機上導覽自成一行；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」；客服部另有「帳號管理」淡藍膠囊（accounts.html 頁首導覽同款）
 
+### 題庫管理（樣品與設計稿；SQL 尚未在 Supabase 執行，正式版尚未做）
+
+- 題庫管理樣品（假資料）｜`樣品/questions.html`｜完整對應舊管理頁：分類下拉（含「全部分類」與特殊名稱）、統計小卡、收合列表與步驟展開、新增與編輯題組（步驟編輯器 1～30、上下移）、草稿保留、刪除二次確認（4 秒還原）、分類改名與合併、洗牌（單一與全部，二次確認）；底部註明題庫內容含考點只有客服部可見
+- 題庫管理設計稿｜`supabase/bank_schema.sql`、`bank_verify_fake.sql`、`README_bank.md`｜bank_list_questions／bank_save_question／bank_delete_question／bank_rename_category／bank_reset，只有客服部能呼叫，行為與舊 admin_* 函式一致，與抽題共用 advisory lock（寫入函式）；驗證腳本結尾自動復原
+- 停用舊抽選器腳本（單獨、可還原、尚未執行）｜`supabase/bank_retire_legacy.sql`｜收回 anon 對 8 個舊函式的 execute，不刪函式與資料；開頭防護：有其他物件引用舊函式就中止；還原段在註解內
+
 ### 考核後台（正式版；SQL 已在 Supabase 執行，161 項驗證通過；網頁尚未用真實登入實測）
 
 - 考核後台頁｜`backoffice.html`、`js/backoffice-api.js`｜所有已開通角色可進；三個分頁「人員歷史」「弱項分析」「改善單」，網址 #history、#insights、#tickets；資料皆讀資料庫（不查機密表）；改善單動作呼叫 improve_update_plan／improve_close／improve_cancel（客服部）、improve_mark_coached（店長自己門市或客服部）；主管只讀；已取消單只有客服部看得到；主管與店長視角的改善單紀錄不顯示他人信箱（頁首仍顯示自己的信箱）
