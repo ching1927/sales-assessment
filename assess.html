@@ -218,6 +218,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
           <a class="nav" href="backoffice.html">考核後台</a>
           <a class="nav" href="roster.html">人員名冊</a>
           <a class="nav" id="toAccounts" href="accounts.html" hidden>帳號管理</a>
+          <a class="nav" id="toQuestions" href="questions.html" hidden>題庫管理</a>
           <button class="link" id="logout" type="button">登出</button>
         </div>
       </div>
@@ -1077,7 +1078,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         return;
       }
       $('whoBadge').textContent = ROLE_LABEL[row.role];
-      $('toAccounts').hidden = false;  // 只有客服部會走到這裡
+      $('toAccounts').hidden = false; $('toQuestions').hidden = false;  // 只有客服部會走到這裡
       return AssessApi.loadStores().then(function (list) {
         list.forEach(function (s) { storeName[s.code] = s.name; });
         return loadStep1();

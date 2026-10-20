@@ -133,6 +133,7 @@ dialog::backdrop{background:var(--scrim)}
           <a class="nav" href="reports.html">成績單</a>
           <a class="nav" href="roster.html">人員名冊</a>
           <a class="nav" id="toAccounts" href="accounts.html" hidden>帳號管理</a>
+          <a class="nav" id="toQuestions" href="questions.html" hidden>題庫管理</a>
           <button class="link" id="logout" type="button">登出</button>
         </div>
       </div>
@@ -721,7 +722,7 @@ dialog::backdrop{background:var(--scrim)}
   function applyRole() {
     var lab = ROLE_LABEL[me.role] + (isMgr() ? '・' + sName(me.store_code) : '');
     $('whoBadge').textContent = lab;
-    $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS();
+    $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
     $('hStore').hidden = isMgr(); $('tStore').hidden = isMgr();
     fillStatusSel();
   }

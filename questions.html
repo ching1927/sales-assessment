@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>題庫管理</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button{cursor:pointer}
+
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-3) var(--sp-4);align-items:center;font-size:13px;color:var(--ink-2)}
+.who-id,.who-nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+.who-nav{padding-left:var(--sp-4);border-left:1px solid var(--ink-line)}
+.who .badge{background:rgba(15,23,42,.06);color:var(--ink);border:1px solid var(--ink-line);font-weight:600;padding:4px 12px;border-radius:var(--r-ctrl);font-size:13px}
+@media (max-width:640px){.who-nav{flex-basis:100%;padding-left:0;border-left:none}}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.ctrl.bad{border-color:var(--danger);box-shadow:0 0 0 2px var(--danger-soft)}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn[disabled]{opacity:.6;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-deep)}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:6px 4px}
+#logout{color:var(--ink-2)}
+.nav{display:inline-block;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:15px;padding:8px 16px;border-radius:var(--r-pill);text-decoration:none}
+.nav.primary{background:var(--accent);color:#fff}
+.nav:hover{filter:brightness(.96)}
+.notice{background:var(--warning-soft);color:var(--warning);font-weight:600;font-size:14px;line-height:1.5;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-ctrl)}
+.notice.bad{background:var(--danger-soft);color:var(--danger)}
+.notice.ok{background:var(--success-soft);color:var(--success)}
+.msg{margin-bottom:var(--sp-4)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
+.tag.cs{background:var(--info-soft);color:var(--accent-deep)}
+.tag.soft{background:var(--track);color:var(--ink-2)}
+.tag.drawn{background:var(--warning-soft);color:var(--warning)}
+.field{display:block;margin-bottom:var(--sp-3);font-size:13px;color:var(--ink-2);font-weight:600}
+.field[hidden]{display:none}
+.field input,.field select,.field textarea{display:block;width:100%;margin-top:6px;font-weight:400}
+.field textarea{min-height:64px;resize:vertical;line-height:1.5}
+.ferr{color:var(--danger);font-size:13px;font-weight:600;margin-top:4px}
+.small-note{color:var(--ink-3);font-size:12px;font-weight:400;margin-left:6px}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3)}
+.foot{text-align:center;color:var(--ink-3);font-size:12px;margin:var(--sp-6) 0 var(--sp-4)}
+
+/* 統計 */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-3);margin-bottom:var(--sp-4)}
+.stat{padding:var(--sp-3) var(--sp-4);display:flex;flex-direction:column;gap:2px}
+.stat .num{font-size:26px;font-weight:700;line-height:1.2}
+.stat .lbl{font-size:12px;color:var(--ink-2)}
+/* 工具列 */
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:flex-end}
+.toolbar .field{margin:0;flex:1 1 220px;max-width:340px}
+.toolbar .tool-row{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
+.toolbar .tool-note{flex:1 1 100%;color:var(--ink-3);font-size:12px}
+.only-mobile{display:inline-block}
+/* 版面：桌機右欄固定表單 */
+.layout{display:grid;grid-template-columns:1fr;gap:var(--sp-4);align-items:start}
+.formcol[data-open="false"]{display:none}
+@media (min-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr) 380px}
+  .listcol{grid-column:1;grid-row:1}
+  .formcol{grid-column:2;grid-row:1;position:sticky;top:var(--sp-4)}
+  .formcol[data-open="false"]{display:block}
+  .only-mobile{display:none}
+}
+/* 題組分類區塊 */
+.group{margin-bottom:var(--sp-4)}
+.g-head{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;padding:var(--sp-4);border-bottom:1px solid var(--ink-line)}
+.g-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gname{font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.gmeta{font-size:12px;color:var(--ink-2)}
+.g-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
+.rename-box{flex:1 1 100%;display:flex;flex-direction:column;gap:var(--sp-2)}
+.rename-box label{font-size:13px;color:var(--ink-2);font-weight:600}
+.rename-row{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
+.rename-row input{flex:1 1 180px;min-width:0}
+.q-item{border-bottom:1px solid var(--ink-line);padding:var(--sp-3) var(--sp-4)}
+.q-item:last-child{border-bottom:none}
+.q-item.editing{background:var(--accent-soft)}
+.q-item.flash{animation:flash 1.6s var(--ease)}
+@keyframes flash{0%{background:var(--success-soft)}100%{background:transparent}}
+.q-head{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);align-items:center}
+.q-toggle{flex:1 1 220px;display:flex;gap:var(--sp-3);align-items:center;cursor:pointer;min-width:0}
+.code{flex:none;min-width:34px;text-align:center;font-family:var(--mono);font-weight:700;font-size:13px;background:var(--accent-soft);color:var(--accent-deep);padding:4px 10px;border-radius:var(--r-ctrl)}
+.q-info{min-width:0}
+.q-title{font-weight:600;font-size:15px;overflow-wrap:anywhere}
+.q-meta{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:4px}
+.q-actions{display:flex;gap:var(--sp-2)}
+.chev-btn{width:36px;height:36px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);display:flex;align-items:center;justify-content:center;box-shadow:var(--specular),var(--hairline)}
+.chev-btn svg{width:18px;height:18px;fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform var(--dur-micro) var(--ease)}
+.chev-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.q-steps{margin-top:var(--sp-3);border:1px solid var(--ink-line);border-radius:var(--r-ctrl);background:var(--glass-bg-strong);overflow:hidden}
+.st-head{display:none}
+.st-row{display:grid;grid-template-columns:28px 1fr;gap:4px 10px;padding:var(--sp-3);border-bottom:1px solid var(--ink-line);font-size:14px;line-height:1.5}
+.st-row:last-child{border-bottom:none}
+.st-no{font-weight:700;color:var(--accent-deep)}
+.st-act,.st-pt{overflow-wrap:anywhere}
+.st-pt{grid-column:2;color:var(--ink-2)}
+.pt-tag{display:inline-block;font-size:11px;font-weight:600;background:var(--track);color:var(--ink-2);padding:1px 8px;border-radius:var(--r-pill);margin-right:6px}
+@media (min-width:640px){
+  .st-head,.st-row{display:grid;grid-template-columns:56px 1fr 1fr;gap:var(--sp-3)}
+  .st-head{padding:var(--sp-2) var(--sp-3);font-size:12px;font-weight:600;color:var(--ink-2);border-bottom:1px solid var(--ink-line);background:rgba(255,255,255,0.8)}
+  .st-pt{grid-column:auto}
+  .pt-tag{display:none}
+}
+.empty-lib{padding:var(--sp-8);text-align:center;color:var(--ink-2);display:flex;flex-direction:column;gap:var(--sp-3);align-items:center}
+/* 表單 */
+.form-card{padding:var(--sp-4)}
+.form-card h2{font-size:17px;margin-bottom:var(--sp-3)}
+.edit-note{background:var(--accent-soft);color:var(--accent-deep);font-size:13px;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-ctrl);margin-bottom:var(--sp-3);display:flex;flex-direction:column;gap:2px}
+.edit-note .k{font-weight:600}
+.steps-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-2);font-weight:600;margin-bottom:var(--sp-2)}
+.step{border:1px solid var(--ink-line);border-radius:var(--r-ctrl);background:var(--glass-bg-strong);padding:var(--sp-3);margin-bottom:var(--sp-2)}
+.step-head{display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2)}
+.step-head .st-no{font-size:14px}
+.step-ttl{font-size:13px;font-weight:600;color:var(--ink-2)}
+.step-tools{margin-left:auto;display:flex;gap:var(--sp-1)}
+.step .field{margin-bottom:var(--sp-2)}
+.step-limit{color:var(--warning);font-size:12px;font-weight:600;margin-top:var(--sp-2)}
+.form-btns{display:flex;gap:var(--sp-2);margin-top:var(--sp-4)}
+.add-step{width:100%}
+@media (max-width:640px){
+  .top h1{font-size:19px}
+  .btn.sm,.toolbar .btn,.form-btns .btn{min-height:44px}
+  .q-actions .btn.sm{min-width:56px}
+  .stat .num{font-size:22px}
+  .chev-btn{width:44px;height:44px}
+}
+.nav[hidden]{display:none}
+.notice.ok{background:var(--success-soft);color:var(--success)}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+.blocked .btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink)}
+.fail{padding:var(--sp-8) var(--sp-4);text-align:center;color:var(--ink-2);display:flex;flex-direction:column;gap:var(--sp-3);align-items:center}
+.fail strong{color:var(--ink);font-size:16px}
+.busy .listcol{pointer-events:none;opacity:.7}
+/* 資料載入失敗：隱藏統計、工具列與整個表單，只留載入失敗面板 */
+.nodata .stats,.nodata .toolbar,.nodata .formcol{display:none!important}
+.nodata .layout{grid-template-columns:1fr!important}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <a class="btn" id="blockedGo" href="roster.html" hidden>前往人員名冊</a>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+  <div class="top">
+    <h1>題庫管理</h1>
+    <div class="who">
+      <div class="who-id">
+        <span>目前身分</span>
+        <span id="whoEmail"></span>
+        <span class="badge">客服部</span>
+      </div>
+      <div class="who-nav">
+        <a class="nav primary" href="assess.html">進行考核</a>
+        <a class="nav" href="reports.html">成績單</a>
+        <a class="nav" href="backoffice.html">考核後台</a>
+        <a class="nav" href="roster.html">人員名冊</a>
+        <a class="nav" href="accounts.html">帳號管理</a>
+        <button class="link" id="logout" type="button">登出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice msg" id="msg" role="alert" hidden></div>
+
+  <section class="stats" aria-label="題庫統計">
+    <div class="stat glass"><span class="num" id="stTotal">0</span><span class="lbl">總題組數</span></div>
+    <div class="stat glass"><span class="num" id="stCats">0</span><span class="lbl">分類數</span></div>
+    <div class="stat glass"><span class="num" id="stDrawn">0</span><span class="lbl">本輪已抽題組數</span></div>
+  </section>
+
+  <section class="toolbar glass" aria-label="篩選與操作">
+    <label class="field" id="filterField">選擇分類
+      <select class="ctrl" id="filterSelect"></select>
+    </label>
+    <div class="tool-row">
+      <button class="btn primary only-mobile" id="addBtn" type="button">新增題組</button>
+      <button class="btn" id="resetAllBtn" type="button" data-label="全部重新洗牌">全部重新洗牌</button>
+    </div>
+    <p class="tool-note">洗牌會清除「本輪已抽」的記錄，所有人會重新開始抽。</p>
+  </section>
+
+  <div class="layout">
+    <aside class="formcol" id="formCol" data-open="false">
+      <form id="qForm" class="form-card glass" autocomplete="off" novalidate>
+        <h2 id="formTitle">新增題組</h2>
+        <div class="edit-note" id="editNote" hidden>
+          <span class="k" id="editNoteK"></span>
+          <span id="editNoteQ"></span>
+        </div>
+        <div class="notice msg" id="formNote" hidden></div>
+        <label class="field">分類
+          <select class="ctrl" id="catSelect"></select>
+        </label>
+        <label class="field" id="newCatBox" hidden>新分類名稱
+          <input class="ctrl" type="text" id="newCatInput">
+          <div class="ferr" id="catErr" role="alert" hidden></div>
+        </label>
+        <label class="field">代號（選填）<span class="small-note">最多 10 字，例如 A、B</span>
+          <input class="ctrl" type="text" id="codeInput" maxlength="10">
+          <div class="ferr" id="codeErr" role="alert" hidden></div>
+        </label>
+        <label class="field">題組名稱
+          <input class="ctrl" type="text" id="titleInput" maxlength="100">
+          <div class="ferr" id="titleErr" role="alert" hidden></div>
+        </label>
+        <div class="steps-top"><span>步驟</span><span id="stepCount">1 / 30 步</span></div>
+        <div id="stepsBox"></div>
+        <button class="btn add-step" id="addStepBtn" type="button">新增步驟</button>
+        <p class="step-limit" id="stepLimit" hidden>已達上限 30 步，無法再新增。</p>
+        <div class="form-btns">
+          <button class="btn primary" id="saveBtn" type="submit">儲存</button>
+          <button class="btn" id="cancelBtn" type="button">取消</button>
+        </div>
+      </form>
+    </aside>
+    <div class="listcol">
+      <section class="fail glass" id="failBox" role="alert" hidden>
+        <strong>載入失敗</strong>
+        <span id="failText"></span>
+        <button class="btn primary" id="retryBtn" type="button">重試</button>
+      </section>
+      <div id="listBox" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <p class="note">題庫內容含考點，屬機密，只有客服部能看到與修改。</p>
+  </div>
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/questions-api.js"></script>
+<script>
+(function () {
+  // 欄位上限對照資料庫 bank_save_question：代號 10、題組名稱 100、步驟各欄 500、步驟 1～30、分類無上限。
+  // 最終以資料庫回傳的白話訊息為準。題庫內容只放在頁面記憶體，不寫入 console、網址或任何瀏覽器儲存。
+  var MAX_STEPS = 30;
+  var NEW_VAL = 'new', ALL_VAL = 'all';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function isDesktop() { return window.matchMedia('(min-width:900px)').matches; }
+  function errText(e) { return (e && e.userMessage) || QuestionsApi.explain(e); }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { QuestionsApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text, showGo) {
+    $('loading').hidden = true;
+    $('app').hidden = true;
+    $('blockedText').textContent = text;
+    $('blockedGo').hidden = !showGo;
+    $('blocked').hidden = false;
+  }
+
+  /* ===== 資料（從資料庫載入，只放記憶體） ===== */
+  var questions = [];
+  var catStat = {};   // 分類 → { total, remaining }（assess_categories）
+  var names = [];
+  var filterAll = false, filterCat = null;
+  var editingId = null, renamingCat = null, renameAsked = null, flashId = null;
+  var openIds = {};
+  var formCatName = null, formTouched = false, stepSeq = 0;
+  var busy = false;
+  var dataOk = false;   // 目前畫面上的資料是否有效（載入失敗時為 false）
+
+  function recompute() {
+    names = [];
+    questions.forEach(function (q) { if (names.indexOf(q.category) < 0) names.push(q.category); });
+  }
+  function byCat(c) { return questions.filter(function (q) { return q.category === c; }); }
+
+  function showMsg(t, kind) {
+    var m = $('msg');
+    m.textContent = t;
+    m.className = 'notice msg' + (kind === 'ok' ? ' ok' : kind === 'bad' ? ' bad' : '');
+    m.hidden = !t;
+  }
+  function setBusy(b) {
+    busy = b;
+    document.body.classList.toggle('busy', b);
+    $('saveBtn').disabled = b;
+    $('resetAllBtn').disabled = b || !dataOk || !questions.length;
+  }
+
+  /* ===== 二次確認按鈕（4 秒不按還原） ===== */
+  var armed = null;
+  function disarm() {
+    if (!armed) return;
+    clearTimeout(armed.t);
+    if (armed.btn.isConnected) { armed.btn.textContent = armed.btn.dataset.label; armed.btn.classList.remove('danger'); }
+    armed = null;
+  }
+  function arm(btn, key, confirmLabel, fn) {
+    if (busy || !dataOk) return;
+    if (armed && armed.key === key) { disarm(); fn(); return; }
+    disarm();
+    btn.textContent = confirmLabel; btn.classList.add('danger');
+    armed = { key: key, btn: btn, t: setTimeout(disarm, 4000) };
+  }
+
+  /* ===== 渲染 ===== */
+  function renderStats() {
+    $('stTotal').textContent = questions.length;
+    $('stCats').textContent = names.length;
+    $('stDrawn').textContent = questions.filter(function (q) { return q.drawn; }).length;
+  }
+  function renderFilter() {
+    var sel = $('filterSelect');
+    $('filterField').hidden = !names.length;
+    var h = '<option value="' + ALL_VAL + '">全部分類（' + questions.length + ' 題組）</option>';
+    names.forEach(function (c, i) { h += '<option value="' + i + '">' + esc(c) + '（' + byCat(c).length + ' 題組）</option>'; });
+    sel.innerHTML = h;
+    if (filterAll) sel.value = ALL_VAL;
+    else if (names.indexOf(filterCat) >= 0) sel.value = String(names.indexOf(filterCat));
+  }
+  function defaultFormCat() { return filterCat && names.indexOf(filterCat) >= 0 ? filterCat : (names.length ? names[0] : null); }
+  function syncNewCat() { $('newCatBox').hidden = $('catSelect').value !== NEW_VAL; }
+  function applyFormCat(name) {
+    formCatName = name;
+    $('catSelect').value = name === null ? NEW_VAL : String(names.indexOf(name));
+    syncNewCat();
+  }
+  function syncFormCat() {
+    if (editingId !== null || formTouched) return;
+    applyFormCat(defaultFormCat());
+  }
+  // 重建表單分類下拉：使用者選的分類保留，只有該分類已不存在才退回並提示
+  function renderSelect() {
+    var h = '';
+    names.forEach(function (c, i) { h += '<option value="' + i + '">' + esc(c) + '</option>'; });
+    h += '<option value="' + NEW_VAL + '">＋ 新增分類…</option>';
+    $('catSelect').innerHTML = h;
+    if (editingId !== null || formTouched) {
+      if (formCatName === null || names.indexOf(formCatName) >= 0) applyFormCat(formCatName);
+      else {
+        var fb = names.length ? names[0] : null;
+        setFormNote('表單原本選的分類已不存在，已改選' + (fb === null ? '「新增分類」' : '「' + fb + '」') + '。');
+        applyFormCat(fb);
+      }
+    } else applyFormCat(defaultFormCat());
+  }
+  function setFormNote(t, bad) {
+    var n = $('formNote');
+    n.textContent = t;
+    n.className = 'notice msg' + (bad ? ' bad' : '');
+    n.hidden = !t;
+  }
+
+  var CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+  function renderQuestion(q) {
+    var open = !!openIds[q.id];
+    var h = '<div class="q-item' + (editingId === q.id ? ' editing' : '') + (flashId === q.id ? ' flash' : '') + '" data-id="' + q.id + '">' +
+      '<div class="q-head">' +
+        '<div class="q-toggle" data-act="toggle">' +
+          (q.code ? '<span class="code">' + esc(q.code) + '</span>' : '') +
+          '<div class="q-info"><div class="q-title">' + esc(q.title) + '</div>' +
+          '<div class="q-meta"><span class="tag soft">' + q.steps.length + ' 個步驟</span>' +
+          (q.drawn ? '<span class="tag drawn">本輪已抽</span>' : '') + '</div></div>' +
+        '</div>' +
+        '<div class="q-actions">' +
+          '<button type="button" class="btn sm" data-act="edit">編輯</button>' +
+          '<button type="button" class="btn sm" data-act="del" data-label="刪除">刪除</button>' +
+        '</div>' +
+        '<button type="button" class="chev-btn" data-act="toggle" aria-expanded="' + open + '" aria-controls="steps-' + q.id + '" aria-label="步驟明細：' + esc(q.title) + '">' + CHEV + '</button>' +
+      '</div>' +
+      '<div class="q-steps" id="steps-' + q.id + '" role="table" aria-label="步驟明細"' + (open ? '' : ' hidden') + '>' +
+        '<div class="st-head" role="row"><span role="columnheader">步驟</span><span role="columnheader">考官操作</span><span role="columnheader">考點</span></div>';
+    q.steps.forEach(function (s, i) {
+      h += '<div class="st-row" role="row"><span class="st-no" role="cell" aria-label="步驟 ' + (i + 1) + '">' + (i + 1) + '</span>' +
+        '<div class="st-act" role="cell">' + esc(s.action) + '</div>' +
+        '<div class="st-pt" role="cell"><span class="pt-tag">考點</span><span>' + (s.point ? esc(s.point) : '—') + '</span></div></div>';
+    });
+    return h + '</div></div>';
+  }
+
+  function renderGroup(cat, ci) {
+    var items = byCat(cat);
+    // 剩餘題數沿用 assess_categories；萬一查不到該分類，用列表自己算
+    var st = catStat[cat];
+    var total = st ? st.total : items.length;
+    var remaining = st ? st.remaining : items.filter(function (q) { return !q.drawn; }).length;
+    var drawn = total - remaining;
+    var h = '<section class="group glass" data-ci="' + ci + '"><div class="g-head">';
+    if (renamingCat === cat) {
+      h += '<div class="rename-box"><label for="renameInput">「' + esc(cat) + '」的新名稱</label>' +
+        '<div class="rename-row"><input class="ctrl" id="renameInput" type="text" value="' + esc(cat) + '">' +
+        '<button type="button" class="btn primary sm" id="renameOk">確定改名</button>' +
+        '<button type="button" class="btn sm" id="renameCancel">取消</button></div>' +
+        '<div class="ferr" id="renameErr" role="alert" hidden></div>' +
+        '<div class="notice" id="renameWarn" role="alert" hidden></div></div>';
+    } else {
+      h += '<div class="g-txt"><span class="gname">' + esc(cat) + '</span>' +
+        '<span class="gmeta">共 <b>' + total + '</b> 題組 · 本輪已抽 <b>' + drawn + '</b> 題組 · 剩餘 <b>' + remaining + ' / ' + total + '</b> 題組</span></div>' +
+        '<div class="g-actions">' +
+          '<button type="button" class="btn sm" data-act="rename" data-ci="' + ci + '">改名</button>' +
+          '<button type="button" class="btn sm" data-act="reset" data-ci="' + ci + '" data-label="重新洗牌此分類">重新洗牌此分類</button>' +
+        '</div>';
+    }
+    h += '</div><div class="g-body">';
+    items.forEach(function (q) { h += renderQuestion(q); });
+    return h + '</div></section>';
+  }
+
+  function renderList() {
+    disarm();
+    var box = $('listBox');
+    if (!names.length) {
+      box.innerHTML = '<div class="empty-lib glass"><strong>題庫還是空的</strong><span>新人還沒有題組可以抽，先新增第一個題組吧。</span>' +
+        '<button type="button" class="btn primary" data-act="addfirst">新增第一個題組</button></div>';
+      return;
+    }
+    var h = '';
+    if (filterAll) names.forEach(function (c, i) { h += renderGroup(c, i); });
+    else h = renderGroup(filterCat, names.indexOf(filterCat));
+    box.innerHTML = h;
+    if (renamingCat !== null) { var inp = $('renameInput'); if (inp) { inp.focus(); inp.select(); } }
+  }
+
+  function refresh() {
+    var prevIdx = names.indexOf(filterCat);
+    recompute();
+    if (!filterAll && names.indexOf(filterCat) < 0) {
+      filterCat = names.length ? names[Math.max(0, Math.min(prevIdx, names.length - 1))] : null;
+    }
+    // 改名中的分類已消失（例如別人先改了）就收起改名框
+    if (renamingCat !== null && names.indexOf(renamingCat) < 0) { renamingCat = null; renameAsked = null; }
+    renderStats(); renderFilter(); renderSelect(); renderList();
+    $('resetAllBtn').disabled = busy || !dataOk || !questions.length;
+  }
+
+  /* ===== 載入（失敗只顯示載入失敗面板，不跟成功提示並存；草稿在表單裡不受影響） ===== */
+  var loadSeq = 0;
+  // 回傳 Promise<boolean>：true＝載入成功
+  function reloadList() {
+    var seq = ++loadSeq;
+    return Promise.all([QuestionsApi.listQuestions(), QuestionsApi.categories()]).then(function (r) {
+      if (seq !== loadSeq) return true;
+      dataOk = true;
+      document.body.classList.remove('nodata');
+      questions = r[0];
+      catStat = {};
+      r[1].forEach(function (c) { catStat[c.category] = { total: Number(c.total) || 0, remaining: Number(c.remaining) || 0 }; });
+      $('failBox').hidden = true;
+      $('listBox').hidden = false;
+      refresh();
+      return true;
+    }).catch(function (e) {
+      if (seq !== loadSeq) return false;
+      dataOk = false;
+      document.body.classList.add('nodata');
+      questions = []; catStat = {}; names = [];
+      $('listBox').innerHTML = '';
+      $('resetAllBtn').disabled = true;
+      showMsg('');
+      $('failText').textContent = errText(e) + ' 剛才的操作可能已經完成，請按「重試」確認目前題庫。';
+      $('listBox').hidden = true;
+      $('failBox').hidden = false;
+      return false;
+    });
+  }
+  $('retryBtn').addEventListener('click', function () {
+    if (busy) return;
+    var b = this;
+    b.disabled = true;
+    setBusy(true);
+    reloadList().catch(function () {}).finally(function () { b.disabled = false; setBusy(false); });
+  });
+
+  /* ===== 步驟編輯器（資料直接放在 DOM 文字框，列表重載不會洗掉草稿） ===== */
+  function stepBlocks() { return $('stepsBox').children; }
+  function stepHtml(id, a, p) {
+    return '<div class="step" role="group">' +
+      '<div class="step-head"><span class="st-no">1</span><span class="step-ttl">步驟</span>' +
+        '<div class="step-tools">' +
+          '<button type="button" class="btn sm" data-st="up">上移</button>' +
+          '<button type="button" class="btn sm" data-st="down">下移</button>' +
+          '<button type="button" class="btn sm" data-st="del">刪除</button>' +
+        '</div></div>' +
+      '<label class="field">考官操作<textarea class="ctrl" id="stAct' + id + '" maxlength="500">' + esc(a) + '</textarea>' +
+        '<div class="ferr" role="alert" hidden></div></label>' +
+      '<label class="field">考點（選填）<textarea class="ctrl" id="stPt' + id + '" maxlength="500">' + esc(p) + '</textarea></label>' +
+    '</div>';
+  }
+  function addStep(a, p, focusIt) {
+    if (stepBlocks().length >= MAX_STEPS) return;
+    var id = ++stepSeq;
+    $('stepsBox').insertAdjacentHTML('beforeend', stepHtml(id, a || '', p || ''));
+    updateStepTools();
+    if (focusIt) {
+      var box = $('stepsBox').lastElementChild;
+      box.querySelector('textarea').focus({ preventScroll: true });
+      box.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+    }
+  }
+  function clearStepErrs() {
+    for (var i = 0; i < stepBlocks().length; i++) {
+      var b = stepBlocks()[i];
+      b.querySelector('.ferr').hidden = true;
+      b.querySelector('textarea').classList.remove('bad');
+    }
+  }
+  function updateStepTools() {
+    var bs = stepBlocks(), n = bs.length;
+    for (var i = 0; i < n; i++) {
+      var b = bs[i];
+      b.querySelector('.st-no').textContent = String(i + 1);
+      b.setAttribute('aria-label', '第 ' + (i + 1) + ' 步');
+      var up = b.querySelector('[data-st="up"]'), dn = b.querySelector('[data-st="down"]'), dl = b.querySelector('[data-st="del"]');
+      up.disabled = i === 0; dn.disabled = i === n - 1; dl.disabled = n <= 1;
+      up.setAttribute('aria-label', '第 ' + (i + 1) + ' 步上移');
+      dn.setAttribute('aria-label', '第 ' + (i + 1) + ' 步下移');
+      dl.setAttribute('aria-label', '刪除第 ' + (i + 1) + ' 步');
+    }
+    $('stepCount').textContent = n + ' / ' + MAX_STEPS + ' 步';
+    $('addStepBtn').disabled = n >= MAX_STEPS;
+    $('stepLimit').hidden = n < MAX_STEPS;
+  }
+  function buildSteps(arr) {
+    $('stepsBox').innerHTML = '';
+    (arr && arr.length ? arr : [{ action: '', point: '' }]).forEach(function (s) { addStep(s.action, s.point, false); });
+    updateStepTools();
+  }
+  $('stepsBox').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-st]');
+    if (!b || b.disabled) return;
+    var box = b.closest('.step'), parent = $('stepsBox'), kind = b.dataset.st;
+    if (kind === 'up' && box.previousElementSibling) parent.insertBefore(box, box.previousElementSibling);
+    else if (kind === 'down' && box.nextElementSibling) parent.insertBefore(box.nextElementSibling, box);
+    else if (kind === 'del') {
+      if (stepBlocks().length <= 1) return;
+      var next = box.nextElementSibling || box.previousElementSibling;
+      box.remove(); clearStepErrs(); updateStepTools();
+      if (next) next.querySelector('textarea').focus({ preventScroll: true });
+      return;
+    }
+    clearStepErrs(); updateStepTools();
+    var again = box.querySelector('[data-st="' + kind + '"]');
+    (again.disabled ? box.querySelector('[data-st="' + (kind === 'up' ? 'down' : 'up') + '"]') : again).focus({ preventScroll: true });
+  });
+  $('stepsBox').addEventListener('input', function (e) {
+    if (e.target.tagName !== 'TEXTAREA') return;
+    var f = e.target.closest('.field'), er = f && f.querySelector('.ferr');
+    if (er) er.hidden = true;
+    e.target.classList.remove('bad');
+  });
+  $('addStepBtn').addEventListener('click', function () { addStep('', '', true); });
+
+  /* ===== 表單 ===== */
+  function openForm(focusFirst) {
+    $('formCol').setAttribute('data-open', 'true');
+    if (!isDesktop()) $('formCol').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    if (focusFirst) $('titleInput').focus({ preventScroll: true });
+  }
+  function closeFormMobile() { $('formCol').setAttribute('data-open', 'false'); }
+  function hideErrs() {
+    ['catErr', 'codeErr', 'titleErr'].forEach(function (id) { $(id).hidden = true; });
+    ['titleInput', 'newCatInput', 'codeInput'].forEach(function (id) { $(id).classList.remove('bad'); });
+    clearStepErrs();
+  }
+  function setFormMode(edit, q) {
+    $('formTitle').textContent = edit ? '編輯題組' : '新增題組';
+    $('saveBtn').textContent = edit ? '儲存修改' : '儲存';
+    $('cancelBtn').textContent = edit ? '取消編輯' : '取消';
+    $('editNote').hidden = !edit;
+    if (edit) {
+      $('editNoteK').textContent = '正在編輯「' + q.category + '」的題組';
+      $('editNoteQ').textContent = (q.code ? q.code + ' ' : '') + q.title;
+    }
+  }
+  function startEdit(q) {
+    editingId = q.id; setFormMode(true, q); hideErrs(); setFormNote('');
+    applyFormCat(q.category);
+    $('codeInput').value = q.code || ''; $('titleInput').value = q.title; buildSteps(q.steps);
+    renderList(); openForm(true);
+  }
+  function resetForm() {
+    editingId = null; formTouched = false; setFormMode(false); setFormNote('');
+    $('codeInput').value = ''; $('titleInput').value = ''; $('newCatInput').value = '';
+    buildSteps(null); hideErrs(); syncFormCat();
+  }
+  function markErr(errId, msg, inputEl) { var e = $(errId); e.textContent = msg; e.hidden = false; inputEl.classList.add('bad'); }
+
+  function doSave() {
+    if (busy || !dataOk) return;
+    hideErrs(); setFormNote('');
+    var cat = formCatName === null ? $('newCatInput').value.trim() : formCatName;
+    var title = $('titleInput').value.trim();
+    var code = $('codeInput').value.trim();
+    var firstBad = null;
+    if (!cat) { markErr('catErr', '請輸入新分類名稱。', $('newCatInput')); firstBad = firstBad || $('newCatInput'); }
+    if (code.length > 10) { markErr('codeErr', '代號太長（最多 10 字）。', $('codeInput')); firstBad = firstBad || $('codeInput'); }
+    if (!title) { markErr('titleErr', '題組名稱不能空白。', $('titleInput')); firstBad = firstBad || $('titleInput'); }
+    else if (title.length > 100) { markErr('titleErr', '題組名稱太長（最多 100 字）。', $('titleInput')); firstBad = firstBad || $('titleInput'); }
+    var steps = [], bs = stepBlocks();
+    for (var i = 0; i < bs.length; i++) {
+      var tas = bs[i].querySelectorAll('textarea'), a = tas[0].value.trim(), p = tas[1].value.trim();
+      if (!a) {
+        var er = bs[i].querySelector('.ferr');
+        er.textContent = '第 ' + (i + 1) + ' 步的考官操作不能空白。'; er.hidden = false;
+        tas[0].classList.add('bad'); firstBad = firstBad || tas[0];
+      }
+      steps.push({ action: a, point: p });
+    }
+    if (firstBad) { firstBad.focus(); return; }
+    var wasEdit = editingId !== null;
+    setBusy(true);
+    QuestionsApi.saveQuestion(editingId, cat, code, title, steps).then(function (id) {
+      // 儲存成功：清掉草稿、跳到該分類，再重新載入列表
+      filterAll = false; filterCat = cat; flashId = id; openIds[id] = true;
+      resetForm(); if (!isDesktop()) closeFormMobile();
+      return reloadList().then(function (ok) {
+        if (ok) {
+          var fl = document.querySelector('.q-item.flash'); if (fl) fl.scrollIntoView({ block: 'nearest' });
+          showMsg(wasEdit ? '已儲存修改。' : '已新增題組。', 'ok');
+        }
+        flashId = null;
+      });
+    }, function (e) {
+      setFormNote(errText(e), true);   // 儲存失敗：草稿保留在表單
+    }).catch(function (e) {
+      setFormNote(errText(e), true);
+    }).finally(function () { setBusy(false); });
+  }
+  function doDelete(id) {
+    setBusy(true);
+    QuestionsApi.deleteQuestion(id).then(function () {
+      delete openIds[id];
+      if (editingId === id) { resetForm(); if (!isDesktop()) closeFormMobile(); }
+      return reloadList().then(function (ok) { if (ok) showMsg('已刪除題組。', 'ok'); });
+    }, function (e) {
+      showMsg(errText(e), 'bad');
+    }).catch(function (e) {
+      showMsg(errText(e), 'bad');
+    }).finally(function () { setBusy(false); });
+  }
+  function doRename(oldName, newName, merged) {
+    setBusy(true);
+    QuestionsApi.renameCategory(oldName, newName).then(function (n) {
+      renamingCat = null; renameAsked = null;
+      if (filterCat === oldName) filterCat = newName;
+      if (formCatName === oldName) formCatName = newName;
+      return reloadList().then(function (ok) {
+        if (ok) showMsg((merged ? '已合併分類' : '已改名') + '，共 ' + n + ' 個題組受影響。', 'ok');
+      });
+    }, function (e) {
+      var er = $('renameErr');
+      if (er) { er.textContent = errText(e); er.hidden = false; } else showMsg(errText(e), 'bad');
+    }).catch(function (e) {
+      showMsg(errText(e), 'bad');
+    }).finally(function () { setBusy(false); });
+  }
+  function doReset(cat) {
+    setBusy(true);
+    QuestionsApi.resetBank(cat).then(function () {
+      return reloadList().then(function (ok) {
+        if (ok) showMsg(cat === null ? '已全部重新洗牌，所有人會重新開始抽。' : '已重新洗牌「' + cat + '」，所有人會重新開始抽。', 'ok');
+      });
+    }, function (e) {
+      showMsg(errText(e), 'bad');
+    }).catch(function (e) {
+      showMsg(errText(e), 'bad');
+    }).finally(function () { setBusy(false); });
+  }
+
+  /* ===== 事件 ===== */
+  $('qForm').addEventListener('submit', function (ev) { ev.preventDefault(); doSave(); });
+  $('filterSelect').addEventListener('change', function () {
+    var v = $('filterSelect').value;
+    filterAll = v === ALL_VAL; filterCat = filterAll ? null : names[parseInt(v, 10)];
+    renamingCat = null; renameAsked = null; syncFormCat(); renderList();
+  });
+  $('catSelect').addEventListener('change', function () {
+    var v = $('catSelect').value;
+    formTouched = true; formCatName = v === NEW_VAL ? null : names[parseInt(v, 10)];
+    setFormNote(''); syncNewCat(); if (!$('newCatBox').hidden) $('newCatInput').focus();
+  });
+  $('titleInput').addEventListener('input', function () { $('titleErr').hidden = true; this.classList.remove('bad'); });
+  $('codeInput').addEventListener('input', function () { $('codeErr').hidden = true; this.classList.remove('bad'); });
+  $('newCatInput').addEventListener('input', function () { $('catErr').hidden = true; this.classList.remove('bad'); });
+  $('cancelBtn').addEventListener('click', function () {
+    if (busy) return;
+    var wasEdit = editingId !== null;
+    resetForm(); if (wasEdit) renderList();
+    if (!isDesktop()) closeFormMobile();
+  });
+  $('addBtn').addEventListener('click', function () {
+    if (busy || !dataOk) return;
+    if (editingId !== null) { resetForm(); renderList(); }
+    openForm(true);
+  });
+  $('resetAllBtn').addEventListener('click', function () {
+    if (busy) return;
+    showMsg('');
+    arm(this, 'all', '再按一次確認全部洗牌', function () { doReset(null); });
+  });
+
+  var box = $('listBox');
+  box.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-act],#renameOk,#renameCancel');
+    if (!t) return;
+    if (t.id === 'renameCancel') { if (busy) return; renamingCat = null; renameAsked = null; renderList(); return; }
+    if (t.id === 'renameOk') { if (busy) return; submitRename(t); return; }
+    var act = t.dataset.act;
+    if (act === 'toggle') {
+      var it = t.closest('.q-item'), id = parseInt(it.dataset.id, 10);
+      openIds[id] = !openIds[id];
+      it.querySelector('.q-steps').hidden = !openIds[id];
+      it.querySelector('.chev-btn').setAttribute('aria-expanded', openIds[id] ? 'true' : 'false');
+      return;
+    }
+    if (busy) return;
+    if (act === 'addfirst') { showMsg(''); openForm(true); return; }
+    if (act === 'edit') {
+      showMsg('');
+      var qid = parseInt(t.closest('.q-item').dataset.id, 10);
+      var q = questions.filter(function (x) { return x.id === qid; })[0];
+      if (q) startEdit(q);
+      return;
+    }
+    if (act === 'del') {
+      var did = parseInt(t.closest('.q-item').dataset.id, 10);
+      showMsg('');
+      arm(t, 'del' + did, '再按一次確認刪除', function () { doDelete(did); });
+      return;
+    }
+    if (act === 'rename') { showMsg(''); disarm(); renamingCat = names[parseInt(t.dataset.ci, 10)]; renameAsked = null; renderList(); return; }
+    if (act === 'reset') {
+      var cat = names[parseInt(t.dataset.ci, 10)];
+      showMsg('');
+      arm(t, 'reset' + t.dataset.ci, '再按一次確認洗牌', function () { doReset(cat); });
+    }
+  });
+  function submitRename(okBtn) {
+    var inp = $('renameInput'), nv = inp.value.trim(), cat = renamingCat;
+    if (!nv) { $('renameErr').textContent = '新分類名稱不能空白。'; $('renameErr').hidden = false; inp.classList.add('bad'); inp.focus(); return; }
+    if (nv === cat) { renamingCat = null; renameAsked = null; renderList(); return; }
+    var exists = names.indexOf(nv) >= 0;
+    if (exists && renameAsked !== nv) {
+      renameAsked = nv;
+      $('renameWarn').textContent = '這會把兩個分類合併：「' + cat + '」的題組會併入已存在的「' + nv + '」。請再按一次確認。';
+      $('renameWarn').hidden = false; okBtn.textContent = '確認合併'; return;
+    }
+    doRename(cat, nv, exists);
+  }
+  box.addEventListener('input', function (e) {
+    if (e.target.id !== 'renameInput') return;
+    renameAsked = null; $('renameWarn').hidden = true; $('renameErr').hidden = true;
+    e.target.classList.remove('bad'); $('renameOk').textContent = '確定改名';
+  });
+  box.addEventListener('keydown', function (e) {
+    if (e.target.id !== 'renameInput') return;
+    if (e.key === 'Enter') { e.preventDefault(); $('renameOk').click(); }
+    if (e.key === 'Escape') $('renameCancel').click();
+  });
+
+  /* ===== 啟動：登入、網域、開通三道檢查，再確認是客服部 ===== */
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  QuestionsApi.onSignedOut(function () { goLogin(''); });
+
+  QuestionsApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    var email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      QuestionsApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    $('whoEmail').textContent = email;
+    return QuestionsApi.loadMe(email).then(function (row) {
+      if (!row || !{ cs_admin: 1, hq_viewer: 1, store_manager: 1 }[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      if (row.role !== 'cs_admin') {
+        showBlocked('只有客服部可以管理題庫。即將帶你前往人員名冊。', true);
+        setTimeout(function () { location.replace('roster.html'); }, 3000);
+        return;
+      }
+      buildSteps(null); setFormMode(false);
+      $('loading').hidden = true;
+      $('app').hidden = false;
+      setBusy(true);
+      return reloadList().then(function (ok) {
+        if (ok) { filterCat = names[0] || null; filterAll = false; refresh(); }
+      }).finally(function () { setBusy(false); });
+    });
+  }).catch(function (e) {
+    showBlocked(errText(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+</body>
+</html>

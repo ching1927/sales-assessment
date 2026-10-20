@@ -34,7 +34,12 @@
 - 成績單（所有已開通角色）｜`reports.html`｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含附圖，不含備註文字、題組名稱、步驟、考點
 - 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`reports.html`｜頁首「進行考核」（只有客服部，實心藍膠囊）、「成績單」「人員名冊」（淡藍膠囊）、登出（灰色小字）；身分資訊（信箱與角色標籤，灰色邊框方塊）與導覽之間有分隔線，手機上導覽自成一行；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」；客服部另有「帳號管理」淡藍膠囊（accounts.html 頁首導覽同款）
 
-### 題庫管理（樣品與設計稿；SQL 尚未在 Supabase 執行，正式版尚未做）
+### 題庫管理（正式版寫好、已審查；需先在 Supabase 執行 bank_schema.sql；尚未用真實登入實測）
+
+- 題庫管理頁（只有客服部）｜`questions.html`、`js/questions-api.js`｜取代舊管理頁，Google 登入；讀寫呼叫 bank_list_questions／bank_save_question／bank_delete_question／bank_rename_category／bank_reset 與 assess_categories；功能對應舊管理頁（分類下拉、統計、題組列表、新增編輯與步驟編輯器、草稿保留、刪除與洗牌二次確認、分類改名與合併）；題庫內容不寫入 console 或瀏覽器儲存；載入失敗時停用表單與洗牌
+- 導覽「題庫管理」｜`roster.html`、`assess.html`、`reports.html`、`accounts.html`、`backoffice.html`｜只有客服部看得到，放在「帳號管理」之後
+
+### 題庫管理（樣品與設計稿）
 
 - 題庫管理樣品（假資料）｜`樣品/questions.html`｜完整對應舊管理頁：分類下拉（含「全部分類」與特殊名稱）、統計小卡、收合列表與步驟展開、新增與編輯題組（步驟編輯器 1～30、上下移）、草稿保留、刪除二次確認（4 秒還原）、分類改名與合併、洗牌（單一與全部，二次確認）；底部註明題庫內容含考點只有客服部可見
 - 題庫管理設計稿｜`supabase/bank_schema.sql`、`bank_verify_fake.sql`、`README_bank.md`｜bank_list_questions／bank_save_question／bank_delete_question／bank_rename_category／bank_reset，只有客服部能呼叫，行為與舊 admin_* 函式一致，與抽題共用 advisory lock（寫入函式）；驗證腳本結尾自動復原
