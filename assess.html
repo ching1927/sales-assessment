@@ -12,8 +12,11 @@ button:disabled{cursor:not-allowed;opacity:.5}
 .page{max-width:900px;margin:0 auto;padding:var(--sp-4)}
 .top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
 .top h1{font-size:22px;font-weight:700}
-.who{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;font-size:13px;color:var(--ink-2)}
-.who .badge{background:var(--accent-soft);color:var(--accent-deep);font-weight:600;padding:6px 12px;border-radius:var(--r-pill);font-size:13px}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-3) var(--sp-4);align-items:center;font-size:13px;color:var(--ink-2)}
+.who-id,.who-nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+.who-nav{padding-left:var(--sp-4);border-left:1px solid var(--ink-line)}
+.who .badge{background:rgba(15,23,42,.06);color:var(--ink);border:1px solid var(--ink-line);font-weight:600;padding:4px 12px;border-radius:var(--r-ctrl);font-size:13px}
+@media (max-width:640px){.who-nav{flex-basis:100%;padding-left:0;border-left:none}}
 .ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
 .btn{padding:9px 16px;min-height:44px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
   font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
@@ -205,12 +208,16 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     <div class="top">
       <h1>進行考核</h1>
       <div class="who">
-        <span>目前身分</span>
-        <span id="whoEmail"></span>
-        <span class="badge" id="whoBadge"></span>
-        <a class="nav" href="reports.html">成績單</a>
-        <a class="nav" href="roster.html">人員名冊</a>
-        <button class="link" id="logout" type="button">登出</button>
+        <div class="who-id">
+          <span>目前身分</span>
+          <span id="whoEmail"></span>
+          <span class="badge" id="whoBadge"></span>
+        </div>
+        <div class="who-nav">
+          <a class="nav" href="reports.html">成績單</a>
+          <a class="nav" href="roster.html">人員名冊</a>
+          <button class="link" id="logout" type="button">登出</button>
+        </div>
       </div>
     </div>
 
