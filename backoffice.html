@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>考核後台</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* 公版 tokens 沒有的兩個中性色（與已確認樣品相同）：純白（按鈕字、對話框底、圖表標記與文字描邊）、對話框遮罩 */
+body{--surface-solid:#fff;--scrim:rgba(15,23,42,0.30)}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button:disabled{cursor:not-allowed;opacity:.5}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-3) var(--sp-4);align-items:center;font-size:13px;color:var(--ink-2)}
+.who-id,.who-nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+.who-nav{padding-left:var(--sp-4);border-left:1px solid var(--ink-line)}
+.who .badge{background:var(--track);color:var(--ink);border:1px solid var(--ink-line);font-weight:600;padding:4px 12px;border-radius:var(--r-ctrl);font-size:13px}
+@media (max-width:640px){.who-nav{flex-basis:100%;padding-left:0;border-left:none}}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease);text-decoration:none;display:inline-block}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:var(--surface-solid);border-color:var(--accent)}
+.btn.danger{background:var(--danger);color:var(--surface-solid);border-color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:6px 4px;text-decoration:none}
+#logout{color:var(--ink-2)}
+.nav{display:inline-block;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:15px;padding:8px 16px;border-radius:var(--r-pill);text-decoration:none}
+.nav.primary{background:var(--accent);color:var(--surface-solid)}
+.nav:hover{filter:brightness(.96)}
+.nav[hidden]{display:none}
+.tabs{display:flex;gap:var(--sp-2);overflow-x:auto;margin-bottom:var(--sp-4);border-bottom:1px solid var(--ink-line)}
+.tab{background:none;border:none;border-bottom:3px solid transparent;padding:10px 16px;font-size:15px;font-weight:600;color:var(--ink-2);white-space:nowrap;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--accent-deep);border-bottom-color:var(--accent);font-weight:800}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.toolbar .grow{flex:1 1 180px;min-width:140px}
+.toolbar .fixed{font-size:14px;font-weight:600;color:var(--ink-2)}
+.count{margin-left:auto;color:var(--ink-2);font-size:13px}
+.tablebox{padding:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:var(--glass-bg-strong)}
+td.num,th.num{text-align:right}
+tbody tr:last-child td{border-bottom:none}
+tr.off td{color:var(--ink-3)}
+.mono{font-family:var(--mono)}
+.sub{font-size:12px;color:var(--ink-3)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600;margin:1px 2px 1px 0}
+.tag.new{background:var(--info-soft);color:var(--accent-deep)}
+.tag.reg{background:var(--track);color:var(--ink-2)}
+.tag.unk{background:var(--warning-soft);color:var(--warning)}
+.tag.on{background:var(--success-soft);color:var(--success)}
+.tag.out{background:var(--danger-soft);color:var(--danger)}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3);line-height:1.5}
+.intro{font-size:14px;line-height:1.6;color:var(--ink-2);margin-bottom:var(--sp-3)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
+.msg.warn{background:var(--warning-soft);color:var(--warning);font-weight:600}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.msg.ok{background:var(--success-soft);color:var(--success);font-weight:600}
+.msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
+.card{padding:var(--sp-4);margin-bottom:var(--sp-4)}
+.card h3{font-size:15px;margin-bottom:var(--sp-3)}
+.chartwrap{overflow-x:auto}
+.chartwrap svg{display:block;width:100%;height:auto}
+.chartwrap.min svg{min-width:520px}
+details.vals{margin-top:var(--sp-2)}
+details.vals summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+details.vals table{margin-top:8px}
+.heat td.cell{text-align:center;font-variant-numeric:tabular-nums}
+.heat td.low{background:var(--warning-soft);color:var(--warning);font-weight:700}
+.heat td.sel,.heat th.sel{box-shadow:inset 3px 0 0 var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);font-size:12px;color:var(--ink-2);margin-top:var(--sp-2)}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px dashed var(--ink-3);vertical-align:middle;margin-right:6px}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
+dialog.wide{max-width:780px;max-height:92vh}
+dialog::backdrop{background:var(--scrim)}
+.dlg{padding:var(--sp-6)}
+.dlg h2{font-size:19px;margin-bottom:var(--sp-3)}
+.dlg h3{font-size:15px;margin:var(--sp-4) 0 var(--sp-2)}
+.dlg p{font-size:14px;line-height:1.6;color:var(--ink-2)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--ink-2)}
+.kv dd{min-width:0;overflow-wrap:anywhere}
+.rec{margin-top:var(--sp-3);padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.6}
+.rec b{color:var(--ink-2)}
+.rec .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
+.field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
+.field textarea,.field input[type=date],.field select{display:block;width:100%;margin-top:6px;font-weight:400}
+.field textarea{min-height:100px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);font-size:14px;color:var(--ink)}
+.chk input{width:22px;height:22px;flex:0 0 auto}
+.chks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);padding:12px 20px;border-radius:var(--r-ctrl);
+  background:var(--ink);color:var(--surface-solid);font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)}
+@media (max-width:480px){
+  .top h1{font-size:19px}
+  .toolbar .ctrl{flex:1 1 100%}
+  .count{margin-left:0}
+  .dlg{padding:var(--sp-4)}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <div class="top">
+      <h1>考核後台</h1>
+      <div class="who">
+        <div class="who-id">
+          <span>目前身分</span>
+          <span id="whoEmail"></span>
+          <span class="badge" id="whoBadge"></span>
+        </div>
+        <div class="who-nav">
+          <a class="nav primary" id="toAssess" href="assess.html" hidden>進行考核</a>
+          <a class="nav" href="reports.html">成績單</a>
+          <a class="nav" href="roster.html">人員名冊</a>
+          <a class="nav" id="toAccounts" href="accounts.html" hidden>帳號管理</a>
+          <button class="link" id="logout" type="button">登出</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="msg err" id="pageMsg" role="alert" hidden></div>
+
+    <div class="tabs" role="tablist" aria-label="考核後台分頁">
+      <button class="tab" role="tab" id="tab-history" data-tab="history" aria-controls="p-history" type="button">人員歷史</button>
+      <button class="tab" role="tab" id="tab-insights" data-tab="insights" aria-controls="p-insights" type="button">弱項分析</button>
+      <button class="tab" role="tab" id="tab-tickets" data-tab="tickets" aria-controls="p-tickets" type="button">改善單</button>
+    </div>
+
+    <!-- 分頁 1：人員歷史 -->
+    <section id="p-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+      <section class="toolbar glass" aria-label="篩選">
+        <input class="ctrl grow" id="hSearch" type="search" placeholder="搜尋姓名或員編" aria-label="搜尋考生">
+        <select class="ctrl" id="hStore" aria-label="門市篩選"></select>
+        <span class="count" id="hCount" aria-live="polite"></span>
+      </section>
+      <section class="tablebox glass">
+        <div class="scroll" tabindex="0" aria-label="人員歷史列表，可左右捲動">
+          <table style="min-width:900px">
+            <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="num">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>改善單</th><th>操作</th></tr></thead>
+            <tbody id="hBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="hEmpty" hidden>沒有符合條件的考生</div>
+      </section>
+      <p class="note">走勢小圖的高度範圍為 40–100 分，僅看趨勢；實際數字見旁邊文字與詳細畫面。作廢的成績單不列入。</p>
+    </section>
+
+    <!-- 分頁 2：弱項分析 -->
+    <section id="p-insights" role="tabpanel" aria-labelledby="tab-insights" hidden>
+      <section class="toolbar glass" aria-label="分析條件">
+        <label class="sub" for="iScope">範圍</label>
+        <select class="ctrl" id="iScope"></select>
+        <span class="fixed" id="iScopeFixed" hidden></span>
+        <label class="sub" for="iPeriod">期間</label>
+        <select class="ctrl" id="iPeriod">
+          <option value="3">最近 3 次</option>
+          <option value="all">全部</option>
+        </select>
+      </section>
+      <section class="card glass">
+        <h3>七面向平均得分率</h3>
+        <p class="intro" id="iSummary"></p>
+        <div class="chartwrap" id="iChart"></div>
+        <details class="vals"><summary>展開數值表</summary><div class="scroll" id="iVals"></div></details>
+      </section>
+      <section class="card glass" id="heatCard">
+        <h3 id="heatTitle">門市 × 面向 平均得分率</h3>
+        <p class="intro">每格為該門市該面向的平均得分率；低於 70% 標示「偏低」。期間條件同上；「—」代表沒有資料。</p>
+        <div class="scroll" tabindex="0" aria-label="門市乘面向熱度表，可左右捲動"><div id="iHeat"></div></div>
+      </section>
+      <p class="note">算法：每張成績單的每個題組，取該面向的等級百分比（優 100、良 70、待加強 40、不及格 0；不適用不計入），再對所有題組取平均。「最近 3 次」是對每位考生各取最近 3 張成績單再彙總。</p>
+    </section>
+
+    <!-- 分頁 3：改善單 -->
+    <section id="p-tickets" role="tabpanel" aria-labelledby="tab-tickets" hidden>
+      <p class="intro">成績單判定為需複訓或不及格時，系統自動開單，預設 14 天內完成輔導；成績單作廢時，對應改善單自動取消。</p>
+      <section class="toolbar glass" aria-label="篩選">
+        <select class="ctrl" id="tStatus" aria-label="狀態篩選"></select>
+        <select class="ctrl" id="tStore" aria-label="門市篩選"></select>
+        <span class="count" id="tCount" aria-live="polite"></span>
+      </section>
+      <section class="tablebox glass">
+        <div class="scroll" tabindex="0" aria-label="改善單列表，可左右捲動">
+          <table style="min-width:980px">
+            <thead><tr><th>考生</th><th>門市</th><th>來源成績單</th><th>改善面向</th><th>期限</th><th>狀態</th><th>操作</th></tr></thead>
+            <tbody id="tBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="tEmpty" hidden>沒有符合條件的改善單</div>
+      </section>
+      <p class="note" id="tNote"></p>
+    </section>
+  </div>
+
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<dialog id="dlgA" class="wide"></dialog>
+<dialog id="dlgB" class="wide"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/backoffice-api.js"></script>
+<script>
+(function () {
+  var DIMS = Scoring.DIMENSIONS;
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+  var TABS = ['history', 'insights', 'tickets'];
+  var VCLS = { '優秀': 'on', '及格': 'new', '需複訓': 'unk', '不及格': 'out' };
+  var SZH = { open: '待改善', coached: '已輔導', closed: '已結案', cancelled: '已取消' };
+  var SCLS = { open: 'unk', coached: 'new', closed: 'on', cancelled: 'reg' };
+  var NA_SRC = '來源成績單已作廢';
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmt(x) { return String(Math.round(Number(x) * 10) / 10); }
+  function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+  // 台北時間
+  function stamp(iso) { return iso ? new Date(iso).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 16) : '—'; }
+  function dateOf(iso) { return iso ? stamp(iso).slice(0, 10) : ''; }
+  function today() { return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 10); }
+  function dayNum(s) { var p = s.split('-'); return Math.round(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 864e5); }
+
+  // ====== 狀態 ======
+  var me = null, myEmail = '', curTab = 'history';
+  var stores = [], storeName = {}, emps = [], people = [], peopleById = {};
+  var reps = [], repById = {}, repsByEmp = {};      // 已送出的成績單（整理後）
+  var dimByAid = {};                                 // 成績單 id → [{dim, pct}]
+  var tickets = [];
+  var storeOpts = [], heatStores = [];
+  var openSid = null, openTid = null, dyn = [], busy = false;
+
+  function isCS() { return !!me && me.role === 'cs_admin'; }
+  function isMgr() { return !!me && me.role === 'store_manager'; }
+  function errText(e) { return (e && e.userMessage) || BackofficeApi.explain(e); }
+  function sName(code) { return storeName[code] || code || '—'; }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { BackofficeApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text) {
+    $('loading').hidden = true; $('app').hidden = true;
+    $('blockedText').textContent = text; $('blocked').hidden = false;
+  }
+  function showPageMsg(t) { var m = $('pageMsg'); m.textContent = t; m.hidden = !t; }
+  function toast(t) {
+    var el = $('toast'); el.textContent = t; el.hidden = false;
+    clearTimeout(toast.tm); toast.tm = setTimeout(function () { el.hidden = true; }, 3200);
+  }
+  function vtag(v) { return v ? '<span class="tag ' + (VCLS[v] || 'reg') + '">' + esc(v) + '</span>' : '<span class="sub">—</span>'; }
+  function dimTags(list) {
+    return list && list.length ? list.map(function (d) { return '<span class="tag reg">' + esc(d) + '</span>'; }).join('') : '<span class="sub">尚未指定</span>';
+  }
+
+  // ====== 資料整理 ======
+  function empName(e) { return ((e.nickname || '').trim() || (e.full_name || '').trim()); }
+  // 第二層過濾：非客服部一律看不到已取消的改善單（不只靠 RLS）
+  function visibleTickets(rows) { return rows.filter(function (t) { return isCS() || t.status !== 'cancelled'; }); }
+  function buildData(rawEmps, rawSums, rawDims, rawTickets) {
+    emps = rawEmps;
+    dimByAid = {};
+    rawDims.forEach(function (r) { (dimByAid[r.assessment_id] = dimByAid[r.assessment_id] || []).push({ dim: r.dim, pct: r.level_pct }); });
+    reps = rawSums.map(function (s) {
+      return {
+        id: s.id, eid: s.employee_id, label: s.employee_label, store: s.store_code, ts: Date.parse(s.submitted_at || s.created_at),
+        date: dateOf(s.submitted_at || s.created_at), at: stamp(s.submitted_at || s.created_at),
+        total: s.total_score == null ? null : Number(s.total_score), verdict: s.verdict, tenure: s.tenure,
+        weakest: s.weakest_dims || [], items: s.item_count
+      };
+    });
+    repById = {}; repsByEmp = {};
+    reps.forEach(function (r) { repById[r.id] = r; (repsByEmp[r.eid] = repsByEmp[r.eid] || []).push(r); });
+    Object.keys(repsByEmp).forEach(function (k) { repsByEmp[k].sort(function (a, b) { return a.ts - b.ts || cmp(a.id, b.id); }); });
+    tickets = visibleTickets(rawTickets);
+
+    // 人員：有至少一張已送出成績單，或「納入考核且在職」
+    var map = {};
+    emps.forEach(function (e) {
+      if (repsByEmp[e.id] || (e.include_in_assessment && e.status === '在職')) {
+        map[e.id] = { id: e.id, name: empName(e) || e.id, store: e.store_code, hire: e.hire_date || null, known: true };
+      }
+    });
+    reps.forEach(function (r) {
+      if (!map[r.eid]) map[r.eid] = { id: r.eid, name: r.label || r.eid, store: r.store, hire: null, known: false };
+    });
+    people = Object.keys(map).map(function (k) { return map[k]; })
+      .sort(function (a, b) { return BackofficeApi.storeRank(a.store) - BackofficeApi.storeRank(b.store) || cmp(a.id, b.id); });
+    peopleById = map;
+
+    // 門市選項
+    var seen = {}, seenHeat = {};
+    people.forEach(function (p) { seen[p.store] = 1; });
+    tickets.forEach(function (t) { seen[t.store_code] = 1; });
+    reps.forEach(function (r) { seen[r.store] = 1; seenHeat[r.store] = 1; });
+    function ordered(set) {
+      return Object.keys(set).sort(function (a, b) { return BackofficeApi.storeRank(a) - BackofficeApi.storeRank(b) || cmp(a, b); });
+    }
+    storeOpts = ordered(seen); heatStores = ordered(seenHeat);
+  }
+
+  function tenureNow(p) {
+    if (!p.known) return '—';
+    if (!p.hire) return '未填到職日';
+    return (dayNum(today()) - dayNum(p.hire)) <= 90 ? '新人' : '正式';
+  }
+  function tenureCls(t) { return t === '新人' ? 'new' : t === '正式' ? 'reg' : 'unk'; }
+  function tName(t) {
+    if (t.employee_label) return t.employee_label;
+    var p = peopleById[t.employee_id];
+    return p ? p.name : t.employee_id;
+  }
+  function isOpenT(t) { return t.status === 'open' || t.status === 'coached'; }
+  function ticketsOf(eid) { return tickets.filter(function (t) { return t.employee_id === eid; }); }
+  function ticketById(id) { return tickets.filter(function (t) { return t.id === id; })[0]; }
+
+  // 面向平均得分率（level_pct 為 null 的不計入）
+  function dimRates(list) {
+    var sum = {}, cnt = {}, rc = {};
+    DIMS.forEach(function (d) { sum[d.name] = 0; cnt[d.name] = 0; rc[d.name] = 0; });
+    list.forEach(function (r) {
+      var seen = {};
+      (dimByAid[r.id] || []).forEach(function (x) {
+        if (x.pct == null || !(x.dim in sum)) return;
+        sum[x.dim] += Number(x.pct); cnt[x.dim]++; seen[x.dim] = 1;
+      });
+      for (var k in seen) rc[k]++;
+    });
+    var rows = DIMS.map(function (d) { return { name: d.name, pct: cnt[d.name] ? sum[d.name] / cnt[d.name] : null, n: rc[d.name] }; });
+    var min = null;
+    rows.forEach(function (x) { if (x.pct !== null && (min === null || x.pct < min)) min = x.pct; });
+    rows.forEach(function (x) { x.weak = x.pct !== null && x.pct === min; });
+    return rows;
+  }
+  function sortedRates(rows) { return rows.slice().sort(function (a, b) { return (b.pct === null ? -1 : b.pct) - (a.pct === null ? -1 : a.pct); }); }
+
+  // ====== 圖表（內嵌 SVG，與樣品相同）======
+  function barChart(rows, label) {
+    var rowH = 34, W = 420, x0 = 100, bw = 190, H = rows.length * rowH + 6;
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '"><title>' + esc(label) + '</title>';
+    rows.forEach(function (r, i) {
+      var y = i * rowH + 4, p = r.pct === null ? 0 : r.pct;
+      s += '<text x="0" y="' + (y + 17) + '" font-size="14" fill="var(--ink)">' + esc(r.name) + '</text>' +
+        '<rect x="' + x0 + '" y="' + (y + 5) + '" width="' + bw + '" height="16" rx="6" fill="var(--track)"/>' +
+        (p > 0 ? '<rect x="' + x0 + '" y="' + (y + 5) + '" width="' + Math.max(8, p / 100 * bw) + '" height="16" rx="6" fill="' + (r.weak ? 'var(--warning)' : 'var(--accent)') + '"/>' : '') +
+        '<text x="' + (x0 + bw + 8) + '" y="' + (y + 18) + '" font-size="14" font-weight="700" fill="var(--ink)">' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</text>';
+      if (r.weak) s += '<rect x="' + (x0 + bw + 62) + '" y="' + (y + 3) + '" width="44" height="20" rx="10" fill="var(--warning-soft)"/><text x="' + (x0 + bw + 84) + '" y="' + (y + 18) + '" font-size="13" font-weight="700" text-anchor="middle" fill="var(--warning)">最弱</text>';
+    });
+    return s + '</svg>';
+  }
+  function barValsTable(rows) {
+    return '<table><thead><tr><th>面向</th><th class="num">平均得分率</th><th class="num">樣本數 n（成績單張數）</th><th>備註</th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr><td>' + esc(r.name) + '</td><td class="num">' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</td><td class="num">' + r.n + '</td><td>' + (r.weak ? '最弱' : '') + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  function ratesLabel(rows) { return rows.map(function (r) { return r.name + ' ' + (r.pct === null ? '無資料' : fmt(r.pct) + '%'); }).join('、'); }
+
+  function sparkline(scores) {
+    if (!scores.length) return '<span class="sub">—</span>';
+    var w = 96, h = 28, p = 4, pts = scores.map(function (v, i) {
+      var y = p + (1 - Math.max(0, Math.min(1, (v - 40) / 60))) * (h - 2 * p);
+      return [scores.length === 1 ? w / 2 : p + i * (w - 2 * p) / (scores.length - 1), y];
+    });
+    var txt = '近 ' + scores.length + ' 次：' + scores.map(fmt).join('→');
+    var svg = '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + esc(txt) + '" style="vertical-align:middle">' +
+      (pts.length > 1 ? '<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' + pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ') + '"/>' : '') +
+      pts.map(function (q, i) { return '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (i === pts.length - 1 ? 3.5 : 2.5) + '" fill="var(--surface-solid)" stroke="var(--accent)" stroke-width="2"/>'; }).join('') + '</svg>';
+    return svg + '<div class="sub mono">' + esc(txt) + '</div>';
+  }
+
+  function trendChart(list, label) {
+    var W = 600, H = 280, L = 44, R = 20, T = 40, B = 50, pw = W - L - R, ph = H - T - B;
+    function Y(v) { return T + (1 - v / 100) * ph; }
+    var n = list.length, xs = [], lo = L + 36, hi = W - R - 36;
+    var d0 = dayNum(list[0].date), d1 = dayNum(list[n - 1].date);
+    list.forEach(function (r) { xs.push(n === 1 || d1 === d0 ? (lo + hi) / 2 : lo + (dayNum(r.date) - d0) / (d1 - d0) * (hi - lo)); });
+    for (var i = 1; i < n; i++) xs[i] = Math.max(xs[i], xs[i - 1] + 64);
+    if (xs[n - 1] > hi + 0.5 && n > 1) xs = xs.map(function (_, k) { return lo + k * (hi - lo) / (n - 1); });
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '"><title>' + esc(label) + '</title>';
+    [0, 20, 40, 60, 80, 100].forEach(function (v) {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--track)" stroke-width="1"/>' +
+        '<text x="' + (L - 8) + '" y="' + (Y(v) + 4) + '" font-size="12" text-anchor="end" fill="var(--ink-2)">' + v + '</text>';
+    });
+    [[70, '新人合格線 70'], [85, '正式合格線 85']].forEach(function (l) {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(l[0]) + '" y2="' + Y(l[0]) + '" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+        '<text x="' + (W - R - 2) + '" y="' + (Y(l[0]) + (l[0] === 70 ? 14 : -5)) + '" font-size="11" text-anchor="end" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + l[1] + '</text>';
+    });
+    if (n > 1) s += '<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" points="' + list.map(function (r, k) { return xs[k].toFixed(1) + ',' + Y(r.total).toFixed(1); }).join(' ') + '"/>';
+    var mc = { '優秀': 'var(--success)', '及格': 'var(--accent)', '需複訓': 'var(--warning)', '不及格': 'var(--danger)' };
+    list.forEach(function (r, k) {
+      var x = xs[k], y = Y(r.total);
+      s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="5" fill="var(--surface-solid)" stroke="' + (mc[r.verdict] || 'var(--accent)') + '" stroke-width="3"/>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (y - 20).toFixed(1) + '" font-size="12" font-weight="700" text-anchor="middle" fill="var(--ink)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + fmt(r.total) + '</text>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (y - 8).toFixed(1) + '" font-size="11" text-anchor="middle" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + esc(r.verdict || '') + '</text>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (H - B + 18) + '" font-size="12" text-anchor="middle" fill="var(--ink-2)">' + esc(r.date.slice(5).replace('-', '/')) + '</text>';
+    });
+    s += '<text x="' + (L + pw / 2) + '" y="' + (H - 6) + '" font-size="11" text-anchor="middle" fill="var(--ink-3)">考核日期（月/日）</text>';
+    return s + '</svg>';
+  }
+
+  // ====== 分頁 1：人員歷史 ======
+  function fillStoreSel(sel, codes, withAll) {
+    var cur = sel.value;
+    sel.innerHTML = (withAll ? '<option value="">全部門市</option>' : '') +
+      codes.map(function (c) { return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>'; }).join('');
+    if (cur && Array.prototype.some.call(sel.options, function (o) { return o.value === cur; })) sel.value = cur;
+  }
+  function renderHistory() {
+    var q = $('hSearch').value.trim().toLowerCase(), st = isMgr() ? '' : $('hStore').value;
+    var list = people.filter(function (p) {
+      if (st && p.store !== st) return false;
+      if (q && (p.name + ' ' + p.id).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    $('hBody').innerHTML = list.map(function (p) {
+      var rs = repsByEmp[p.id] || [], last = rs[rs.length - 1];
+      var tk = ticketsOf(p.id).filter(isOpenT), od = tk.filter(function (t) { return t.is_overdue; }).length;
+      var tn = tenureNow(p);
+      return '<tr><td>' + esc(p.name) + ' <span class="mono sub">' + esc(p.id) + '</span></td><td>' + esc(sName(p.store)) + '</td>' +
+        '<td><span class="tag ' + tenureCls(tn) + '">' + esc(tn) + '</span></td>' +
+        '<td class="num">' + rs.length + '</td>' +
+        '<td>' + (last ? '<span class="mono">' + esc(last.date) + '</span> ' + (last.total == null ? '—' : esc(fmt(last.total)) + ' 分') + ' ' + vtag(last.verdict) : '<span class="sub">尚無考核</span>') + '</td>' +
+        '<td>' + sparkline(rs.slice(-4).filter(function (r) { return r.total != null; }).map(function (r) { return r.total; })) + '</td>' +
+        '<td>' + (tk.length ? '<span class="tag unk">改善中 ' + tk.length + ' 張</span>' + (od ? '<span class="tag out">逾期 ' + od + ' 張</span>' : '') : '<span class="sub">—</span>') + '</td>' +
+        '<td><button type="button" class="btn sm" data-stu="' + esc(p.id) + '">查看</button></td></tr>';
+    }).join('');
+    $('hEmpty').textContent = people.length ? '沒有符合條件的考生' : '目前沒有考核對象，也沒有任何成績單';
+    $('hEmpty').hidden = list.length > 0;
+    $('hCount').textContent = '共 ' + list.length + ' 位';
+  }
+
+  // 人員顯示：客服部看信箱；主管與店長不看任何信箱
+  function who(email, kind) {
+    if (isCS()) return email || '—';
+    if (email && email.toLowerCase() === myEmail) return '你';
+    return kind === 'mgr' ? '店長' : '客服部';
+  }
+  function srcCell(t) {
+    if (t.source_verdict == null && t.source_assessed_on == null && t.source_total_score == null) {
+      return '<span class="tag out">' + NA_SRC + '</span>';
+    }
+    return '<span class="mono">' + esc(t.source_assessed_on || '—') + '</span> ' +
+      (t.source_total_score == null ? '—' : esc(fmt(t.source_total_score)) + ' 分') + ' ' + vtag(t.source_verdict);
+  }
+  function statusTags(t) {
+    return '<span class="tag ' + (SCLS[t.status] || 'reg') + '">' + esc(SZH[t.status] || '—') + '</span>' + (t.is_overdue ? '<span class="tag out">逾期</span>' : '');
+  }
+
+  function stuDetailHtml(p) {
+    var rs = repsByEmp[p.id] || [], tk = ticketsOf(p.id), tn = tenureNow(p);
+    var h = '<div class="dlg"><h2>' + esc(p.name) + ' 的考核歷史</h2><dl class="kv">' +
+      '<dt>員編</dt><dd class="mono">' + esc(p.id) + '</dd><dt>門市</dt><dd>' + esc(sName(p.store)) + '</dd>' +
+      '<dt>到職日</dt><dd class="mono">' + (p.hire ? esc(p.hire) : '未填到職日') + '</dd>' +
+      '<dt>目前身分</dt><dd>' + esc(tn) + '</dd><dt>考核次數</dt><dd>' + rs.length + ' 次</dd></dl>';
+    if (!rs.length) return h + '<div class="msg info">這位考生還沒有已送出的成績單。</div>' + stuTickets(tk) + '<div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
+    var sc = rs.filter(function (r) { return r.total != null; });
+    if (sc.length) {
+      var tl = '總分走勢：' + sc.map(function (r) { return r.date + ' ' + fmt(r.total) + '分' + (r.verdict || ''); }).join('、');
+      h += '<h3>總分走勢</h3><div class="chartwrap min">' + trendChart(sc, tl) + '</div>' +
+        '<div class="legend"><span><i></i>合格線：新人 70／正式 85（點上標示總分與判定）</span></div>' +
+        '<details class="vals"><summary>展開走勢數值表</summary><div class="scroll"><table><thead><tr><th>日期</th><th class="num">總分</th><th>判定</th></tr></thead><tbody>' +
+        sc.map(function (r) { return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + fmt(r.total) + '</td><td>' + vtag(r.verdict) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
+    } else h += '<h3>總分走勢</h3><p>目前沒有可顯示的總分。</p>';
+    var rates = sortedRates(dimRates(rs));
+    if (rates.every(function (r) { return r.pct === null; })) h += '<h3>七面向平均得分率</h3><p>目前沒有可分析的面向資料。</p>'; else
+    h += '<h3>七面向平均得分率</h3><div class="chartwrap">' + barChart(rates, p.name + ' 七面向平均得分率：' + ratesLabel(rates)) + '</div>' +
+      '<details class="vals"><summary>展開數值表</summary><div class="scroll">' + barValsTable(rates) + '</div></details>';
+    h += '<h3>歷次成績單</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="num">題組數</th><th class="num">總分</th><th>判定</th><th>考核時身分</th><th>最弱面向</th></tr></thead><tbody>' +
+      rs.slice().reverse().map(function (r) {
+        return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + esc(r.items == null ? '—' : r.items) + '</td><td class="num">' + (r.total == null ? '—' : esc(fmt(r.total))) + '</td><td>' + vtag(r.verdict) + '</td><td>' + esc(r.tenure || '—') + '</td><td>' + esc(r.weakest.length ? r.weakest.join('、') : '—') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    return h + stuTickets(tk) + '<div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
+  }
+  function stuTickets(tk) {
+    return '<h3>改善單</h3>' + (tk.length ? '<div class="scroll"><table><thead><tr><th>來源成績單</th><th>期限</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
+      tk.map(function (t) {
+        return '<tr><td>' + srcCell(t) + '</td><td class="mono">' + esc(t.due_date) + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td><td><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
+      }).join('') + '</tbody></table></div>' : '<p>沒有改善單。</p>');
+  }
+  function openStu(eid) {
+    var p = peopleById[eid]; if (!p) return;
+    openSid = eid; $('dlgA').innerHTML = stuDetailHtml(p); if (!$('dlgA').open) $('dlgA').showModal();
+  }
+  function refreshA() {
+    if (!$('dlgA').open || !openSid) return;
+    var p = peopleById[openSid], sc = $('dlgA').scrollTop;
+    if (!p) { $('dlgA').close(); return; }
+    $('dlgA').innerHTML = stuDetailHtml(p); $('dlgA').scrollTop = sc;
+  }
+
+  // ====== 分頁 2：弱項分析 ======
+  function gather(storeFilter, per) {
+    var out = [];
+    Object.keys(repsByEmp).forEach(function (eid) {
+      var rs = repsByEmp[eid].filter(function (r) { return !storeFilter || r.store === storeFilter; });
+      if (per === '3') rs = rs.slice(-3);
+      out = out.concat(rs);
+    });
+    return out;
+  }
+  function renderInsights() {
+    var scope = isMgr() ? (me.store_code || '') : $('iScope').value, per = $('iPeriod').value;
+    $('iScope').hidden = isMgr(); $('iScopeFixed').hidden = !isMgr();
+    $('iScopeFixed').textContent = isMgr() ? sName(me.store_code) + '（固定為自己門市）' : '';
+    var list = gather(scope, per), stuN = {};
+    list.forEach(function (r) { stuN[r.eid] = 1; });
+    var scopeName = scope ? sName(scope) : '全公司', perName = per === '3' ? '每人最近 3 次' : '全部成績單';
+    $('iSummary').textContent = '範圍：' + scopeName + '；期間：' + perName + '；樣本：' + list.length + ' 張成績單（' + Object.keys(stuN).length + ' 位考生）。';
+    if (!list.length) {
+      $('iChart').innerHTML = '<div class="empty">此條件下沒有成績單</div>'; $('iVals').innerHTML = '';
+    } else {
+      var rates = sortedRates(dimRates(list));
+      $('iChart').innerHTML = barChart(rates, scopeName + ' ' + perName + ' 七面向平均得分率：' + ratesLabel(rates));
+      $('iVals').innerHTML = barValsTable(rates);
+    }
+    var rowsStores = isMgr() ? [me.store_code] : heatStores;
+    $('heatTitle').textContent = isMgr() ? sName(me.store_code) + ' × 面向 平均得分率' : '門市 × 面向 平均得分率';
+    var h = '<table class="heat" style="min-width:760px"><thead><tr><th>門市</th>' + DIMS.map(function (d) { return '<th class="num" style="text-align:center">' + esc(d.name) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    rowsStores.forEach(function (st) {
+      var rr = dimRates(gather(st, per));
+      h += '<tr><td' + (scope === st ? ' class="sel"' : '') + '><b>' + esc(sName(st)) + '</b></td>' + rr.map(function (x) {
+        if (x.pct === null) return '<td class="cell">—</td>';
+        var low = x.pct < 70;
+        return '<td class="cell' + (low ? ' low' : '') + '">' + fmt(x.pct) + '%' + (low ? '<div style="font-size:12px">偏低</div>' : '') + '</td>';
+      }).join('') + '</tr>';
+    });
+    $('iHeat').innerHTML = (!reps.length || (!isMgr() && !heatStores.length)) ? '<div class="empty">目前沒有成績單可分析</div>' : h + '</tbody></table>';
+  }
+
+  // ====== 分頁 3：改善單 ======
+  function fillStatusSel() {
+    var cur = $('tStatus').value;
+    var opts = ['', 'open', 'coached', 'closed'].concat(isCS() ? ['cancelled'] : []).concat(['overdue']);
+    $('tStatus').innerHTML = opts.map(function (o) { return '<option value="' + o + '">' + (o === '' ? '全部狀態' : o === 'overdue' ? '逾期' : SZH[o]) + '</option>'; }).join('');
+    $('tStatus').value = opts.indexOf(cur) >= 0 ? cur : '';
+  }
+  function renderTickets() {
+    var sf = $('tStatus').value, st = isMgr() ? '' : $('tStore').value;
+    var list = tickets.filter(function (t) {
+      if (st && t.store_code !== st) return false;
+      if (sf === 'overdue') return !!t.is_overdue;
+      if (sf && t.status !== sf) return false;
+      return true;
+    });
+    $('tBody').innerHTML = list.map(function (t) {
+      return '<tr class="' + (t.status === 'cancelled' ? 'off' : '') + '"><td>' + esc(tName(t)) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td><td>' + esc(sName(t.store_code)) + '</td><td>' + srcCell(t) + '</td>' +
+        '<td style="white-space:normal;min-width:160px">' + dimTags(t.target_dims) + '</td>' +
+        '<td><span class="mono">' + esc(t.due_date) + '</span>' + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td>' +
+        '<td><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
+    }).join('');
+    $('tEmpty').textContent = tickets.length ? '沒有符合條件的改善單' : '目前沒有改善單';
+    $('tEmpty').hidden = list.length > 0;
+    $('tCount').textContent = '共 ' + list.length + ' 張';
+    $('tNote').textContent = isCS() ? '客服部看得到全部改善單，包含已取消；可編輯、結案或取消。'
+      : isMgr() ? '只顯示自己門市、未取消的改善單；可為待改善或已輔導的改善單回填輔導紀錄。'
+      : '總公司主管只能查看，且看不到已取消的改善單。';
+  }
+
+  function ticketDetailHtml(t) {
+    var h = '<div class="dlg"><h2>改善單</h2>';
+    if (t.is_overdue) h += '<div class="msg err" role="alert">已逾期 ' + esc(t.days_overdue) + ' 天（期限 ' + esc(t.due_date) + '）</div>';
+    h += '<dl class="kv"><dt>考生</dt><dd>' + esc(tName(t)) + '（' + esc(t.employee_id) + '）' + esc(sName(t.store_code)) + '</dd>' +
+      '<dt>狀態</dt><dd>' + statusTags(t) + '</dd>' +
+      '<dt>來源成績單</dt><dd>' + srcCell(t) + (t.source_tenure ? '<div class="sub">考核時身分：' + esc(t.source_tenure) + '</div>' : '') + '</dd>' +
+      '<dt>開單時間</dt><dd class="mono">' + esc(stamp(t.created_at)) + '</dd>' +
+      '<dt>期限</dt><dd class="mono">' + esc(t.due_date) + '</dd>' +
+      '<dt>改善面向</dt><dd>' + dimTags(t.target_dims) + '</dd></dl>';
+    if (t.coached_on || t.coached_at || t.coach_note) {
+      h += '<div class="rec"><b>輔導紀錄</b><br>輔導日期：' + esc(t.coached_on || '—') + '<br>回填人：' + esc(who(t.coached_by, 'mgr')) + '<br>回填時間：' + esc(stamp(t.coached_at)) +
+        '<br>備註：<span class="txt">' + (t.coach_note ? esc(t.coach_note) : '（未填）') + '</span></div>';
+    }
+    if (t.status === 'closed') {
+      var cr = t.closed_by_assessment_id ? repById[t.closed_by_assessment_id] : null;
+      h += '<div class="rec"><b>結案資訊</b><br>複檢成績單：' + (cr ? esc(cr.at) + ' ' + (cr.total == null ? '—' : esc(fmt(cr.total)) + ' 分') + ' ' + esc(cr.verdict || '') : '（無法顯示，可能已作廢或沒有權限查看）') +
+        '<br>結案人：' + esc(who(t.closed_by, 'cs')) + '<br>結案時間：' + esc(stamp(t.closed_at)) +
+        '<br>結案備註：<span class="txt">' + (t.close_note ? esc(t.close_note) : '（無）') + '</span></div>';
+    }
+    if (t.status === 'cancelled') {
+      h += '<div class="rec"><b>取消資訊</b><br>原因：<span class="txt">' + esc(t.cancel_reason || '—') + '</span><br>取消人：' + esc(who(t.cancelled_by, 'cs')) + '<br>取消時間：' + esc(stamp(t.cancelled_at)) + '</div>';
+    }
+    h += '<div class="actions">';
+    if (isCS() && isOpenT(t)) {
+      h += '<button class="btn" type="button" data-act="edit">編輯面向與期限</button><button class="btn primary" type="button" data-act="close">結案</button><button class="btn danger" type="button" data-act="cancel">取消改善單</button>';
+    }
+    if (isMgr() && isOpenT(t) && t.store_code === me.store_code) {
+      h += '<button class="btn primary" type="button" data-act="counsel">' + (t.status === 'coached' ? '編輯輔導紀錄' : '回填已輔導') + '</button>';
+    }
+    return h + '<button class="btn" type="button" data-closeB="1">關閉</button></div></div>';
+  }
+  function openTicket(id) {
+    var t = ticketById(id); if (!t) return;
+    openTid = id; $('dlgB').innerHTML = ticketDetailHtml(t); if (!$('dlgB').open) $('dlgB').showModal();
+  }
+  function refreshB() {
+    if (!$('dlgB').open) return;
+    var t = openTid && ticketById(openTid);
+    if (t) $('dlgB').innerHTML = ticketDetailHtml(t); else $('dlgB').close();
+  }
+
+  // 動作對話框（點擊時才建立；不符權限的身分，函式一開始就擋掉，畫面上也不會有入口）
+  function removeDyn() { dyn.forEach(function (d) { if (d.open) d.close(); d.remove(); }); dyn = []; }
+  function makeDlg(html) {
+    var d = document.createElement('dialog'); d.innerHTML = '<form class="dlg" novalidate>' + html + '</form>';
+    document.body.appendChild(d); dyn.push(d);
+    function rm() { if (d.open) d.close(); d.remove(); dyn = dyn.filter(function (x) { return x !== d; }); }
+    d.addEventListener('cancel', function () { setTimeout(rm, 0); });
+    d.querySelector('[data-no]').addEventListener('click', rm);
+    d.showModal();
+    return { el: d, rm: rm, q: function (sel) { return d.querySelector(sel); } };
+  }
+
+  function renderAll() { applyRole(); renderHistory(); renderInsights(); renderTickets(); }
+  function reloadTickets() {
+    return BackofficeApi.loadTickets().then(function (rows) {
+      tickets = visibleTickets(rows); renderAll(); refreshA(); refreshB();
+    });
+  }
+  // 送出一個改善單操作：成功才關對話框並重讀改善單；失敗把白話訊息顯示在對話框內
+  function submitAct(D, btn, errSel, job, okMsg) {
+    var err = D.q(errSel);
+    if (busy) return;
+    busy = true; btn.disabled = true; err.hidden = true;
+    job().then(function () {
+      D.rm(); toast(okMsg);
+      return reloadTickets().catch(function (e) { showPageMsg('已儲存，但重新載入改善單失敗：' + errText(e) + ' 請重新整理頁面。'); });
+    }, function (e) { err.textContent = errText(e); err.hidden = false; })
+      .then(function () { busy = false; btn.disabled = false; });
+  }
+
+  function actEdit(t) {
+    if (!isCS() || !isOpenT(t)) return;
+    var openDate = dateOf(t.created_at);
+    var D = makeDlg('<h2>編輯改善面向與期限</h2><p>至少選 1 個面向；期限不可早於開單日（' + esc(openDate) + '）。</p><div class="chks" style="margin-top:8px">' +
+      DIMS.map(function (d) { return '<label class="chk"><input type="checkbox" name="dim" value="' + esc(d.name) + '"' + ((t.target_dims || []).indexOf(d.name) >= 0 ? ' checked' : '') + '><span>' + esc(d.name) + '</span></label>'; }).join('') +
+      '</div><label class="field">期限<input class="ctrl" type="date" id="eDue" min="' + esc(openDate) + '" value="' + esc(t.due_date) + '"></label>' +
+      '<div class="msg err" id="eErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="eOk">儲存</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var dims = []; Array.prototype.forEach.call(D.el.querySelectorAll('input[name=dim]:checked'), function (c) { dims.push(c.value); });
+      var due = D.q('#eDue').value, err = D.q('#eErr');
+      var m = !dims.length ? '請至少選 1 個改善面向。' : !due ? '請選擇期限。' : due < openDate ? '期限不可早於開單日（' + openDate + '）。' : '';
+      if (m) { err.textContent = m; err.hidden = false; return; }
+      submitAct(D, D.q('#eOk'), '#eErr', function () { return BackofficeApi.updatePlan(t.id, dims, due); }, '已更新改善面向與期限。');
+    });
+  }
+  function actClose(t) {
+    if (!isCS() || !isOpenT(t)) return;
+    var created = Date.parse(t.created_at);
+    var cands = (repsByEmp[t.employee_id] || []).filter(function (r) {
+      return r.id !== t.assessment_id && r.ts > created && (r.verdict === '及格' || r.verdict === '優秀');
+    });
+    var D = makeDlg('<h2>結案</h2>' + (cands.length
+      ? '<p>請選擇一張複檢成績單（只列送出時間晚於開單時間 ' + esc(stamp(t.created_at)) + '、判定為及格或優秀的成績單）。</p><label class="field">複檢成績單<select class="ctrl" id="cRep">' +
+        cands.map(function (r) { return '<option value="' + esc(r.id) + '">' + esc(r.at) + '｜' + esc(r.total == null ? '—' : fmt(r.total)) + ' 分｜' + esc(r.verdict) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="field">結案備註（選填）<textarea class="ctrl" id="cNote"></textarea></label>'
+      : '<div class="msg warn">需要該考生有一張開單後、達合格線的新成績單</div>') +
+      '<div class="msg err" id="cErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="cOk"' + (cands.length ? '' : ' disabled') + '>確認結案</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!cands.length) return;
+      var rid = D.q('#cRep').value, note = D.q('#cNote').value.trim();
+      submitAct(D, D.q('#cOk'), '#cErr', function () { return BackofficeApi.closeTicket(t.id, rid, note); }, '改善單已結案。');
+    });
+  }
+  function actCancel(t) {
+    if (!isCS() || !isOpenT(t)) return;
+    var D = makeDlg('<h2>取消改善單</h2><p>取消後這張改善單只有客服部看得到。</p><label class="field">取消原因（必填）<textarea class="ctrl" id="xReason"></textarea></label>' +
+      '<label class="chk"><input type="checkbox" id="xSure"><span>我確認要取消這張改善單</span></label><div class="msg err" id="xErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn danger" type="submit" id="xYes" disabled>確認取消</button></div>');
+    var reason = D.q('#xReason'), sure = D.q('#xSure'), yes = D.q('#xYes');
+    function sync() { yes.disabled = busy || !(reason.value.trim() && sure.checked); }
+    reason.addEventListener('input', sync); sure.addEventListener('change', sync);
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!reason.value.trim() || !sure.checked) { var e = D.q('#xErr'); e.textContent = '請填寫取消原因並勾選確認。'; e.hidden = false; return; }
+      var txt = reason.value.trim();
+      submitAct(D, yes, '#xErr', function () { return BackofficeApi.cancelTicket(t.id, txt); }, '改善單已取消。');
+    });
+  }
+  function actCounsel(t) {
+    if (!isMgr() || t.store_code !== me.store_code || !isOpenT(t)) return;
+    var openDate = dateOf(t.created_at), td = today(), had = t.status === 'coached';
+    var D = makeDlg('<h2>' + (had ? '編輯輔導紀錄' : '回填已輔導') + '</h2><p>' + esc(tName(t)) + '（' + esc(t.employee_id) + '）</p>' +
+      '<label class="field">輔導日期（不可早於開單日 ' + esc(openDate) + '、不可晚於今天）<input class="ctrl" type="date" id="gDate" min="' + esc(openDate) + '" max="' + esc(td) + '" value="' + esc(had && t.coached_on ? t.coached_on : td) + '"></label>' +
+      '<label class="field">輔導備註（必填，不限字數）<textarea class="ctrl" id="gNote" placeholder="請寫下輔導的內容與之後的追蹤方式"></textarea></label>' +
+      '<div class="msg err" id="gErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="gOk">儲存</button></div>');
+    D.q('#gNote').value = had ? (t.coach_note || '') : '';
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var date = D.q('#gDate').value, note = D.q('#gNote').value.trim(), err = D.q('#gErr'), now = today();
+      var m = !date ? '請選擇輔導日期。' : date < openDate ? '輔導日期不可早於開單日（' + openDate + '）。' : date > now ? '輔導日期不可晚於今天。' : !note ? '輔導備註必填。' : '';
+      if (m) { err.textContent = m; err.hidden = false; return; }
+      submitAct(D, D.q('#gOk'), '#gErr', function () { return BackofficeApi.markCoached(t.id, date, note); }, had ? '輔導紀錄已更新。' : '已回填為「已輔導」。');
+    });
+  }
+
+  // ====== 身分、分頁 ======
+  function applyRole() {
+    var lab = ROLE_LABEL[me.role] + (isMgr() ? '・' + sName(me.store_code) : '');
+    $('whoBadge').textContent = lab;
+    $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS();
+    $('hStore').hidden = isMgr(); $('tStore').hidden = isMgr();
+    fillStatusSel();
+  }
+
+  function showTab(name, setHash) {
+    if (TABS.indexOf(name) < 0) name = 'history';
+    curTab = name;
+    TABS.forEach(function (n) {
+      $('p-' + n).hidden = n !== name;
+      $('tab-' + n).setAttribute('aria-selected', n === name ? 'true' : 'false');
+      $('tab-' + n).tabIndex = n === name ? 0 : -1;
+    });
+    if (setHash && location.hash !== '#' + name) location.hash = name;
+  }
+  window.addEventListener('hashchange', function () { showTab(location.hash.slice(1), false); });
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+    b.addEventListener('click', function () { showTab(b.dataset.tab, true); });
+    b.addEventListener('keydown', function (e) {
+      var i = TABS.indexOf(b.dataset.tab);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var n = TABS[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; showTab(n, true); $('tab-' + n).focus();
+      }
+    });
+  });
+
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  $('hSearch').addEventListener('input', renderHistory);
+  $('hStore').addEventListener('change', renderHistory);
+  $('iScope').addEventListener('change', renderInsights);
+  $('iPeriod').addEventListener('change', renderInsights);
+  $('tStatus').addEventListener('change', renderTickets);
+  $('tStore').addEventListener('change', renderTickets);
+  $('hBody').addEventListener('click', function (e) { var b = e.target.closest('[data-stu]'); if (b) openStu(b.dataset.stu); });
+  $('tBody').addEventListener('click', function (e) { var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk); });
+  $('dlgA').addEventListener('click', function (e) {
+    if (e.target.closest('[data-closeA]')) { $('dlgA').close(); return; }
+    var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk);
+  });
+  $('dlgA').addEventListener('close', function () { openSid = null; $('dlgA').innerHTML = ''; });
+  $('dlgB').addEventListener('close', function () { openTid = null; $('dlgB').innerHTML = ''; });
+  $('dlgB').addEventListener('click', function (e) {
+    if (e.target.closest('[data-closeB]')) { $('dlgB').close(); return; }
+    var a = e.target.closest('[data-act]'); if (!a) return;
+    var t = ticketById(openTid); if (!t) return;
+    var k = a.dataset.act;
+    if (k === 'edit') actEdit(t); else if (k === 'close') actClose(t); else if (k === 'cancel') actCancel(t); else if (k === 'counsel') actCounsel(t);
+  });
+  BackofficeApi.onSignedOut(function () { goLogin(''); });
+
+  // ====== 啟動：登入、網域、開通三道檢查 ======
+  BackofficeApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    var email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      BackofficeApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    myEmail = email.toLowerCase();
+    $('whoEmail').textContent = email;
+    return BackofficeApi.loadMe(email).then(function (row) {
+      if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      me = row;
+      return Promise.all([
+        BackofficeApi.loadStores(), BackofficeApi.loadEmployees(), BackofficeApi.loadSummaries(),
+        BackofficeApi.loadDimRates(), BackofficeApi.loadTickets()
+      ]).then(function (r) {
+        stores = r[0]; storeName = {};
+        stores.forEach(function (s) { storeName[s.code] = s.name; });
+        buildData(r[1], r[2], r[3], r[4]);
+        fillStoreSel($('hStore'), storeOpts, true);
+        fillStoreSel($('tStore'), storeOpts, true);
+        $('iScope').innerHTML = '<option value="">全公司</option>' + heatStores.map(function (c) { return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>'; }).join('');
+        renderAll();
+        showTab(location.hash.slice(1), false);
+        $('loading').hidden = true; $('app').hidden = false;
+      });
+    });
+  }).catch(function (e) {
+    showBlocked(errText(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+</body>
+</html>

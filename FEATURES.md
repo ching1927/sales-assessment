@@ -32,9 +32,15 @@
 - 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 抽題 → 七面向評分並自動暫存 → 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核
 - 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址
 - 成績單（所有已開通角色）｜`reports.html`｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含附圖，不含備註文字、題組名稱、步驟、考點
-- 三頁導覽統一｜`roster.html`、`assess.html`、`reports.html`｜頁首「進行考核」（只有客服部，實心藍膠囊）、「成績單」「人員名冊」（淡藍膠囊）、登出（灰色小字）；身分資訊（信箱與角色標籤，灰色邊框方塊）與導覽之間有分隔線，手機上導覽自成一行；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」；客服部另有「帳號管理」淡藍膠囊（accounts.html 頁首導覽同款）
+- 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`reports.html`｜頁首「進行考核」（只有客服部，實心藍膠囊）、「成績單」「人員名冊」（淡藍膠囊）、登出（灰色小字）；身分資訊（信箱與角色標籤，灰色邊框方塊）與導覽之間有分隔線，手機上導覽自成一行；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」；客服部另有「帳號管理」淡藍膠囊（accounts.html 頁首導覽同款）
 
-### 考核後台（樣品與設計稿；SQL 尚未在 Supabase 執行，正式版尚未做）
+### 考核後台（正式版；SQL 已在 Supabase 執行，161 項驗證通過；網頁尚未用真實登入實測）
+
+- 考核後台頁｜`backoffice.html`、`js/backoffice-api.js`｜所有已開通角色可進；三個分頁「人員歷史」「弱項分析」「改善單」，網址 #history、#insights、#tickets；資料皆讀資料庫（不查機密表）；改善單動作呼叫 improve_update_plan／improve_close／improve_cancel（客服部）、improve_mark_coached（店長自己門市或客服部）；主管只讀；已取消單只有客服部看得到；主管與店長視角的改善單紀錄不顯示他人信箱（頁首仍顯示自己的信箱）
+- 導覽「考核後台」｜`roster.html`、`assess.html`、`reports.html`、`accounts.html`｜所有已開通角色看得到；順序：進行考核（客服部）、成績單、考核後台、人員名冊、帳號管理（客服部）
+- 自動開單與自動取消｜資料庫觸發器（backoffice_schema.sql）｜成績單送出且判定需複訓或不及格時自動開單（期限 14 天）；成績單作廢時 open／coached 的單自動取消；**上線後要用真實流程送一張不及格成績單驗證**
+
+### 考核後台（樣品與設計稿，已被正式版取代）
 
 - 考核後台樣品（假資料）｜`樣品/backoffice.html`｜三個分頁「人員歷史」（列表、走勢圖、七面向平均、歷次成績單）、「弱項分析」（全公司或單一門市、最近 3 次或全部、門市×面向熱度表）、「改善單」（狀態與門市篩選；客服部編輯面向與期限、結案需複檢成績單、取消；店長回填已輔導，備註必填不限字數；主管只讀）；右上角可切換身分示範
 - 改善單與分析設計稿｜`supabase/backoffice_schema.sql`、`supabase/backoffice_verify_fake.sql`、`supabase/README_backoffice.md`｜成績單送出且判定需複訓或不及格時自動開單（預設 14 天）；成績單作廢時 open／coached 的單自動取消；improve_update_plan／improve_mark_coached／improve_close／improve_cancel；improvement_ticket_view、analytics_dim_rates；驗證腳本含真實 assess_submit／assess_void 流程，結尾自動復原
