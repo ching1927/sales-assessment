@@ -24,6 +24,11 @@ button:disabled{cursor:not-allowed;opacity:.5}
 .btn.sm{padding:5px 12px;min-height:36px;font-size:13px}
 .link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:10px 6px;text-decoration:none}
 .link.warn{color:var(--danger)}
+#logout{color:var(--ink-2)}
+.nav{display:inline-block;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:15px;padding:8px 16px;border-radius:var(--r-pill);text-decoration:none}
+.nav.primary{background:var(--accent);color:#fff}
+.nav:hover{filter:brightness(.96)}
+.nav[hidden]{display:none}
 .mono{font-family:var(--mono)}
 .tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
 .tag.new{background:var(--info-soft);color:var(--accent-deep)}
@@ -51,7 +56,7 @@ button:disabled{cursor:not-allowed;opacity:.5}
 .msg.ok{background:var(--success-soft);color:var(--success);font-weight:600}
 .msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
 .msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
-.nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:space-between;margin-top:var(--sp-4)}
+.navrow{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:space-between;margin-top:var(--sp-4)}
 
 /* 選考生 */
 .plist{display:grid;gap:var(--sp-2)}
@@ -62,6 +67,14 @@ button:disabled{cursor:not-allowed;opacity:.5}
 .seg{display:flex;gap:var(--sp-2);margin-top:var(--sp-3)}
 .seg button{flex:1;min-height:48px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);font-weight:700;font-size:15px}
 .seg button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pwrap{border:1.5px solid var(--ink-line);border-radius:var(--r-ctrl);background:var(--glass-bg-strong);padding:12px 14px}
+.prow{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between}
+.pinfo{flex:1 1 220px;min-width:0}
+.pinfo .l1{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:700}
+.pinfo .l2{color:var(--ink-2);font-size:13px;margin-top:4px}
+.pgo{flex:0 0 auto;min-height:44px}
+@media (max-width:480px){.pgo{flex:1 1 100%}}
+.pmanual{margin-top:var(--sp-2)}
 .dcard{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;justify-content:space-between;padding:12px 14px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong)}
 .dcard + .dcard{margin-top:var(--sp-2)}
 .dcard .l1{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:700}
@@ -195,8 +208,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         <span>目前身分</span>
         <span id="whoEmail"></span>
         <span class="badge" id="whoBadge"></span>
-        <a class="link" href="reports.html">成績單</a>
-        <a class="link" href="roster.html">人員名冊</a>
+        <a class="nav" href="reports.html">成績單</a>
+        <a class="nav" href="roster.html">人員名冊</a>
         <button class="link" id="logout" type="button">登出</button>
       </div>
     </div>
@@ -274,7 +287,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var email = '';
   var storeName = {};
   var candidates = [], drafts = [];
-  var pickId = null, manual = null;
+  var expandId = null, rowBusy = null, rowErr = {}, storeSel = '';   // 選考生：展開手動指定的那列、正在開始的那列、各列錯誤、門市篩選
+  var STORE_ORDER = ['總公司', '中和', '新莊', '樹林', '桃園中壢', '新竹', '旗艦', '南台中', '太平', '台南', '高雄', '花蓮'];
+  function storeRank(code) { var i = STORE_ORDER.indexOf(code); return i < 0 ? STORE_ORDER.length : i; }
+  try { storeSel = sessionStorage.getItem('assessStoreFilter') || ''; } catch (e) {}
+  function saveStoreSel() { try { sessionStorage.setItem('assessStoreFilter', storeSel); } catch (e) {} }
   var busy = false;
   var finished = null;       // 送出後的資料庫結果
   var abandonTarget = null;  // 要放棄的考核 id
@@ -404,7 +421,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('abandon').hidden = !(S.aid && !finished);
   }
 
-  function person() { return candidates.filter(function (p) { return p.id === pickId; })[0]; }
+  function personById(id) { return candidates.filter(function (p) { return p.id === id; })[0]; }
   function nameOf(p) { return (p.nickname || '').trim() || (p.full_name || '').trim() || p.id; }
 
   function renderStep1() {
@@ -421,23 +438,34 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       });
       h += '</section>';
     }
-    h += '<section class="panel glass"><h2>1 選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。</p><div class="plist">';
-    if (!candidates.length) h += '<div class="msg info">目前沒有可考核的人員。</div>';
-    candidates.forEach(function (p) {
-      var sel = pickId === p.id, tg = p.hire_date ? (p.tenure_group || '') : '未填到職日';
-      h += '<button type="button" class="pcard" data-act="pick" data-id="' + esc(p.id) + '" aria-pressed="' + sel + '">' +
+    // 門市選項：只列候選名單裡實際有人的門市，依固定順序，後面顯示人數
+    var counts = {}, codes = [];
+    candidates.forEach(function (p) { if (!counts[p.store_code]) { counts[p.store_code] = 0; codes.push(p.store_code); } counts[p.store_code]++; });
+    codes.sort(function (a, b) { return storeRank(a) - storeRank(b) || (a < b ? -1 : a > b ? 1 : 0); });
+    if (storeSel && !counts[storeSel]) storeSel = '';
+    var dis = (busy || rowBusy) ? ' disabled' : '';
+    h += '<section class="panel glass"><h2>1 選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。按「準備考核・去抽題」就會開始這位考生的考核。</p>' +
+      '<select class="ctrl" id="storeSel" aria-label="門市" style="width:100%;margin-bottom:var(--sp-3)">' +
+      '<option value="">全部門市</option>' + codes.map(function (c) {
+        return '<option value="' + esc(c) + '"' + (c === storeSel ? ' selected' : '') + '>' + esc(storeName[c] || c) + '（' + counts[c] + '）</option>';
+      }).join('') + '</select><div class="plist">';
+    var shown = candidates.filter(function (p) { return !storeSel || p.store_code === storeSel; });
+    if (!shown.length) h += '<div class="msg info">目前沒有可考核的人員。</div>';
+    shown.forEach(function (p) {
+      var tg = p.hire_date ? (p.tenure_group || '') : '未填到職日', open = expandId === p.id, mine = rowBusy === p.id;
+      h += '<div class="pwrap"><div class="prow"><div class="pinfo">' +
         '<div class="l1"><span>' + esc(nameOf(p)) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(p.id) + '</span><span class="tag ' + (TAG[tg] || 'unk') + '">' + esc(tg || '未填到職日') + '</span></div>' +
-        '<div class="l2">' + esc(storeName[p.store_code] || p.store_code) + '・' + esc(p.job_title) + '・到職日 ' + (p.hire_date ? esc(p.hire_date) + '（第 ' + daysSince(p.hire_date) + ' 天）' : '未填') + '</div></button>';
+        '<div class="l2">' + esc(storeName[p.store_code] || p.store_code) + '・' + esc(p.job_title) + '・到職日 ' + (p.hire_date ? esc(p.hire_date) + '（第 ' + daysSince(p.hire_date) + ' 天）' : '未填') + '</div></div>' +
+        '<button type="button" class="btn primary pgo" data-act="prep" data-id="' + esc(p.id) + '" aria-expanded="' + (open ? 'true' : 'false') + '"' + dis + '>' + (mine ? '開始中…' : '準備考核・去抽題') + '</button></div>';
+      if (open && !p.hire_date) {
+        h += '<div class="pmanual"><div class="msg warn">請先指定身分：這位考生到職日空白，系統無法判斷新人或正式。成績單會標示「手動指定」。再按一次「準備考核・去抽題」可取消。</div>' +
+          '<div class="seg" role="group" aria-label="手動指定身分">' +
+          ['新人', '正式'].map(function (t) { return '<button type="button" data-act="tenure2" data-id="' + esc(p.id) + '" data-v="' + t + '"' + dis + '>' + t + '</button>'; }).join('') + '</div></div>';
+      }
+      if (rowErr[p.id]) h += '<div class="msg err" role="alert">' + esc(rowErr[p.id]) + '</div>';
+      h += '</div>';
     });
-    h += '</div>';
-    var p = person(), ready = !!p;
-    if (p && !p.hire_date) {
-      h += '<div class="msg warn">這位考生到職日空白，系統無法判斷身分，請先手動指定「新人」或「正式」。成績單會標示「手動指定」。</div>' +
-        '<div class="seg" role="group" aria-label="手動指定身分">' +
-        ['新人', '正式'].map(function (t) { return '<button type="button" data-act="tenure" data-v="' + t + '" aria-pressed="' + (manual === t) + '">' + t + '</button>'; }).join('') + '</div>';
-      if (!manual) ready = false;
-    }
-    h += '<div class="nav"><span></span><button class="btn primary" type="button" data-act="next1"' + (ready && !busy ? '' : ' disabled') + '>下一步：抽題</button></div></section>';
+    h += '</div></section>';
     $('stage').innerHTML = h;
   }
 
@@ -451,7 +479,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         return '<button type="button" class="cat" data-act="cat" data-cat="' + esc(b.category) + '" aria-pressed="' + on + '"><b>' + esc(b.category) + (on ? '（已勾選）' : '') + '</b>' +
           '<span class="rest">剩餘 ' + esc(b.remaining) + ' / ' + esc(b.total) + ' 題</span><div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div></button>';
       }).join('') + '</div>';
-      h += '<div class="nav"><button class="btn" type="button" data-act="back2">上一步</button>' +
+      h += '<div class="navrow"><button class="btn" type="button" data-act="back2">上一步</button>' +
         '<button class="btn primary" type="button" data-act="draw"' + (S.cats.length && !busy ? '' : ' disabled') + '>抽 ' + S.cats.length + ' 題</button></div>';
       if (!S.cats.length) h += '<div class="msg info">請先勾選至少一個分類。</div>';
     } else {
@@ -462,7 +490,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         h += '<div class="drawn"><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span><h3>' + esc(it.name) + '</h3>' + note +
           '<details><summary>查看步驟與考點</summary>' + stepHtml(it) + '</details></div>';
       });
-      h += '<div class="nav"><span class="hint" style="margin:0">抽出後不能重抽；要換分類請放棄考核重新開始。</span>' +
+      h += '<div class="navrow"><span class="hint" style="margin:0">抽出後不能重抽；要換分類請放棄考核重新開始。</span>' +
         '<button class="btn primary" type="button" data-act="start3">開始評分</button></div>';
     }
     h += '</section>';
@@ -498,7 +526,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填，只有客服部看得到）</label>' +
       '<textarea class="ctrl" id="noteBox" data-note="' + S.cur + '" placeholder="例如：第 2 步回答不夠具體">' + esc(it.note || '') + '</textarea>';
     h += attachHtml(it);
-    h += '<div class="nav"><button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
+    h += '<div class="navrow"><button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
       '<button class="btn" type="button" data-act="nextItem"' + (S.cur === S.items.length - 1 ? ' disabled' : '') + '>下一個題組</button></div></section></div></div>';
     $('stage').innerHTML = h;
     hydrateImages($('stage'));
@@ -527,7 +555,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   function renderStep4() {
     var res = Scoring.scoreAssessment(S.items.map(function (i) { return i.levels; }), S.emp.tenure);
-    if (!res.ok) { $('stage').innerHTML = '<section class="panel glass"><div class="msg err">' + esc(res.error) + '</div><div class="nav"><button class="btn" type="button" data-act="back3">回評分</button></div></section>'; return; }
+    if (!res.ok) { $('stage').innerHTML = '<section class="panel glass"><div class="msg err">' + esc(res.error) + '</div><div class="navrow"><button class="btn" type="button" data-act="back3">回評分</button></div></section>'; return; }
     var h = '<div class="msg info" role="status" style="margin-bottom:var(--sp-3)">以下是預覽；按「送出成績單」後，以資料庫計算的結果為準。</div>';
     h += '<div class="verdict v-' + esc(res.verdict) + '" role="status"><div class="vt">判定：' + esc(res.verdict) + '</div>' +
       '<div class="vs">總分 ' + fmt(res.total) + ' 分（合格線 ' + res.passLine + ' 分・' + esc(S.emp.tenure) + '）</div></div>';
@@ -540,7 +568,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       S.items.map(function (it) { return { code: it.code, levels: it.levels, pts: null, score: null }; }),
       res.itemScores.map(function (r) { return { dim: r.dimPoints, score: r.score }; }), res.weakest) +
       '<p class="hint" style="margin-top:8px">不適用的面向不計入，其餘面向配分等比放大成 100 分。</p></section>';
-    h += '<div class="nav"><button class="btn" type="button" data-act="back3">回去修改評分</button>' +
+    h += '<div class="navrow"><button class="btn" type="button" data-act="back3">回去修改評分</button>' +
       '<button class="btn primary" type="button" id="submitBtn" data-act="submit"' + (busy || pendingReason() ? ' disabled' : '') + '>送出成績單</button></div>' +
       '<div class="hint" id="submitWhy" style="text-align:right;margin-top:8px;color:var(--warning);font-weight:600" aria-live="polite">' + esc(pendingReason()) + '</div>';
     $('stage').innerHTML = h;
@@ -578,7 +606,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     h += '<section class="panel glass"><h2>各題組分數</h2>' + dimTable(
       f.rows.map(function (r) { return { code: r.code, levels: r.levels || {} }; }),
       f.rows.map(function (r) { return { dim: r.dim_points, score: r.item_score }; }), weakest) + '</section>';
-    h += '<div class="nav"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="reports.html">前往成績單</a></div>';
+    h += '<div class="navrow"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="reports.html">前往成績單</a></div>';
     $('stage').innerHTML = h;
   }
 
@@ -828,12 +856,15 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // ====== 資料載入與流程 ======
   function loadStep1() {
     return Promise.all([AssessApi.candidates(), AssessApi.myDrafts(email)]).then(function (r) {
-      candidates = r[0]; drafts = r[1];
-      if (pickId && !person()) pickId = null;
+      candidates = r[0].slice().sort(function (a, b) {
+        return storeRank(a.store_code) - storeRank(b.store_code) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+      });
+      drafts = r[1];
+      if (expandId && !personById(expandId)) expandId = null;
     });
   }
   function toStep1() {
-    S = fresh(); pickId = null; manual = null; imgMsgs = []; resetSave();
+    S = fresh(); expandId = null; rowBusy = null; rowErr = {}; imgMsgs = []; resetSave();
     return loadStep1().then(function () { render(); }, function (e) { notice('err', errText(e)); render(); });
   }
 
@@ -865,29 +896,52 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       function (e) { busy = false; notice('err', errText(e)); render(); });
   }
 
+  // 在該列按下「準備考核・去抽題」：assess_start → 載入草稿 → 進入抽題（已有草稿則接續）
+  function startFor(p, override) {
+    if (busy || rowBusy) return;
+    var hadDraft = drafts.some(function (d) { return d.employee_id === p.id; });
+    rowBusy = p.id; rowErr = {}; notice('', ''); render();
+    AssessApi.start(p.id, p.hire_date ? null : override).then(function (aid) {
+      return openDraft(aid).then(function () {
+        if (S.step === 2) return loadCats();
+      }).then(function () {
+        rowBusy = null; expandId = null;
+        if (hadDraft) notice('info', '已接續先前未完成的考核');
+        render(); window.scrollTo(0, 0);
+      });
+    }).catch(function (err) {
+      rowBusy = null; rowErr = {}; rowErr[p.id] = errText(err);
+      if (S.aid) { S = fresh(); }   // openDraft 若半途失敗，回到選考生
+      render();
+    });
+  }
+  $('stage').addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'storeSel') { storeSel = e.target.value; saveStoreSel(); expandId = null; rowErr = {}; render(); }
+  });
+
   $('stage').addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]');
     if (!b || b.disabled || busy) return;
     var act = b.getAttribute('data-act');
-    if (act === 'pick') { if (pickId !== b.dataset.id) { pickId = b.dataset.id; manual = null; } }
-    else if (act === 'tenure') manual = b.dataset.v;
+    if (act === 'prep') {
+      var pp = personById(b.dataset.id);
+      if (!pp || rowBusy) return;
+      rowErr = {};
+      if (pp.hire_date) { startFor(pp, null); return; }
+      expandId = expandId === pp.id ? null : pp.id;   // 到職日空白：就地展開／取消，同時只展開一列
+    }
+    else if (act === 'tenure2') {
+      var pm = personById(b.dataset.id);
+      if (!pm || rowBusy || pm.hire_date) return;
+      startFor(pm, b.dataset.v);
+      return;
+    }
     else if (act === 'resume') {
       var rid = b.dataset.id;
       run(function () { return openDraft(rid).then(function () { if (S.step === 2) return loadCats(); }); });
       return;
     }
     else if (act === 'dropdraft') { abandonTarget = b.dataset.id; $('dlg').showModal(); return; }
-    else if (act === 'next1') {
-      var p = person();
-      if (!p) return;
-      run(function () {
-        return AssessApi.start(p.id, p.hire_date ? null : manual).then(function (aid) { return openDraft(aid); }).then(function () {
-          if (S.items.length) notice('info', '這位考生已有進行中的草稿，已接續上次的評分。');
-          else return loadCats();
-        });
-      });
-      return;
-    }
     else if (act === 'back2') { toStep1(); return; }
     else if (act === 'cat') {
       if (S.drawn) return;
