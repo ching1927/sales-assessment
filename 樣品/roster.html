@@ -100,6 +100,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 .dlg h2{font-size:18px;margin-bottom:var(--sp-4)}
 .field{display:block;margin-bottom:var(--sp-3);font-size:13px;color:var(--ink-2);font-weight:600}
 .field input,.field select{display:block;width:100%;margin-top:6px;font-weight:400}
+.field[hidden]{display:none}
 .err{color:var(--danger);font-size:13px;min-height:18px;margin-bottom:var(--sp-2)}
 .actions{display:flex;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-2)}
 .note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3)}
@@ -173,6 +174,10 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     <label class="field">職級
       <select class="ctrl" id="fPos"></select>
     </label>
+    <label class="field" id="fPosOtherWrap" hidden>請輸入職級（最多 20 字）
+      <input class="ctrl" id="fPosOther" maxlength="20" autocomplete="off" placeholder="例：營運經理">
+      <span id="fPosHint" style="display:block;margin-top:6px;color:var(--accent-deep);font-weight:600" hidden></span>
+    </label>
     <label class="field">到職日（可留空，之後補填）
       <input class="ctrl" id="fHire" type="date">
     </label>
@@ -192,7 +197,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
 <script>
 (function () {
-  var STORES = ['測試一店', '測試二店', '測試三店'];
+  var STORES = ['測試一店', '測試二店', '測試三店', '總公司'];
+  var OTHER = '__other';
   var POSITIONS = ['店長', '業務', '收車業務', '業務/助理', '助理', '工讀'];
   var DEFAULT_INC = { '業務': true, '收車業務': true, '業務/助理': true, '店長': false, '助理': false, '工讀': false };
   var ROLE_LABEL = { cs: '客服部', hq: '總公司主管', manager: '店長' };
@@ -219,7 +225,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // 假資料：到職日用「幾天前」產生。員工編號依入職先後排列（編號越大越晚入職），
   // 第 91 天（MI-9010）與第 90 天（MI-9011）是新人邊界；ago 為 null 代表到職日未填。
   function P(id, name, store, pos, ago, status) {
-    return { id: id, name: name, store: store, pos: pos, hire: ago === null ? '' : daysAgo(ago), status: status || '在職', inc: DEFAULT_INC[pos] };
+    return { id: id, name: name, store: store, pos: pos, hire: ago === null ? '' : daysAgo(ago), status: status || '在職', inc: !!DEFAULT_INC[pos] };
   }
   var people = [
     P('MI-9001', '阿澈', '測試二店', '店長', 1000),
@@ -238,7 +244,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     P('MI-9014', '阿豆', '測試二店', '收車業務', 10),
     P('MI-9015', '阿空', '測試二店', '業務', null),
     P('MI-9016', '小空', '測試三店', '收車業務', null),
-    P('PT-9001', '小豆', '測試三店', '工讀', 60)
+    P('PT-9001', '小豆', '測試三店', '工讀', 60),
+    P('MI-9018', '阿鈞', '總公司', '營運經理', 500),
+    P('MI-9019', '小客', '總公司', '客服部', 300)
   ];
 
   // 身分
@@ -261,6 +269,21 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   fillSelect($('storeSelf'), STORES, false);
   fillSelect($('fStore'), STORES, false);
   fillSelect($('fPos'), POSITIONS, false);
+  $('fPos').insertAdjacentHTML('beforeend', '<option value="' + OTHER + '">其他（自行輸入）</option>');
+  function syncPosOther() {
+    $('fPosOtherWrap').hidden = $('fPos').value !== OTHER;
+    $('fPosHint').hidden = true;
+  }
+  // 輸入的文字恰好是標準職級：提示並套用其納入考核預設（新增時）
+  $('fPosOther').addEventListener('input', function () {
+    var v = this.value.trim();
+    var std = POSITIONS.indexOf(v) >= 0;
+    $('fPosHint').hidden = !std;
+    if (std) {
+      $('fPosHint').textContent = '已改用標準職級：' + v;
+      if (!editingId) $('fInc').value = DEFAULT_INC[v] ? '1' : '0';
+    }
+  });
 
   function applyIdentityUI() {
     var label = ROLE_LABEL[identity.role];
@@ -349,7 +372,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('fId').disabled = !!p;
     $('fName').value = p ? p.name : '';
     $('fStore').value = p ? p.store : STORES[0];
-    $('fPos').value = p ? p.pos : POSITIONS[1];
+    if (p && POSITIONS.indexOf(p.pos) < 0) { $('fPos').value = OTHER; $('fPosOther').value = p.pos; }
+    else { $('fPos').value = p ? p.pos : POSITIONS[1]; $('fPosOther').value = ''; }
+    syncPosOther();
     $('fHire').value = p ? p.hire : '';
     $('fStatus').value = p ? p.status : '在職';
     $('fInc').value = (p ? p.inc : DEFAULT_INC[$('fPos').value]) ? '1' : '0';
@@ -357,6 +382,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
   // 新增時，換職級會帶出預設的納入考核（編輯時不自動改，避免蓋掉逐人調整）
   $('fPos').addEventListener('change', function () {
+    syncPosOther();
     if (!editingId) $('fInc').value = DEFAULT_INC[this.value] ? '1' : '0';
   });
   $('fCancel').addEventListener('click', function () { dlg.close(); });
@@ -372,9 +398,16 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       else if (people.some(function (x) { return x.id === id; })) err = '這個員工編號已存在';
     }
     if (!err && !name) err = '請填姓名或暱稱';
+    var pos = $('fPos').value;
+    if (pos === OTHER) {
+      pos = $('fPosOther').value.trim();
+      if (POSITIONS.indexOf(pos) >= 0) { if (!editingId) $('fInc').value = DEFAULT_INC[pos] ? '1' : '0'; }
+      else if (!err && !pos) err = '請輸入職級（不可空白）';
+      else if (!err && pos.length > 20) err = '職級最多 20 字';
+    }
     if (err) { $('fErr').textContent = err; return; }
     var data = {
-      name: name, store: $('fStore').value, pos: $('fPos').value, hire: hire,
+      name: name, store: $('fStore').value, pos: pos, hire: hire,
       status: $('fStatus').value, inc: $('fInc').value === '1'
     };
     if (editingId) {

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>業務考核系統｜帳號管理（樣品）</title>
+<style>
+/* 公版 tokens（取自 2motor-design-system/assets/tokens.css，未改值） */
+:root{
+  --glass-bg:rgba(255,255,255,0.62);
+  --glass-bg-strong:rgba(255,255,255,0.80);
+  --glass-blur:24px; --glass-sat:160%;
+  --rim:rgba(255,255,255,0.9);
+  --specular:inset 0 1px 1px rgba(255,255,255,0.9);
+  --hairline:0 0 0 0.5px rgba(15,23,42,0.06);
+  --shadow:0 8px 30px rgba(17,24,39,0.08);
+  --shadow-lg:0 20px 60px rgba(17,24,39,0.16);
+  --r-sm:10px; --r-ctrl:14px; --r-card:28px; --r-xl:34px; --r-pill:999px;
+  --accent:#2F6BFF; --accent-soft:rgba(47,107,255,0.12); --accent-deep:#1E4FD0;
+  --ink:#0F172A; --ink-2:#475569; --ink-3:#94A3B8; --ink-line:rgba(15,23,42,0.08);
+  --success:#16A34A; --warning:#D97706; --danger:#DC2626; --info:#2F6BFF;
+  --success-soft:rgba(22,163,74,0.12); --warning-soft:rgba(217,119,6,0.12);
+  --danger-soft:rgba(220,38,38,0.10); --info-soft:rgba(47,107,255,0.12);
+  --track:rgba(15,23,42,0.10);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang TC","Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",monospace;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --dur-in:600ms; --dur-micro:250ms;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font); color:var(--ink); min-height:100vh; overflow-x:hidden;
+  background:
+    radial-gradient(70% 50% at 80% 0%, rgba(120,150,255,0.10) 0%, transparent 60%),
+    radial-gradient(60% 50% at 8% 100%, rgba(170,150,255,0.08) 0%, transparent 60%),
+    linear-gradient(180deg,#F7F8FB 0%,#EEF1F6 100%);
+  -webkit-font-smoothing:antialiased;
+}
+.glass{
+  background:var(--glass-bg);
+  backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border:0.5px solid var(--rim);
+  box-shadow:var(--specular),var(--hairline),var(--shadow);
+  border-radius:var(--r-card); position:relative; overflow:hidden;
+}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 26%)}
+.glass > *{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+button,input,select{font-family:inherit;font-size:14px;color:var(--ink)}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.banner{background:var(--warning-soft);color:var(--warning);text-align:center;font-weight:600;font-size:14px;padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--ink-line)}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-3) var(--sp-4);align-items:center;font-size:13px;color:var(--ink-2)}
+.who-id,.who-nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+.who-nav{padding-left:var(--sp-4);border-left:1px solid var(--ink-line)}
+.who .badge{background:rgba(15,23,42,.06);color:var(--ink);border:1px solid var(--ink-line);font-weight:600;padding:4px 12px;border-radius:var(--r-ctrl);font-size:13px}
+@media (max-width:640px){.who-nav{flex-basis:100%;padding-left:0;border-left:none}}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-deep)}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:6px 4px}
+#logout{color:var(--ink-2)}
+.nav{display:inline-block;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:15px;padding:8px 16px;border-radius:var(--r-pill);text-decoration:none}
+.nav.primary{background:var(--accent);color:#fff}
+.nav:hover{filter:brightness(.96)}
+.notice{background:var(--warning-soft);color:var(--warning);font-weight:600;font-size:14px;line-height:1.5;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-ctrl)}
+.notice.bad{background:var(--danger-soft);color:var(--danger)}
+.notice.ok{background:var(--success-soft);color:var(--success)}
+.msg{margin-bottom:var(--sp-4)}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.count{margin-left:auto;color:var(--ink-2);font-size:13px}
+.tablebox{padding:0;margin-bottom:var(--sp-6)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;min-width:760px;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:rgba(255,255,255,0.8)}
+tbody tr:last-child td{border-bottom:none}
+td.wrap{white-space:normal;min-width:180px}
+.mono{font-family:var(--mono)}
+.sub2{color:var(--ink-3);font-size:12px;margin-left:6px}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
+.tag.cs{background:var(--info-soft);color:var(--accent-deep)}
+.tag.hq{background:var(--track);color:var(--ink-2)}
+.tag.mgr{background:var(--success-soft);color:var(--success)}
+.opsrow{display:flex;gap:var(--sp-2)}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+h2.sec{font-size:16px;font-weight:700;margin:0 0 var(--sp-1)}
+.sechint{color:var(--ink-3);font-size:12px;margin-bottom:var(--sp-3)}
+.logbox{padding:var(--sp-4) 0 0;margin-bottom:var(--sp-6)}
+.logbox .head{padding:0 var(--sp-4)}
+.demo{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.demo .lbl{font-size:13px;color:var(--ink-2)}
+.demo .only{background:var(--warning-soft);color:var(--warning);font-size:12px;font-weight:600;padding:3px 10px;border-radius:var(--r-pill)}
+/* 開關 */
+.sw{position:relative;width:46px;height:28px;border-radius:var(--r-pill);border:none;background:var(--track);transition:background var(--dur-micro) var(--ease);vertical-align:middle;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform var(--dur-micro) var(--ease)}
+.sw[aria-checked="true"]{background:var(--accent)}
+.sw[aria-checked="true"]::after{transform:translateX(18px)}
+.yn{font-size:13px;color:var(--ink-2)}
+/* 對話框 */
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:440px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--glass-bg-strong);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));margin:auto;color:var(--ink)}
+dialog::backdrop{background:rgba(15,23,42,0.30)}
+.dlg{padding:var(--sp-6);max-height:90vh;overflow-y:auto}
+.dlg h2{font-size:18px;margin-bottom:var(--sp-4)}
+.dlg p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+.field{display:block;margin-bottom:var(--sp-3);font-size:13px;color:var(--ink-2);font-weight:600}
+.field[hidden]{display:none}
+.field input,.field select{display:block;width:100%;margin-top:6px;font-weight:400}
+.field input:disabled{color:var(--ink-3)}
+.err{color:var(--danger);font-size:13px;min-height:18px;margin-bottom:var(--sp-2)}
+.actions{display:flex;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-2)}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3)}
+.foot{text-align:center;color:var(--ink-3);font-size:12px;margin:var(--sp-6) 0 var(--sp-4)}
+@media (max-width:640px){
+  .top h1{font-size:19px}
+  .opsrow .btn.sm{min-height:44px;min-width:56px}
+  .toolbar .btn{min-height:44px}
+}
+</style>
+</head>
+<body>
+<div class="banner">樣品：假資料，非真實帳號</div>
+<div class="page">
+  <div class="top">
+    <h1>帳號管理</h1>
+    <div class="who">
+      <div class="who-id">
+        <span>目前身分</span>
+        <span id="whoEmail"></span>
+        <span class="badge">客服部</span>
+      </div>
+      <div class="who-nav">
+        <a class="nav primary" href="assess.html">進行考核</a>
+        <a class="nav" href="reports.html">成績單</a>
+        <a class="nav" href="roster.html">人員名冊</a>
+        <button class="link" id="logout" type="button">登出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice msg" id="msg" role="alert" hidden></div>
+
+  <section class="toolbar glass" aria-label="操作">
+    <button class="btn primary" id="addBtn" type="button">新增帳號</button>
+    <span class="count" id="count" aria-live="polite"></span>
+  </section>
+
+  <section class="tablebox glass">
+    <div class="scroll" tabindex="0" aria-label="帳號表格，可左右捲動">
+      <table>
+        <thead>
+          <tr><th>信箱</th><th>角色</th><th>門市</th><th>對應員工</th><th>操作</th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty" hidden>目前沒有帳號</div>
+  </section>
+
+  <section class="logbox glass" aria-label="操作紀錄">
+    <div class="head">
+      <h2 class="sec">操作紀錄</h2>
+      <p class="sechint">只有客服部看得到；紀錄只增不改，無法編輯或刪除。</p>
+    </div>
+    <div class="scroll" tabindex="0" aria-label="操作紀錄表格，可左右捲動">
+      <table style="min-width:680px">
+        <thead>
+          <tr><th>時間</th><th>操作人</th><th>動作</th><th>對象信箱</th><th>內容</th></tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="demo glass" aria-label="示範情境">
+    <span class="only">僅示範用</span>
+    <button type="button" class="sw" id="demoSw" role="switch" aria-checked="false" aria-labelledby="demoLbl"></button>
+    <span class="lbl" id="demoLbl">示範情境：只剩一位客服部</span>
+    <span class="yn" id="demoYn">關閉</span>
+  </section>
+
+  <p class="note">移除帳號後，此人仍能用 Google 登入，但會看到「帳號尚未開通」。</p>
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<dialog id="dlg">
+  <form class="dlg" id="form" method="dialog" novalidate>
+    <h2 id="dlgTitle"></h2>
+    <label class="field">信箱（只收 @2motor.tw）
+      <input class="ctrl" id="fEmail" type="email" autocomplete="off" placeholder="例：name@2motor.tw">
+    </label>
+    <label class="field">角色
+      <select class="ctrl" id="fRole">
+        <option value="cs">客服部</option>
+        <option value="hq">總公司主管</option>
+        <option value="mgr">店長</option>
+      </select>
+    </label>
+    <label class="field" id="fStoreWrap" hidden>門市（店長必填）
+      <select class="ctrl" id="fStore"></select>
+    </label>
+    <label class="field">對應員工（選填，可輸入文字篩選）
+      <input class="ctrl" id="fEmp" list="empList" autocomplete="off" placeholder="可輸入文字篩選，並從清單選擇">
+      <datalist id="empList"></datalist>
+    </label>
+    <div class="err" id="fErr" role="alert"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="fCancel">取消</button>
+      <button class="btn primary" type="submit">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="cdlg">
+  <div class="dlg">
+    <h2>確定要移除這個帳號？</h2>
+    <p id="cText"></p>
+    <div class="err" id="cErr" role="alert"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="cCancel">取消</button>
+      <button class="btn danger" type="button" id="cOk">確定移除</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var STORE_ORDER = ['總公司', '中和', '新莊', '樹林', '桃園中壢', '新竹', '旗艦', '南台中', '太平', '台南', '高雄', '花蓮'];
+  var ROLE_LABEL = { cs: '客服部', hq: '總公司主管', mgr: '店長' };
+  var ROLE_CLASS = { cs: 'cs', hq: 'hq', mgr: 'mgr' };
+  var ROLE_ORDER = { cs: 0, hq: 1, mgr: 2 };
+  var ME = 'cs-you@example.invalid';
+  var MSG_SELF = '不能移除或降級自己的客服部身分';
+  var MSG_LAST = '至少要保留一位客服部';
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function stamp() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  // 假員工（暱稱＋假員編）
+  var employees = [
+    { id: 'MI-9001', nick: '阿澈' }, { id: 'MI-9002', nick: '小葵' }, { id: 'MI-9003', nick: '小柚' },
+    { id: 'MI-9004', nick: '小棠' }, { id: 'MI-9018', nick: '阿鈞' }, { id: 'MI-9019', nick: '小客' },
+    { id: 'MI-9020', nick: '小岑' }, { id: 'MI-9021', nick: '小禾' }
+  ];
+  function empLabel(e) { return e.nick + '（' + e.id + '）'; }
+  function findEmp(id) { return employees.filter(function (e) { return e.id === id; })[0] || null; }
+
+  // 假帳號（信箱一律 @example.invalid）
+  var accounts = [
+    { email: 'cs-you@example.invalid', role: 'cs', store: '', emp: 'MI-9019', hidden: false },
+    { email: 'cs-other@example.invalid', role: 'cs', store: '', emp: '', hidden: false },
+    { email: 'hq-a@example.invalid', role: 'hq', store: '', emp: 'MI-9018', hidden: false },
+    { email: 'hq-b@example.invalid', role: 'hq', store: '', emp: '', hidden: false },
+    { email: 'mgr-a@example.invalid', role: 'mgr', store: '中和', emp: 'MI-9001', hidden: false },
+    { email: 'mgr-b@example.invalid', role: 'mgr', store: '新莊', emp: 'MI-9002', hidden: false },
+    { email: 'mgr-c@example.invalid', role: 'mgr', store: '高雄', emp: '', hidden: false }
+  ];
+
+  // 假的操作紀錄（最新在最上面）
+  var logs = [
+    { time: '2026-10-19 16:42', actor: 'cs-you@example.invalid', action: '修改', target: 'hq-a@example.invalid', content: '對應員工：（無） → 阿鈞（MI-9018）' },
+    { time: '2026-10-19 11:05', actor: 'cs-other@example.invalid', action: '新增', target: 'mgr-c@example.invalid', content: '角色：店長・高雄' },
+    { time: '2026-10-18 17:20', actor: 'cs-you@example.invalid', action: '修改', target: 'mgr-b@example.invalid', content: '門市：樹林 → 新莊' },
+    { time: '2026-10-17 09:31', actor: 'cs-you@example.invalid', action: '移除', target: 'old-mgr@example.invalid', content: '角色：店長・旗艦' },
+    { time: '2026-10-16 14:08', actor: 'cs-other@example.invalid', action: '修改', target: 'hq-b@example.invalid', content: '角色：店長 → 總公司主管' }
+  ];
+
+  function addLog(action, target, content) {
+    logs.unshift({ time: stamp(), actor: ME, action: action, target: target, content: content });
+    renderLogs();
+  }
+
+  function visible() { return accounts.filter(function (a) { return !a.hidden; }); }
+  function csCount() { return visible().filter(function (a) { return a.role === 'cs'; }).length; }
+  function find(email) { return accounts.filter(function (a) { return a.email === email; })[0] || null; }
+  function storeRank(s) { var i = STORE_ORDER.indexOf(s); return i < 0 ? STORE_ORDER.length : i; }
+  function who(a) { return ROLE_LABEL[a.role] + (a.role === 'mgr' ? '・' + a.store : ''); }
+
+  function showMsg(t, kind) {
+    var m = $('msg');
+    m.textContent = t;
+    m.className = 'notice msg' + (kind === 'ok' ? ' ok' : kind === 'bad' ? ' bad' : '');
+    m.hidden = !t;
+  }
+
+  function empCell(a) {
+    var e = a.emp ? findEmp(a.emp) : null;
+    if (!e) return '—';
+    return esc(e.nick) + '<span class="sub2 mono">' + esc(e.id) + '</span>';
+  }
+
+  function render() {
+    var rows = visible().sort(function (a, b) {
+      return ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || storeRank(a.store) - storeRank(b.store) || (a.email < b.email ? -1 : a.email > b.email ? 1 : 0);
+    });
+    $('tbody').innerHTML = rows.map(function (a) {
+      var me = a.email === ME;
+      return '<tr>' +
+        '<td class="mono">' + esc(a.email) + (me ? '<span class="sub2">（你）</span>' : '') + '</td>' +
+        '<td><span class="tag ' + ROLE_CLASS[a.role] + '">' + esc(ROLE_LABEL[a.role]) + '</span></td>' +
+        '<td>' + (a.role === 'mgr' ? esc(a.store) : '—') + '</td>' +
+        '<td>' + empCell(a) + '</td>' +
+        '<td><div class="opsrow">' +
+          '<button type="button" class="btn sm" data-edit="' + esc(a.email) + '" aria-label="編輯 ' + esc(a.email) + '">編輯</button>' +
+          '<button type="button" class="btn sm" data-del="' + esc(a.email) + '" aria-label="移除 ' + esc(a.email) + '">移除</button>' +
+        '</div></td></tr>';
+    }).join('');
+    $('empty').hidden = rows.length > 0;
+    $('count').textContent = '共 ' + rows.length + ' 個帳號';
+  }
+
+  function renderLogs() {
+    $('logBody').innerHTML = logs.map(function (l) {
+      return '<tr><td class="mono">' + esc(l.time) + '</td>' +
+        '<td class="mono">' + esc(l.actor) + '</td>' +
+        '<td><span class="tag ' + (l.action === '新增' ? 'mgr' : l.action === '移除' ? 'hq' : 'cs') + '">' + esc(l.action) + '</span></td>' +
+        '<td class="mono">' + esc(l.target) + '</td>' +
+        '<td class="wrap">' + esc(l.content) + '</td></tr>';
+    }).join('');
+  }
+
+  // 護欄：回傳擋下訊息，沒事回空字串。「改完客服部變 0 位」優先於「動到自己」。
+  function guard(a, newRole, isRemove) {
+    if (a.role !== 'cs') return '';
+    var losesCs = isRemove || newRole !== 'cs';
+    if (!losesCs) return '';
+    if (csCount() - 1 < 1) return MSG_LAST;
+    if (a.email === ME) return MSG_SELF;
+    return '';
+  }
+
+  // 篩選用下拉
+  $('fStore').innerHTML = STORE_ORDER.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
+  $('empList').innerHTML = employees.map(function (e) { return '<option value="' + esc(empLabel(e)) + '"></option>'; }).join('');
+
+  function syncStore() { $('fStoreWrap').hidden = $('fRole').value !== 'mgr'; }
+  $('fRole').addEventListener('change', syncStore);
+  $('fEmail').addEventListener('input', function () {
+    var v = this.value.replace(/\s+/g, '').toLowerCase();
+    if (v !== this.value) this.value = v;
+  });
+
+  // 表單
+  var dlg = $('dlg'), editing = null;
+  function openForm(email) {
+    editing = email;
+    var a = email ? find(email) : null;
+    if (email && !a) return;
+    $('fErr').textContent = '';
+    $('dlgTitle').textContent = a ? '編輯帳號' : '新增帳號';
+    $('fEmail').value = a ? a.email : '';
+    $('fEmail').disabled = !!a;
+    $('fRole').value = a ? a.role : 'hq';
+    $('fStore').value = a && a.role === 'mgr' ? a.store : STORE_ORDER[1];
+    var e = a && a.emp ? findEmp(a.emp) : null;
+    $('fEmp').value = e ? empLabel(e) : '';
+    syncStore();
+    dlg.showModal();
+  }
+  $('addBtn').addEventListener('click', function () { openForm(null); });
+  $('fCancel').addEventListener('click', function () { dlg.close(); });
+
+  $('form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var role = $('fRole').value;
+    var store = role === 'mgr' ? $('fStore').value : '';
+    var empText = $('fEmp').value.trim();
+    var emp = '';
+    var err = '';
+    if (empText) {
+      var hit = employees.filter(function (e) { return empLabel(e) === empText || e.id.toLowerCase() === empText.toLowerCase(); })[0];
+      if (hit) emp = hit.id; else err = '請從清單選擇對應員工，或清空此欄';
+    }
+    var email = editing || $('fEmail').value.replace(/\s+/g, '').toLowerCase();
+    if (!editing) {
+      if (!email) err = '請填信箱';
+      else if (!/^[^@\s]+@2motor\.tw$/.test(email)) err = '只收公司信箱（@2motor.tw）';
+      else if (find(email)) err = '這個信箱已經有帳號了';
+    }
+    if (!err && role === 'mgr' && !store) err = '店長必須選門市';
+    if (!err && editing) err = guard(find(editing), role, false);
+    if (err) { $('fErr').textContent = err; return; }
+
+    if (!editing) {
+      accounts.push({ email: email, role: role, store: store, emp: emp, hidden: false });
+      var ne = emp ? findEmp(emp) : null;
+      addLog('新增', email, '角色：' + who({ role: role, store: store }) + (ne ? '；對應員工：' + empLabel(ne) : ''));
+      showMsg('已新增帳號：' + email, 'ok');
+    } else {
+      var a = find(editing), diffs = [];
+      if (a.role !== role) diffs.push('角色：' + ROLE_LABEL[a.role] + ' → ' + ROLE_LABEL[role]);
+      if (a.role === 'mgr' && role === 'mgr' && a.store !== store) diffs.push('門市：' + a.store + ' → ' + store);
+      else if (a.role !== role && (a.role === 'mgr' || role === 'mgr')) diffs.push('門市：' + (a.role === 'mgr' ? a.store : '（無）') + ' → ' + (role === 'mgr' ? store : '（無）'));
+      if (a.emp !== emp) {
+        var oe = a.emp ? findEmp(a.emp) : null, n2 = emp ? findEmp(emp) : null;
+        diffs.push('對應員工：' + (oe ? empLabel(oe) : '（無）') + ' → ' + (n2 ? empLabel(n2) : '（無）'));
+      }
+      if (!diffs.length) { $('fErr').textContent = '沒有任何變更'; return; }
+      a.role = role; a.store = store; a.emp = emp;
+      addLog('修改', a.email, diffs.join('；'));
+      showMsg('已更新帳號：' + a.email, 'ok');
+    }
+    dlg.close();
+    render();
+  });
+
+  // 移除（二次確認）
+  var cdlg = $('cdlg'), removing = null;
+  function openRemove(email) {
+    var a = find(email);
+    if (!a) return;
+    var g = guard(a, null, true);
+    if (g) { showMsg(g, 'bad'); return; }
+    removing = email;
+    $('cErr').textContent = '';
+    $('cText').textContent = '要移除 ' + email + ' 嗎？移除後此人仍能用 Google 登入，但會看到帳號尚未開通。';
+    cdlg.showModal();
+  }
+  $('cCancel').addEventListener('click', function () { cdlg.close(); });
+  $('cOk').addEventListener('click', function () {
+    var a = find(removing);
+    if (!a) { cdlg.close(); return; }
+    var g = guard(a, null, true);
+    if (g) { $('cErr').textContent = g; return; }
+    accounts = accounts.filter(function (x) { return x !== a; });
+    addLog('移除', a.email, '角色：' + who(a));
+    cdlg.close();
+    showMsg('已移除帳號：' + a.email, 'ok');
+    render();
+  });
+
+  $('tbody').addEventListener('click', function (e) {
+    showMsg('');
+    var ed = e.target.closest('[data-edit]');
+    if (ed) { openForm(ed.dataset.edit); return; }
+    var del = e.target.closest('[data-del]');
+    if (del) openRemove(del.dataset.del);
+  });
+
+  // 示範情境：只剩一位客服部（暫時隱藏另一位）
+  $('demoSw').addEventListener('click', function () {
+    var on = this.getAttribute('aria-checked') !== 'true';
+    this.setAttribute('aria-checked', on ? 'true' : 'false');
+    $('demoYn').textContent = on ? '開啟（另一位客服部已暫時隱藏）' : '關閉';
+    accounts.forEach(function (a) { if (a.role === 'cs' && a.email !== ME) a.hidden = on; });
+    showMsg('');
+    render();
+  });
+
+  $('logout').addEventListener('click', function () {
+    try { sessionStorage.removeItem('sampleIdentity'); } catch (e) {}
+    location.href = 'index.html';
+  });
+
+  $('whoEmail').textContent = ME;
+  render();
+  renderLogs();
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 -- ⚠️ 尚未執行，待老闆同意後才在 Supabase 執行（且必須先執行過 assess_schema.sql）。
 --
 -- 怎麼跑：Supabase SQL Editor → New query → 貼上整份 → Run。
--- 做了什麼：begin 之後建立假門市／假員工／假帳號（example.invalid）／假題庫，
+-- 做了什麼：begin 之後建立假門市／假員工／假帳號（vr-xxx@2motor.tw，符合 accounts 網域檢查）／假題庫，
 --   跑完所有驗證，把結果記在暫存表，最後 rollback（假資料全部消失）。
 -- 怎麼看結果：
 --   * 因為 SQL Editor 只顯示「最後一個」結果，而 rollback 本身沒有結果，
@@ -300,11 +300,11 @@ begin
     ('MI-9909', '假正式丙', 'ZZ-T1', '業務', v_today - 200, '在職', true);
 
   insert into public.app_users (email, role, store_code) values
-    ('cs1@example.invalid',  'cs_admin',      null),
-    ('cs2@example.invalid',  'cs_admin',      null),
-    ('hq@example.invalid',   'hq_viewer',     null),
-    ('sm1@example.invalid',  'store_manager', 'ZZ-T1'),
-    ('sm2@example.invalid',  'store_manager', 'ZZ-T2');
+    ('vr-cs1@2motor.tw',  'cs_admin',      null),
+    ('vr-cs2@2motor.tw',  'cs_admin',      null),
+    ('vr-hq@2motor.tw',   'hq_viewer',     null),
+    ('vr-sm1@2motor.tw',  'store_manager', 'ZZ-T1'),
+    ('vr-sm2@2motor.tw',  'store_manager', 'ZZ-T2');
 
   insert into public.questions (category, code, title, steps) values
     ('ZZ分類A', 'A1', '假題組A1', '[{"action":"動作1","point":"考點1"}]'::jsonb),
@@ -333,24 +333,24 @@ declare
   v_iids text := '';
 begin
   insert into public.assessments (employee_id, employee_label, store_code, examiner_email, status, tenure, tenure_source, hire_date_snapshot)
-  values ('MI-9902', '假正式乙', 'ZZ-T1', 'cs1@example.invalid', 'draft', '正式', '自動', v_today - 200)
+  values ('MI-9902', '假正式乙', 'ZZ-T1', 'vr-cs1@2motor.tw', 'draft', '正式', '自動', v_today - 200)
   returning id into v_d;
 
   insert into public.assessments (employee_id, employee_label, store_code, examiner_email, status, tenure, tenure_source, hire_date_snapshot,
                                   total_score, verdict, pass_line, weakest_dims, submitted_at)
-  values ('MI-9902', '假正式乙', 'ZZ-T1', 'cs1@example.invalid', 'submitted', '正式', '自動', v_today - 200,
+  values ('MI-9902', '假正式乙', 'ZZ-T1', 'vr-cs1@2motor.tw', 'submitted', '正式', '自動', v_today - 200,
           77.5, '需複訓', 85, '{主動引導}', now())
   returning id into v_s;
 
   insert into public.assessments (employee_id, employee_label, store_code, examiner_email, status, tenure, tenure_source, hire_date_snapshot,
                                   total_score, verdict, pass_line, weakest_dims, submitted_at, voided_at, voided_by, void_reason)
-  values ('MI-9902', '假正式乙', 'ZZ-T1', 'cs1@example.invalid', 'voided', '正式', '自動', v_today - 200,
-          77.5, '需複訓', 85, '{主動引導}', now(), now(), 'cs1@example.invalid', '假作廢')
+  values ('MI-9902', '假正式乙', 'ZZ-T1', 'vr-cs1@2motor.tw', 'voided', '正式', '自動', v_today - 200,
+          77.5, '需複訓', 85, '{主動引導}', now(), now(), 'vr-cs1@2motor.tw', '假作廢')
   returning id into v_v;
 
   insert into public.assessments (employee_id, employee_label, store_code, examiner_email, status, tenure, tenure_source, hire_date_snapshot,
                                   total_score, verdict, pass_line, weakest_dims, submitted_at)
-  values ('MI-9906', '假他店員', 'ZZ-T2', 'cs1@example.invalid', 'submitted', '新人', '自動', v_today - 30,
+  values ('MI-9906', '假他店員', 'ZZ-T2', 'vr-cs1@2motor.tw', 'submitted', '新人', '自動', v_today - 30,
           77.5, '及格', 70, '{主動引導}', now())
   returning id into v_s2;
 
@@ -396,11 +396,11 @@ begin
 
   for r in
     select * from (values
-      ('客服部',      'authenticated', 'cs1@example.invalid',   '1/2/1', '4', '4', '4', '4'),
-      ('總公司主管',  'authenticated', 'hq@example.invalid',    '0/2/0', '2', '0', '2', '2'),
-      ('店長（門市甲）','authenticated', 'sm1@example.invalid',  '0/1/0', '1', '0', '1', '1'),
-      ('店長（門市乙）','authenticated', 'sm2@example.invalid',  '0/1/0', '1', '0', '1', '1'),
-      ('有登入但沒帳號','authenticated', 'nobody@example.invalid','0/0/0', '0', '0', '0', '0')
+      ('客服部',      'authenticated', 'vr-cs1@2motor.tw',   '1/2/1', '4', '4', '4', '4'),
+      ('總公司主管',  'authenticated', 'vr-hq@2motor.tw',    '0/2/0', '2', '0', '2', '2'),
+      ('店長（門市甲）','authenticated', 'vr-sm1@2motor.tw',  '0/1/0', '1', '0', '1', '1'),
+      ('店長（門市乙）','authenticated', 'vr-sm2@2motor.tw',  '0/1/0', '1', '0', '1', '1'),
+      ('有登入但沒帳號','authenticated', 'vr-nobody@2motor.tw','0/0/0', '0', '0', '0', '0')
     ) as t(label, rl, email, e_status, e_items, e_secrets, e_view, e_img)
   loop
     perform pg_temp.vr_eq('權限矩陣', r.label || '：assessments 草稿/已送出/作廢 筆數', r.e_status, pg_temp.vr_as(r.rl, r.email, q1, true));
@@ -433,10 +433,10 @@ begin
       where table_schema = 'public' and table_name = 'assessment_item_secrets'
         and column_name in ('question_id', 'was_drawn_before')));
   perform pg_temp.vr_eq('權限矩陣', '總公司主管讀 assessment_items.question_id 被拒（欄位不存在）', 'ERROR',
-    split_part(pg_temp.vr_as('authenticated', 'hq@example.invalid',
+    split_part(pg_temp.vr_as('authenticated', 'vr-hq@2motor.tw',
       'select count(question_id)::text from public.assessment_items', true), ':', 1));
   perform pg_temp.vr_eq('權限矩陣', '總公司主管讀機密表 question_id 看不到任何列', '0',
-    pg_temp.vr_as('authenticated', 'hq@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-hq@2motor.tw',
       'select count(*)::text from public.assessment_item_secrets', true));
   perform pg_temp.vr_eq('權限矩陣', 'assessment_summaries 是 security_invoker', 'true',
     (select (coalesce(reloptions::text, '') like '%security_invoker=true%')::text
@@ -464,7 +464,7 @@ declare
 begin
   v_stmts := array[
     $q$insert into public.assessments (employee_id, store_code, examiner_email, tenure, tenure_source)
-       values ('MI-9902', 'ZZ-T1', 'x@example.invalid', '正式', '自動')$q$,
+       values ('MI-9902', 'ZZ-T1', 'vr-x@2motor.tw', '正式', '自動')$q$,
     format($q$update public.assessments set void_reason = 'x' where id = %L$q$, v_sub),
     format($q$delete from public.assessments where id = %L$q$, v_sub),
     format($q$insert into public.assessment_items (assessment_id, seq, category)
@@ -482,10 +482,10 @@ begin
 
   for r in
     select * from (values
-      ('客服部',       'authenticated', 'cs1@example.invalid'),
-      ('總公司主管',   'authenticated', 'hq@example.invalid'),
-      ('店長（門市甲）','authenticated', 'sm1@example.invalid'),
-      ('有登入但沒帳號','authenticated', 'nobody@example.invalid'),
+      ('客服部',       'authenticated', 'vr-cs1@2motor.tw'),
+      ('總公司主管',   'authenticated', 'vr-hq@2motor.tw'),
+      ('店長（門市甲）','authenticated', 'vr-sm1@2motor.tw'),
+      ('有登入但沒帳號','authenticated', 'vr-nobody@2motor.tw'),
       ('未登入 anon',  'anon',          null)
     ) as t(label, rl, email)
   loop
@@ -531,9 +531,9 @@ begin
 
   for r in
     select * from (values
-      ('總公司主管',   'hq@example.invalid'),
-      ('店長（門市甲）','sm1@example.invalid'),
-      ('有登入但沒帳號','nobody@example.invalid')
+      ('總公司主管',   'vr-hq@2motor.tw'),
+      ('店長（門市甲）','vr-sm1@2motor.tw'),
+      ('有登入但沒帳號','vr-nobody@2motor.tw')
     ) as t(label, email)
   loop
     v_n := 0;
@@ -559,13 +559,13 @@ begin
         ($q$select * from public.assess_dim_order()$q$)) as t(sql)
       where pg_temp.vr_as('anon', null, t.sql, false) like 'ERROR: permission denied%'));
   perform pg_temp.vr_eq('權限矩陣', 'authenticated（總公司主管）可呼叫純計算函式', '及格',
-    pg_temp.vr_as('authenticated', 'hq@example.invalid', $q$select verdict from public.assess_verdict(80, '新人')$q$, true));
+    pg_temp.vr_as('authenticated', 'vr-hq@2motor.tw', $q$select verdict from public.assess_verdict(80, '新人')$q$, true));
 
   perform pg_temp.vr_eq('權限矩陣', '客服部（authenticated 角色）可呼叫 assess_candidates，看到 7 位假員工', '7',
-    pg_temp.vr_as('authenticated', 'cs1@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
       $q$select count(*)::text from public.assess_candidates() c where c.id like 'MI-99__'$q$, true));
   perform pg_temp.vr_eq('權限矩陣', '客服部（authenticated 角色）可呼叫 assess_categories', '3',
-    pg_temp.vr_as('authenticated', 'cs1@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
       $q$select c.total::text from public.assess_categories() c where c.category = 'ZZ分類A'$q$, true));
 
   -- 以系統目錄再核對一次 execute 權限
@@ -608,7 +608,7 @@ declare
   v_today date := (now() at time zone 'Asia/Taipei')::date;
   v_id uuid; v_id2 uuid; v_s1 uuid; v_n907 uuid;
 begin
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   perform pg_temp.vr_eq('流程 名單','納入考核且在職的假員工（9901/9902/9903/9906/9907/9908/9909）','7',
     (select count(*)::text from public.assess_candidates() c where c.id like 'MI-99__'));
@@ -643,7 +643,7 @@ begin
   perform pg_temp.vr_eq('流程 start','有到職日（30 天）時 override 被忽略 → 新人／自動／到職日快照','新人/自動/' || (v_today - 30)::text,
     (select a.tenure || '/' || a.tenure_source || '/' || a.hire_date_snapshot::text
        from public.assessments a where a.id = v_s1));
-  perform pg_temp.vr_eq('流程 start','狀態 draft、門市快照 ZZ-T1、考官為本人','draft/ZZ-T1/cs1@example.invalid',
+  perform pg_temp.vr_eq('流程 start','狀態 draft、門市快照 ZZ-T1、考官為本人','draft/ZZ-T1/vr-cs1@2motor.tw',
     (select a.status || '/' || a.store_code || '/' || a.examiner_email from public.assessments a where a.id = v_s1));
 
   v_id := public.assess_start('MI-9907');
@@ -655,7 +655,7 @@ begin
     (select a.tenure || '/' || a.tenure_source from public.assessments a where a.id = v_id));
 
   -- 另一位考官對同一員工會有自己的草稿
-  perform pg_temp.vr_login('cs2@example.invalid');
+  perform pg_temp.vr_login('vr-cs2@2motor.tw');
   v_id2 := public.assess_start('MI-9901');
   perform pg_temp.vr_eq('流程 start','另一位考官對同一員工 → 另開一張草稿','true', (v_id2 <> v_s1)::text);
   -- 非本人不能抽題／暫存／送出／放棄
@@ -667,14 +667,14 @@ begin
   perform public.assess_abandon(v_n907);
   perform pg_temp.vr_eq('流程 權限','另一位客服部可以放棄別人的草稿','0',
     (select count(*)::text from public.assessments where id = v_n907));
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   -- 調店後門市快照不變
   update public.employees set store_code = 'ZZ-T2' where id = 'MI-9901';
   perform pg_temp.vr_eq('流程 start','員工調店後，考核的門市快照不變','ZZ-T1',
     (select a.store_code from public.assessments a where a.id = v_s1));
   perform pg_temp.vr_eq('流程 start','成績單列表顯示的姓名是快照（assessment_summaries.employee_label）','假新人甲',
-    pg_temp.vr_as('authenticated', 'cs1@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
       format($q$select employee_label from public.assessment_summaries where id = %L$q$, v_s1), true));
   update public.employees set nickname = '改名後' where id = 'MI-9901';
   perform pg_temp.vr_eq('流程 start','員工改暱稱後，成績單姓名快照不變','假新人甲',
@@ -693,7 +693,7 @@ declare
   v_ia uuid; v_ib uuid;
   r record;
 begin
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   -- draw 的錯誤輸入
   perform pg_temp.vr_err('流程 draw','分類重複要報錯',
@@ -757,10 +757,10 @@ begin
     format($q$select * from public.assess_submit(%L::uuid)$q$, v_s1), '%評分不完整%');
 
   -- 非本人不能暫存
-  perform pg_temp.vr_login('cs2@example.invalid');
+  perform pg_temp.vr_login('vr-cs2@2motor.tw');
   perform pg_temp.vr_err('流程 權限','非建立者暫存要報錯',
     format($q$select public.assess_save_item(%L::uuid, '{"資訊正確性":"優"}'::jsonb, null)$q$, v_ia), '%建立者本人%');
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   -- 完整評分並送出
   perform public.assess_save_item(v_ia, pg_temp.vr_mk('良','優','良','待加強','優','良','優'), '考官備註甲');
@@ -800,13 +800,13 @@ begin
   -- 作廢
   perform pg_temp.vr_err('流程 void','草稿不能作廢',
     format($q$select public.assess_void(%L::uuid, '原因')$q$, pg_temp.vr_get('s_manual')), '%只有已送出%');
-  perform pg_temp.vr_login('cs2@example.invalid');
+  perform pg_temp.vr_login('vr-cs2@2motor.tw');
   perform pg_temp.vr_err('流程 void','作廢原因空字串要報錯',
     format($q$select public.assess_void(%L::uuid, '')$q$, v_s1), '%原因不可空白%');
   perform pg_temp.vr_err('流程 void','作廢原因只有空白要報錯',
     format($q$select public.assess_void(%L::uuid, '   ')$q$, v_s1), '%原因不可空白%');
   perform public.assess_void(v_s1, ' 評錯題組 ');
-  perform pg_temp.vr_eq('流程 void','作廢後狀態、作廢者、原因（已去空白）','voided/cs2@example.invalid/評錯題組',
+  perform pg_temp.vr_eq('流程 void','作廢後狀態、作廢者、原因（已去空白）','voided/vr-cs2@2motor.tw/評錯題組',
     (select a.status || '/' || a.voided_by || '/' || a.void_reason from public.assessments a where a.id = v_s1));
   perform pg_temp.vr_eq('流程 void','作廢時間有記','true',
     (select (a.voided_at is not null)::text from public.assessments a where a.id = v_s1));
@@ -816,7 +816,7 @@ begin
               where question_id in (select question_id from pg_temp.vr_q where assessment_id = v_s1))::text));
   perform pg_temp.vr_err('流程 void','已作廢不能再作廢',
     format($q$select public.assess_void(%L::uuid, '再來一次')$q$, v_s1), '%只有已送出%');
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 exception when others then
   perform pg_temp.vr_rec('區段 3-2','S1 流程意外中斷','無例外', sqlerrm, false);
 end
@@ -832,7 +832,7 @@ declare
   v_items uuid[];
   r record;
 begin
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   select question_id into v_a1 from pg_temp.vr_q where assessment_id = v_s1 and category = 'ZZ分類A';
   select question_id into v_b1 from pg_temp.vr_q where assessment_id = v_s1 and category = 'ZZ分類B';
@@ -907,7 +907,7 @@ declare
   v_fp bigint; v_fo bigint;
   r record;
 begin
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   -- P（MI-9909，正式）先考過 F 分類的一題並送出
   v_pa := public.assess_start('MI-9909');
@@ -951,20 +951,20 @@ begin
               from public.assessments where employee_id in ('MI-9901', 'MI-9903', 'MI-9909', 'MI-9907', 'MI-9908'));
   -- MI-9901：S1 作廢、S2 已送出、cs2 的草稿；MI-9903：手動草稿；MI-9909：已送出；MI-9908：草稿（MI-9907 的已被放棄）
   perform pg_temp.vr_eq('權限矩陣','流程資料：客服部草稿/已送出/作廢','3/2/1',
-    pg_temp.vr_as('authenticated', 'cs1@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
       format($q$select count(*) filter (where status='draft')::text || '/' || count(*) filter (where status='submitted')::text
                        || '/' || count(*) filter (where status='voided')::text
                   from public.assessments where id in (%s)$q$, v_ids), true));
   perform pg_temp.vr_eq('權限矩陣','流程資料：總公司主管草稿/已送出/作廢','0/2/0',
-    pg_temp.vr_as('authenticated', 'hq@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-hq@2motor.tw',
       format($q$select count(*) filter (where status='draft')::text || '/' || count(*) filter (where status='submitted')::text
                        || '/' || count(*) filter (where status='voided')::text
                   from public.assessments where id in (%s)$q$, v_ids), true));
   perform pg_temp.vr_eq('權限矩陣','流程資料：店長（門市甲）看到門市甲已送出（MI-9901、MI-9909 各一）','2',
-    pg_temp.vr_as('authenticated', 'sm1@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-sm1@2motor.tw',
       format($q$select count(*)::text from public.assessments where id in (%s)$q$, v_ids), true));
   perform pg_temp.vr_eq('權限矩陣','流程資料：店長（門市乙）看不到門市甲的','0',
-    pg_temp.vr_as('authenticated', 'sm2@example.invalid',
+    pg_temp.vr_as('authenticated', 'vr-sm2@2motor.tw',
       format($q$select count(*)::text from public.assessments where id in (%s)$q$, v_ids), true));
 exception when others then
   perform pg_temp.vr_rec('區段 3-5','可見性意外中斷','無例外', sqlerrm, false);
@@ -978,7 +978,7 @@ declare
   v_b uuid; v_bi uuid; v_prb text; v_paths text[]; v_arr text[]; k int;
   v_mimes text[] := array['image/jpeg', 'image/png', 'image/webp', 'image/jpeg', 'image/png'];
 begin
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   -- MI-9908 的草稿（3-1 建立）：抽一題 ZZ分類C 後加圖
   v_a := public.assess_start('MI-9908');
@@ -1016,14 +1016,14 @@ begin
     '%路徑%');
 
   -- 非本人不能加、不能移除
-  perform pg_temp.vr_login('cs2@example.invalid');
+  perform pg_temp.vr_login('vr-cs2@2motor.tw');
   perform pg_temp.vr_err('流程 圖片','非建立者新增圖片被拒',
     format($q$select public.assess_add_image(%L::uuid, %L, 'image/jpeg', 1000)$q$, v_i, v_pre || 'cs2.jpg'),
     '%建立者本人%');
   perform pg_temp.vr_err('流程 圖片','非建立者移除圖片被拒',
     format($q$select public.assess_remove_image(%L::uuid)$q$, pg_temp.vr_get('img_first')),
     '%建立者本人%');
-  perform pg_temp.vr_login('cs1@example.invalid');
+  perform pg_temp.vr_login('vr-cs1@2motor.tw');
 
   -- 移除：回傳路徑、資料列刪除；之後可再補一張；重複路徑被唯一鍵擋下
   v_ret := public.assess_remove_image(pg_temp.vr_get('img_first')::uuid);
@@ -1123,11 +1123,11 @@ begin
                 v_n1, v_n2, v_n3, v_n4, v_n5);
   for r in
     select * from (values
-      ('客服部（5 筆全看）',              'cs1@example.invalid',    '5'),
-      ('總公司主管（只看已送出 2 筆）',   'hq@example.invalid',     '2'),
-      ('店長甲（只看門市甲已送出 1 筆）', 'sm1@example.invalid',    '1'),
-      ('店長乙（只看門市乙已送出 1 筆）', 'sm2@example.invalid',    '1'),
-      ('有登入但沒帳號',                  'nobody@example.invalid', '0')
+      ('客服部（5 筆全看）',              'vr-cs1@2motor.tw',    '5'),
+      ('總公司主管（只看已送出 2 筆）',   'vr-hq@2motor.tw',     '2'),
+      ('店長甲（只看門市甲已送出 1 筆）', 'vr-sm1@2motor.tw',    '1'),
+      ('店長乙（只看門市乙已送出 1 筆）', 'vr-sm2@2motor.tw',    '1'),
+      ('有登入但沒帳號',                  'vr-nobody@2motor.tw', '0')
     ) as t(label, email, expected)
   loop
     perform pg_temp.vr_eq('Storage', r.label || '：storage.objects 可見筆數', r.expected,
@@ -1147,20 +1147,20 @@ begin
         and coalesce(qual, '') || coalesce(with_check, '') like '%roster_my_email%'));
   for r in
     select * from (values
-      ('客服部＋自己的草稿＋自己的題組＋合法 jpg 路徑', 'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'OK'),
-      ('客服部＋合法 png 路徑',                          'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.png', 'OK'),
-      ('客服部＋合法 webp 路徑',                         'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.webp', 'OK'),
-      ('另一位客服部（不是草稿建立者）被拒',             'authenticated', 'cs2@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('已送出考核的路徑被拒（即使是同一位考官）',       'authenticated', 'cs1@example.invalid', v_s || '/' || v_si || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('已作廢考核的路徑被拒',                           'authenticated', 'cs1@example.invalid', v_v || '/' || v_vi || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('第二段題組不屬於該考核被拒',                     'authenticated', 'cs1@example.invalid', v_d || '/' || v_si || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('考核不存在的路徑被拒',                           'authenticated', 'cs1@example.invalid', gen_random_uuid()::text || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('副檔名不合（gif）被拒',                          'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.gif', 'ERROR'),
-      ('檔名不是 uuid 被拒',                             'authenticated', 'cs1@example.invalid', v_d || '/' || v_di || '/photo.jpg', 'ERROR'),
-      ('少一層路徑被拒',                                 'authenticated', 'cs1@example.invalid', v_d || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('總公司主管＋合法路徑也被拒',                     'authenticated', 'hq@example.invalid',  v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('店長＋合法路徑也被拒',                           'authenticated', 'sm1@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
-      ('有登入但沒帳號＋合法路徑被拒',                   'authenticated', 'nobody@example.invalid', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('客服部＋自己的草稿＋自己的題組＋合法 jpg 路徑', 'authenticated', 'vr-cs1@2motor.tw', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'OK'),
+      ('客服部＋合法 png 路徑',                          'authenticated', 'vr-cs1@2motor.tw', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.png', 'OK'),
+      ('客服部＋合法 webp 路徑',                         'authenticated', 'vr-cs1@2motor.tw', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.webp', 'OK'),
+      ('另一位客服部（不是草稿建立者）被拒',             'authenticated', 'vr-cs2@2motor.tw', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('已送出考核的路徑被拒（即使是同一位考官）',       'authenticated', 'vr-cs1@2motor.tw', v_s || '/' || v_si || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('已作廢考核的路徑被拒',                           'authenticated', 'vr-cs1@2motor.tw', v_v || '/' || v_vi || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('第二段題組不屬於該考核被拒',                     'authenticated', 'vr-cs1@2motor.tw', v_d || '/' || v_si || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('考核不存在的路徑被拒',                           'authenticated', 'vr-cs1@2motor.tw', gen_random_uuid()::text || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('副檔名不合（gif）被拒',                          'authenticated', 'vr-cs1@2motor.tw', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.gif', 'ERROR'),
+      ('檔名不是 uuid 被拒',                             'authenticated', 'vr-cs1@2motor.tw', v_d || '/' || v_di || '/photo.jpg', 'ERROR'),
+      ('少一層路徑被拒',                                 'authenticated', 'vr-cs1@2motor.tw', v_d || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('總公司主管＋合法路徑也被拒',                     'authenticated', 'vr-hq@2motor.tw',  v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('店長＋合法路徑也被拒',                           'authenticated', 'vr-sm1@2motor.tw', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
+      ('有登入但沒帳號＋合法路徑被拒',                   'authenticated', 'vr-nobody@2motor.tw', v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR'),
       ('未登入 anon＋合法路徑被拒',                      'anon',          null,                  v_d || '/' || v_di || '/' || gen_random_uuid()::text || '.jpg', 'ERROR')
     ) as t(label, rl, email, path, expected)
   loop

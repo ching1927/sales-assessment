@@ -2,7 +2,7 @@
 -- 業務考核系統：人員名冊「假資料」（僅供測試用）
 --
 -- ⚠️ 這是測試用假資料：假門市、假暱稱、假員工編號（MI-9001 起）、
---    假信箱（example.invalid 網域）。沒有任何真實人名、信箱或編號。
+--    假信箱（vr-xxx@2motor.tw，符合 accounts 網域檢查）。沒有任何真實人名、信箱或編號。
 -- ⚠️ 尚未執行，待老闆同意後才在 Supabase 執行；且須先跑過 roster_schema.sql。
 -- 可重複執行（on conflict do nothing）。
 -- 到職日用「今天減幾天」產生，所以新人／正式的結果會隨日期變動（邊界案例固定在 -90 與 -91）。
@@ -41,8 +41,8 @@ values
 on conflict (id) do nothing;
 
 insert into public.app_users (email, role, store_code, employee_id) values
-  ('cs.test1@example.invalid',  'cs_admin',      null,      'MI-9001'),
-  ('hq.test1@example.invalid',  'hq_viewer',     null,      'MI-9002'),
-  ('mgr.a@example.invalid',     'store_manager', 'TEST-A',  'MI-9004'),
-  ('mgr.b@example.invalid',     'store_manager', 'TEST-B',  'MI-9009')
+  ('vr-cs.test1@2motor.tw',  'cs_admin',      null,      'MI-9001'),
+  ('vr-hq.test1@2motor.tw',  'hq_viewer',     null,      'MI-9002'),
+  ('vr-mgr.a@2motor.tw',     'store_manager', 'TEST-A',  'MI-9004'),
+  ('vr-mgr.b@2motor.tw',     'store_manager', 'TEST-B',  'MI-9009')
 on conflict (email) do nothing;
