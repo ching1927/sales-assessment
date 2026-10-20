@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>業務考核系統｜考核後台（樣品）</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+/* 公版 tokens 沒有的兩個中性色，只在這裡定義，下面一律用變數：純白（按鈕字、對話框底、圖表標記與文字描邊）、對話框遮罩 */
+body{--surface-solid:#fff;--scrim:rgba(15,23,42,0.30)}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button:disabled{cursor:not-allowed;opacity:.5}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-3) var(--sp-4);align-items:center;font-size:13px;color:var(--ink-2)}
+.who-id,.who-nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+.who-nav{padding-left:var(--sp-4);border-left:1px solid var(--ink-line)}
+.who .badge{background:var(--track);color:var(--ink);border:1px solid var(--ink-line);font-weight:600;padding:4px 12px;border-radius:var(--r-ctrl);font-size:13px}
+@media (max-width:640px){.who-nav{flex-basis:100%;padding-left:0;border-left:none}}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.ctrl.sm{min-height:34px;padding:5px 10px;font-size:14px}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:var(--surface-solid);border-color:var(--accent)}
+.btn.danger{background:var(--danger);color:var(--surface-solid);border-color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:6px 4px;text-decoration:none}
+#logout{color:var(--ink-2)}
+.nav{display:inline-block;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:15px;padding:8px 16px;border-radius:var(--r-pill);text-decoration:none}
+.nav.primary{background:var(--accent);color:var(--surface-solid)}
+.nav:hover{filter:brightness(.96)}
+.nav[hidden]{display:none}
+.sw{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+.sw label{font-size:12px;color:var(--ink-2)}
+.notice{margin-bottom:var(--sp-3)}
+.tabs{display:flex;gap:var(--sp-2);overflow-x:auto;margin-bottom:var(--sp-4);border-bottom:1px solid var(--ink-line)}
+.tab{background:none;border:none;border-bottom:3px solid transparent;padding:10px 16px;font-size:15px;font-weight:600;color:var(--ink-2);white-space:nowrap;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--accent-deep);border-bottom-color:var(--accent);font-weight:800}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.toolbar .grow{flex:1 1 180px;min-width:140px}
+.toolbar .fixed{font-size:14px;font-weight:600;color:var(--ink-2)}
+.count{margin-left:auto;color:var(--ink-2);font-size:13px}
+.tablebox{padding:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:var(--glass-bg-strong)}
+td.num,th.num{text-align:right}
+tbody tr:last-child td{border-bottom:none}
+tr.off td{color:var(--ink-3)}
+.mono{font-family:var(--mono)}
+.sub{font-size:12px;color:var(--ink-3)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600;margin:1px 2px 1px 0}
+.tag.new{background:var(--info-soft);color:var(--accent-deep)}
+.tag.reg{background:var(--track);color:var(--ink-2)}
+.tag.unk{background:var(--warning-soft);color:var(--warning)}
+.tag.on{background:var(--success-soft);color:var(--success)}
+.tag.out{background:var(--danger-soft);color:var(--danger)}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3);line-height:1.5}
+.intro{font-size:14px;line-height:1.6;color:var(--ink-2);margin-bottom:var(--sp-3)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
+.msg.warn{background:var(--warning-soft);color:var(--warning);font-weight:600}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.msg.ok{background:var(--success-soft);color:var(--success);font-weight:600}
+.msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
+.card{padding:var(--sp-4);margin-bottom:var(--sp-4)}
+.card h3{font-size:15px;margin-bottom:var(--sp-3)}
+.chartwrap{overflow-x:auto}
+.chartwrap svg{display:block;width:100%;height:auto}
+.chartwrap.min svg{min-width:520px}
+details.vals{margin-top:var(--sp-2)}
+details.vals summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+details.vals table{margin-top:8px}
+.heat td.cell{text-align:center;font-variant-numeric:tabular-nums}
+.heat td.low{background:var(--warning-soft);color:var(--warning);font-weight:700}
+.heat td.sel,.heat th.sel{box-shadow:inset 3px 0 0 var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);font-size:12px;color:var(--ink-2);margin-top:var(--sp-2)}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px dashed var(--ink-3);vertical-align:middle;margin-right:6px}
+
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
+dialog.wide{max-width:780px;max-height:92vh}
+dialog::backdrop{background:var(--scrim)}
+.dlg{padding:var(--sp-6)}
+.dlg h2{font-size:19px;margin-bottom:var(--sp-3)}
+.dlg h3{font-size:15px;margin:var(--sp-4) 0 var(--sp-2)}
+.dlg p{font-size:14px;line-height:1.6;color:var(--ink-2)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--ink-2)}
+.kv dd{min-width:0;overflow-wrap:anywhere}
+.wk{display:inline-block;margin:2px 4px 2px 0;padding:3px 10px;border-radius:var(--r-pill);background:var(--warning-soft);color:var(--warning);font-weight:700;font-size:13px}
+.vbox{display:inline-block;padding:4px 14px;border-radius:var(--r-pill);font-weight:800;font-size:16px}
+.vbox.on{background:var(--success-soft);color:var(--success)}
+.vbox.new{background:var(--info-soft);color:var(--accent-deep)}
+.vbox.unk{background:var(--warning-soft);color:var(--warning)}
+.vbox.out{background:var(--danger-soft);color:var(--danger)}
+.rec{margin-top:var(--sp-3);padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.6}
+.rec b{color:var(--ink-2)}
+.rec .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
+.field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
+.field textarea,.field input[type=date],.field select{display:block;width:100%;margin-top:6px;font-weight:400}
+.field textarea{min-height:100px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);font-size:14px;color:var(--ink)}
+.chk input{width:22px;height:22px;flex:0 0 auto}
+.chks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);padding:12px 20px;border-radius:var(--r-ctrl);
+  background:var(--ink);color:var(--surface-solid);font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)}
+@media (max-width:480px){
+  .top h1{font-size:19px}
+  .toolbar .ctrl{flex:1 1 100%}
+  .count{margin-left:0}
+  .dlg{padding:var(--sp-4)}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="notice" role="note">樣品：假資料，非真實成績</div>
+
+  <div class="top">
+    <h1>考核後台</h1>
+    <div class="who">
+      <div class="who-id">
+        <span>目前身分</span>
+        <span class="badge" id="whoBadge"></span>
+        <div class="sw">
+          <label for="roleSel">切換身分（樣品用）</label>
+          <select class="ctrl sm" id="roleSel">
+            <option value="cs">客服部</option>
+            <option value="hq">總公司主管</option>
+            <option value="mgr">店長</option>
+          </select>
+          <select class="ctrl sm" id="mgrStoreSel" aria-label="店長所屬門市（樣品）" hidden></select>
+        </div>
+      </div>
+      <div class="who-nav">
+        <a class="nav primary" id="toAssess" href="assess.html" hidden>進行考核</a>
+        <a class="nav" href="reports.html">成績單</a>
+        <a class="nav" href="roster.html">人員名冊</a>
+        <a class="nav" id="toAccounts" href="accounts.html" hidden>帳號管理</a>
+        <button class="link" id="logout" type="button">登出</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="考核後台分頁">
+    <button class="tab" role="tab" id="tab-history" data-tab="history" aria-controls="p-history" type="button">人員歷史</button>
+    <button class="tab" role="tab" id="tab-insights" data-tab="insights" aria-controls="p-insights" type="button">弱項分析</button>
+    <button class="tab" role="tab" id="tab-tickets" data-tab="tickets" aria-controls="p-tickets" type="button">改善單</button>
+  </div>
+
+  <!-- 分頁 1：人員歷史 -->
+  <section id="p-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+    <section class="toolbar glass" aria-label="篩選">
+      <input class="ctrl grow" id="hSearch" type="search" placeholder="搜尋姓名或員編" aria-label="搜尋考生">
+      <select class="ctrl" id="hStore" aria-label="門市篩選"></select>
+      <span class="count" id="hCount" aria-live="polite"></span>
+    </section>
+    <section class="tablebox glass">
+      <div class="scroll" tabindex="0" aria-label="人員歷史列表，可左右捲動">
+        <table style="min-width:900px">
+          <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="num">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>改善單</th><th>操作</th></tr></thead>
+          <tbody id="hBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="hEmpty" hidden>沒有符合條件的考生</div>
+    </section>
+    <p class="note">走勢小圖的高度範圍為 40–100 分，僅看趨勢；實際數字見旁邊文字與詳細畫面。作廢的成績單不列入。</p>
+  </section>
+
+  <!-- 分頁 2：弱項分析 -->
+  <section id="p-insights" role="tabpanel" aria-labelledby="tab-insights" hidden>
+    <section class="toolbar glass" aria-label="分析條件">
+      <label class="sub" for="iScope">範圍</label>
+      <select class="ctrl" id="iScope"></select>
+      <span class="fixed" id="iScopeFixed" hidden></span>
+      <label class="sub" for="iPeriod">期間</label>
+      <select class="ctrl" id="iPeriod">
+        <option value="3">最近 3 次</option>
+        <option value="all">全部</option>
+      </select>
+    </section>
+    <section class="card glass">
+      <h3>七面向平均得分率</h3>
+      <p class="intro" id="iSummary"></p>
+      <div class="chartwrap" id="iChart"></div>
+      <details class="vals"><summary>展開數值表</summary><div class="scroll" id="iVals"></div></details>
+    </section>
+    <section class="card glass" id="heatCard">
+      <h3 id="heatTitle">門市 × 面向 平均得分率</h3>
+      <p class="intro">每格為該門市該面向的平均得分率；低於 70% 標示「偏低」。期間條件同上；「—」代表沒有資料。</p>
+      <div class="scroll" tabindex="0" aria-label="門市乘面向熱度表，可左右捲動"><div id="iHeat"></div></div>
+    </section>
+    <p class="note">算法：每張成績單的每個題組，取該面向的等級百分比（優 100、良 70、待加強 40、不及格 0；不適用不計入），再對所有題組取平均。「最近 3 次」是對每位考生各取最近 3 張成績單再彙總。</p>
+  </section>
+
+  <!-- 分頁 3：改善單 -->
+  <section id="p-tickets" role="tabpanel" aria-labelledby="tab-tickets" hidden>
+    <p class="intro">成績單判定為需複訓或不及格時，系統自動開單，預設 14 天內完成輔導；成績單作廢時，對應改善單自動取消。</p>
+    <section class="toolbar glass" aria-label="篩選">
+      <select class="ctrl" id="tStatus" aria-label="狀態篩選"></select>
+      <select class="ctrl" id="tStore" aria-label="門市篩選"></select>
+      <span class="count" id="tCount" aria-live="polite"></span>
+    </section>
+    <section class="tablebox glass">
+      <div class="scroll" tabindex="0" aria-label="改善單列表，可左右捲動">
+        <table style="min-width:980px">
+          <thead><tr><th>考生</th><th>門市</th><th>來源成績單</th><th>改善面向</th><th>期限</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody id="tBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="tEmpty" hidden>沒有符合條件的改善單</div>
+    </section>
+    <p class="note" id="tNote"></p>
+  </section>
+
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<dialog id="dlgA" class="wide"></dialog>
+<dialog id="dlgB" class="wide"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="../js/scoring.js"></script>
+<script>
+(function () {
+  var DIMS = Scoring.DIMENSIONS, LV = Scoring.LEVELS, NA = Scoring.NOT_APPLICABLE;
+  var STORE_ORDER = ['中和', '新莊', '樹林', '桃園中壢', '新竹', '旗艦', '南台中', '太平', '台南', '高雄', '花蓮'];
+  var STORES = ['中和', '新莊', '樹林', '旗艦'];
+
+  // ==DATA-START==
+  // ====== 假資料（全部虛構；日期以今天往前推，每次開啟都是「近 6 個月」）======
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function shift(n) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return ymd(d); }
+  function dayNum(s) { var p = s.split('-'); return Math.round(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 864e5); }
+  function dayDiff(a, b) { return dayNum(b) - dayNum(a); } // b 比 a 晚幾天
+  function addDays(s, n) { var p = s.split('-'); var d = new Date(+p[0], +p[1] - 1, +p[2], 12); d.setDate(d.getDate() + n); return ymd(d); }
+  var TODAY = shift(0);
+
+  function rng(seed) {
+    return function () {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  // [編號, 暱稱, 門市, 到職距今天數]
+  var STU = [
+    [1, '小安', '中和', 900], [2, '阿凱', '中和', 700], [3, '小蘋', '中和', 60], [4, '阿哲', '中和', 400],
+    [5, '小葵', '新莊', 800], [6, '阿宏', '新莊', 300], [7, '小綠', '新莊', 150], [8, '阿豪', '新莊', 40],
+    [9, '小星', '樹林', 600], [10, '阿翔', '樹林', 250], [11, '小棠', '樹林', 80],
+    [12, '阿傑', '旗艦', 1000], [13, '小柚', '旗艦', 500], [14, '阿霖', '旗艦', 200]
+  ];
+  var students = STU.map(function (s) {
+    return { sid: s[0], id: 'MI-' + (9000 + s[0]), name: s[1], store: s[2], hireAgo: s[3], hire: shift(s[3]) };
+  });
+  function stuOf(sid) { return students.filter(function (s) { return s.sid === sid; })[0]; }
+  function tenureNow(s) { return s.hireAgo < 90 ? '新人' : '正式'; }
+
+  // [考生, 距今天數, 目標判定, 最弱面向索引(-1=無), 題組數, 是否已作廢]
+  var SPEC = [
+    [1, 170, 'B', 3, 2], [1, 95, 'B', 4, 3], [1, 30, 'A', -1, 2],
+    [2, 150, 'B', 1, 2], [2, 60, 'C', 2, 3], [2, 12, 'B', 5, 2],
+    [3, 50, 'B', 0, 2], [3, 20, 'B', 3, 3], [3, 5, 'C', 3, 2],
+    [4, 130, 'B', 4, 2], [4, 25, 'D', 3, 3],
+    [5, 80, 'B', 2, 2], [5, 20, 'B', 6, 3],
+    [6, 70, 'C', 3, 2], [6, 15, 'B', 1, 3],
+    [7, 120, 'B', 2, 2], [7, 40, 'C', 4, 3], [7, 10, 'B', 5, 2],
+    [8, 30, 'C', 3, 2], [8, 8, 'B', 0, 2],
+    [9, 150, 'B', 1, 3], [9, 45, 'D', 4, 2], [9, 10, 'A', -1, 3],
+    [10, 100, 'B', 6, 2], [10, 35, 'C', 2, 3],
+    [12, 90, 'B', 3, 2], [12, 28, 'D', 4, 2, 1],
+    [13, 100, 'B', 5, 3], [13, 20, 'B', 2, 2],
+    [14, 110, 'B', 4, 2], [14, 14, 'B', 1, 3]
+  ];
+  var VNAME = { A: '優秀', B: '及格', C: '需複訓', D: '不及格' };
+  var LNAMES = ['優', '良', '待加強', '不及格'];
+  var DIST = {
+    '新人': { A: [.85, .15, 0, 0], B: [.3, .5, .2, 0], C: [.15, .5, .35, 0], D: [.05, .15, .4, .4] },
+    '正式': { A: [.97, .03, 0, 0], B: [.7, .3, 0, 0], C: [.35, .45, .2, 0], D: [.1, .3, .4, .2] }
+  };
+  function pick(r, dist) {
+    var x = r(), c = 0;
+    for (var i = 0; i < dist.length; i++) { c += dist[i]; if (x < c) return i; }
+    return dist.length - 1;
+  }
+  function genLevels(spec, tenure, seed) {
+    var r = rng(seed), out = [], naLeft = 2;
+    for (var k = 0; k < spec[4]; k++) {
+      var item = {}, na = 0;
+      DIMS.forEach(function (d, di) {
+        var idx = pick(r, DIST[tenure][spec[2]]);
+        if (di === spec[3]) idx = Math.min(3, idx + 1);
+        else if (na < 2 && naLeft > 0 && r() < 0.04) { item[d.name] = NA; na++; naLeft--; return; }
+        item[d.name] = LNAMES[idx];
+      });
+      out.push(item);
+    }
+    return out;
+  }
+  var reports = SPEC.map(function (sp, i) {
+    var s = stuOf(sp[0]), tenure = (s.hireAgo - sp[1]) < 90 ? '新人' : '正式';
+    var best = null;
+    for (var a = 0; a < 6000; a++) {
+      var lv = genLevels(sp, tenure, (i + 1) * 100003 + a * 17);
+      var res = Scoring.scoreAssessment(lv, tenure);
+      best = { lv: lv, res: res };
+      if (res.ok && res.verdict === VNAME[sp[2]]) break;
+    }
+    var rep = {
+      id: 'R' + (i + 1), sid: sp[0], date: shift(sp[1]), time: pad(9 + i % 9) + ':' + pad((i * 17) % 60), tenure: tenure, levels: best.lv,
+      itemScores: best.res.itemScores.map(function (x) { return x.score; }),
+      total: best.res.total, verdict: best.res.verdict, weakest: best.res.weakest,
+      status: sp[5] ? 'voided' : 'submitted'
+    };
+    rep.at = rep.date + ' ' + rep.time;
+    if (sp[5]) rep.voidReason = '考官誤選考生，已作廢';
+    return rep;
+  });
+  function repById(id) { return reports.filter(function (r) { return r.id === id; })[0]; }
+
+  var CS_NAME = '客服部 小美（假）', MGR_NAME = { '新莊': '新莊店長 阿誠（假）', '樹林': '樹林店長 阿森（假）', '中和': '中和店長 阿勳（假）', '旗艦': '旗艦店長 阿恆（假）' };
+  function openOf(rid) { return repById(rid).date; }
+  function mkTicket(n, rid, dims, status, extra) {
+    var rp = repById(rid), t = { id: 'T' + n, rid: rid, sid: rp.sid, dims: dims, open: rp.date, openAt: rp.at, due: addDays(rp.date, 14), status: status };
+    for (var k in extra) t[k] = extra[k];
+    return t;
+  }
+  var tickets = [
+    mkTicket(1, 'R9', [], '待改善', {}),
+    mkTicket(2, 'R11', ['主動引導', '風險意識'], '待改善', {}),
+    mkTicket(3, 'R14', ['問題掌握'], '已輔導', { counsel: { date: shift(62), note: '已和阿宏一起複習報價與保固說明，並用三個情境演練，之後兩週會抽看對話。', by: MGR_NAME['新莊'], at: shift(62) + ' 14:20' } }),
+    mkTicket(4, 'R17', ['風險意識'], '待改善', {}),
+    mkTicket(5, 'R19', ['主動引導'], '已結案', {
+      counsel: { date: shift(22), note: '練習在客人沒追問時主動提出交車流程與下一步。', by: MGR_NAME['新莊'], at: shift(22) + ' 11:05' },
+      close: { rid: 'R20', by: CS_NAME, note: '複檢通過，主動引導進步明顯。', at: shift(7) + ' 16:40' }
+    }),
+    mkTicket(6, 'R22', ['風險意識', '語氣與禮貌'], '已結案', {
+      counsel: { date: shift(38), note: '重新確認客人詢問貸款與車況時的回覆原則，語氣練習了兩次。', by: MGR_NAME['樹林'], at: shift(38) + ' 10:15' },
+      close: { rid: 'R23', by: CS_NAME, note: '', at: shift(9) + ' 09:30' }
+    }),
+    mkTicket(7, 'R25', ['問題掌握'], '已輔導', { counsel: { date: shift(28), note: '', by: MGR_NAME['樹林'], at: shift(28) + ' 15:50' } }),
+    mkTicket(8, 'R27', ['風險意識'], '已取消', { cancel: { reason: '來源成績單已作廢（考官誤選考生）', by: CS_NAME, at: shift(27) + ' 10:00' } }),
+    mkTicket(9, 'R5', ['問題掌握'], '已結案', {
+      counsel: { date: shift(50), note: '針對客人追問細節時的處理，一起整理了常見問題清單。', by: MGR_NAME['中和'], at: shift(50) + ' 13:30' },
+      close: { rid: 'R6', by: CS_NAME, note: '複檢及格。', at: shift(11) + ' 17:10' }
+    })
+  ];
+  tickets[6].counsel.note = '已面談並安排資深同事陪同接待兩天，持續追蹤。';
+  // ==DATA-END==
+
+  // ====== 狀態 ======
+  var ROLE_LABEL = { cs: '客服部', hq: '總公司主管', mgr: '店長' };
+  var role = 'cs', mgrStore = '新莊', curTab = 'history';
+  var openSid = null, openTid = null, dyn = [];
+  var VCLS = { '優秀': 'on', '及格': 'new', '需複訓': 'unk', '不及格': 'out' };
+  var SCLS = { '待改善': 'unk', '已輔導': 'new', '已結案': 'on', '已取消': 'reg' };
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fmt(x) { return String(Math.round(Number(x) * 10) / 10); }
+  function isCS() { return role === 'cs'; }
+  function isMgr() { return role === 'mgr'; }
+  function storeIdx(n) { var i = STORE_ORDER.indexOf(n); return i < 0 ? 99 : i; }
+  function vtag(v) { return '<span class="tag ' + (VCLS[v] || 'reg') + '">' + esc(v) + '</span>'; }
+  function dimTags(list) { return list.length ? list.map(function (d) { return '<span class="tag reg">' + esc(d) + '</span>'; }).join('') : '<span class="sub">尚未指定</span>'; }
+
+  function toast(t) {
+    var el = $('toast'); el.textContent = t; el.hidden = false;
+    clearTimeout(toast.tm); toast.tm = setTimeout(function () { el.hidden = true; }, 3200);
+  }
+
+  // ====== 資料查詢（權限在這裡擋）======
+  function visStudents() {
+    return students.filter(function (s) { return !isMgr() || s.store === mgrStore; })
+      .sort(function (a, b) { return storeIdx(a.store) - storeIdx(b.store) || (a.id < b.id ? -1 : 1); });
+  }
+  function repsOf(sid) {
+    return reports.filter(function (r) { return r.sid === sid && r.status === 'submitted'; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  }
+  function overdueDays(t) { return (t.status === '待改善' && t.due < TODAY) ? dayDiff(t.due, TODAY) : 0; }
+  function visTickets() {
+    return tickets.filter(function (t) {
+      var s = stuOf(t.sid);
+      if (!isCS() && t.status === '已取消') return false;
+      if (isMgr() && s.store !== mgrStore) return false;
+      return true;
+    });
+  }
+  function ticketsOfStudent(sid) { return visTickets().filter(function (t) { return t.sid === sid; }); }
+  function ticketById(id) { return visTickets().filter(function (t) { return t.id === id; })[0]; }
+  function isOpenT(t) { return t.status === '待改善' || t.status === '已輔導'; }
+  function nowStamp() { var d = new Date(); return ymd(d) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+
+  // 面向平均得分率
+  function dimRates(reps) {
+    var sum = {}, cnt = {}, rc = {};
+    DIMS.forEach(function (d) { sum[d.name] = 0; cnt[d.name] = 0; rc[d.name] = 0; });
+    reps.forEach(function (r) {
+      var seen = {};
+      r.levels.forEach(function (item) {
+        DIMS.forEach(function (d) {
+          var lv = item[d.name]; if (lv === NA) return;
+          sum[d.name] += LV[lv]; cnt[d.name]++; seen[d.name] = 1;
+        });
+      });
+      for (var k in seen) rc[k]++;
+    });
+    var rows = DIMS.map(function (d) { return { name: d.name, pct: cnt[d.name] ? sum[d.name] / cnt[d.name] : null, n: rc[d.name] }; });
+    var min = null;
+    rows.forEach(function (x) { if (x.pct !== null && (min === null || x.pct < min)) min = x.pct; });
+    rows.forEach(function (x) { x.weak = x.pct !== null && x.pct === min; });
+    return rows;
+  }
+
+  // ====== 圖表（內嵌 SVG）======
+  function barChart(rows, label) {
+    var rowH = 34, W = 420, x0 = 100, bw = 190, H = rows.length * rowH + 6;
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '"><title>' + esc(label) + '</title>';
+    rows.forEach(function (r, i) {
+      var y = i * rowH + 4, p = r.pct === null ? 0 : r.pct;
+      s += '<text x="0" y="' + (y + 17) + '" font-size="14" fill="var(--ink)">' + esc(r.name) + '</text>' +
+        '<rect x="' + x0 + '" y="' + (y + 5) + '" width="' + bw + '" height="16" rx="6" fill="var(--track)"/>' +
+        (p > 0 ? '<rect x="' + x0 + '" y="' + (y + 5) + '" width="' + Math.max(8, p / 100 * bw) + '" height="16" rx="6" fill="' + (r.weak ? 'var(--warning)' : 'var(--accent)') + '"/>' : '') +
+        '<text x="' + (x0 + bw + 8) + '" y="' + (y + 18) + '" font-size="14" font-weight="700" fill="var(--ink)">' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</text>';
+      if (r.weak) s += '<rect x="' + (x0 + bw + 62) + '" y="' + (y + 3) + '" width="44" height="20" rx="10" fill="var(--warning-soft)"/><text x="' + (x0 + bw + 84) + '" y="' + (y + 18) + '" font-size="13" font-weight="700" text-anchor="middle" fill="var(--warning)">最弱</text>';
+    });
+    return s + '</svg>';
+  }
+  function barValsTable(rows) {
+    return '<table><thead><tr><th>面向</th><th class="num">平均得分率</th><th class="num">樣本數 n（成績單張數）</th><th>備註</th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr><td>' + esc(r.name) + '</td><td class="num">' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</td><td class="num">' + r.n + '</td><td>' + (r.weak ? '最弱' : '') + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  function sortedRates(rows) { return rows.slice().sort(function (a, b) { return (b.pct === null ? -1 : b.pct) - (a.pct === null ? -1 : a.pct); }); }
+
+  function sparkline(scores) {
+    if (!scores.length) return '<span class="sub">—</span>';
+    var w = 96, h = 28, p = 4, pts = scores.map(function (v, i) {
+      var y = p + (1 - Math.max(0, Math.min(1, (v - 40) / 60))) * (h - 2 * p);
+      return [scores.length === 1 ? w / 2 : p + i * (w - 2 * p) / (scores.length - 1), y];
+    });
+    var txt = '近 ' + scores.length + ' 次：' + scores.map(fmt).join('→');
+    var svg = '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + esc(txt) + '" style="vertical-align:middle">' +
+      (pts.length > 1 ? '<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' + pts.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ') + '"/>' : '') +
+      pts.map(function (q, i) { return '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (i === pts.length - 1 ? 3.5 : 2.5) + '" fill="var(--surface-solid)" stroke="var(--accent)" stroke-width="2"/>'; }).join('') + '</svg>';
+    return svg + '<div class="sub mono">' + esc(txt) + '</div>';
+  }
+
+  function trendChart(reps, label) {
+    var W = 600, H = 280, L = 44, R = 20, T = 40, B = 50, pw = W - L - R, ph = H - T - B;
+    function Y(v) { return T + (1 - v / 100) * ph; }
+    var n = reps.length, xs = [], lo = L + 36, hi = W - R - 36;
+    var d0 = dayNum(reps[0].date), d1 = dayNum(reps[n - 1].date);
+    reps.forEach(function (r) { xs.push(n === 1 || d1 === d0 ? (lo + hi) / 2 : lo + (dayNum(r.date) - d0) / (d1 - d0) * (hi - lo)); });
+    for (var i = 1; i < n; i++) xs[i] = Math.max(xs[i], xs[i - 1] + 64);
+    if (xs[n - 1] > hi + 0.5 && n > 1) xs = xs.map(function (_, k) { return lo + k * (hi - lo) / (n - 1); });
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '"><title>' + esc(label) + '</title>';
+    [0, 20, 40, 60, 80, 100].forEach(function (v) {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--track)" stroke-width="1"/>' +
+        '<text x="' + (L - 8) + '" y="' + (Y(v) + 4) + '" font-size="12" text-anchor="end" fill="var(--ink-2)">' + v + '</text>';
+    });
+    [[70, '新人合格線 70'], [85, '正式合格線 85']].forEach(function (l) {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(l[0]) + '" y2="' + Y(l[0]) + '" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="6 4"/>' +
+        '<text x="' + (W - R - 2) + '" y="' + (Y(l[0]) + (l[0] === 70 ? 14 : -5)) + '" font-size="11" text-anchor="end" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + l[1] + '</text>';
+    });
+    if (n > 1) s += '<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" points="' + reps.map(function (r, k) { return xs[k].toFixed(1) + ',' + Y(r.total).toFixed(1); }).join(' ') + '"/>';
+    var mc = { '優秀': 'var(--success)', '及格': 'var(--accent)', '需複訓': 'var(--warning)', '不及格': 'var(--danger)' };
+    reps.forEach(function (r, k) {
+      var x = xs[k], y = Y(r.total);
+      s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="5" fill="var(--surface-solid)" stroke="' + mc[r.verdict] + '" stroke-width="3"/>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (y - 20).toFixed(1) + '" font-size="12" font-weight="700" text-anchor="middle" fill="var(--ink)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + fmt(r.total) + '</text>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (y - 8).toFixed(1) + '" font-size="11" text-anchor="middle" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + esc(r.verdict) + '</text>' +
+        '<text x="' + x.toFixed(1) + '" y="' + (H - B + 18) + '" font-size="12" text-anchor="middle" fill="var(--ink-2)">' + esc(r.date.slice(5).replace('-', '/')) + '</text>';
+    });
+    s += '<text x="' + (L + pw / 2) + '" y="' + (H - 6) + '" font-size="11" text-anchor="middle" fill="var(--ink-3)">考核日期（月/日）</text>';
+    return s + '</svg>';
+  }
+
+  // ====== 分頁 1：人員歷史 ======
+  function fillStoreSel(sel, withAll, keep) {
+    var cur = keep ? sel.value : '';
+    sel.innerHTML = (withAll ? '<option value="">全部門市</option>' : '') + STORES.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
+    if (cur) sel.value = cur;
+  }
+  function renderHistory() {
+    var q = $('hSearch').value.trim().toLowerCase(), st = isMgr() ? '' : $('hStore').value;
+    var list = visStudents().filter(function (s) {
+      if (st && s.store !== st) return false;
+      if (q && (s.name + ' ' + s.id).toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    $('hBody').innerHTML = list.map(function (s) {
+      var rs = repsOf(s.sid), last = rs[rs.length - 1], tk = ticketsOfStudent(s.sid).filter(isOpenT);
+      var od = tk.filter(function (t) { return overdueDays(t) > 0; }).length;
+      return '<tr><td>' + esc(s.name) + ' <span class="mono sub">' + esc(s.id) + '</span></td><td>' + esc(s.store) + '</td>' +
+        '<td><span class="tag ' + (tenureNow(s) === '新人' ? 'new' : 'reg') + '">' + tenureNow(s) + '</span></td>' +
+        '<td class="num">' + rs.length + '</td>' +
+        '<td>' + (last ? '<span class="mono">' + esc(last.date) + '</span> ' + esc(fmt(last.total)) + ' 分 ' + vtag(last.verdict) : '<span class="sub">尚無考核</span>') + '</td>' +
+        '<td>' + sparkline(rs.slice(-4).map(function (r) { return r.total; })) + '</td>' +
+        '<td>' + (tk.length ? '<span class="tag unk">改善中 ' + tk.length + ' 張</span>' + (od ? '<span class="tag out">逾期 ' + od + ' 張</span>' : '') : '<span class="sub">—</span>') + '</td>' +
+        '<td><button type="button" class="btn sm" data-stu="' + s.sid + '">查看</button></td></tr>';
+    }).join('');
+    $('hEmpty').hidden = list.length > 0;
+    $('hCount').textContent = '共 ' + list.length + ' 位';
+  }
+
+  function stuDetailHtml(s) {
+    var rs = repsOf(s.sid), tk = ticketsOfStudent(s.sid);
+    var h = '<div class="dlg"><h2>' + esc(s.name) + ' 的考核歷史</h2><dl class="kv">' +
+      '<dt>員編</dt><dd class="mono">' + esc(s.id) + '</dd><dt>門市</dt><dd>' + esc(s.store) + '</dd>' +
+      '<dt>到職日</dt><dd class="mono">' + esc(s.hire) + '（假設日期）</dd>' +
+      '<dt>目前身分</dt><dd>' + tenureNow(s) + '</dd><dt>考核次數</dt><dd>' + rs.length + ' 次</dd></dl>';
+    if (!rs.length) return h + '<div class="msg info">這位考生還沒有已送出的成績單。</div><div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
+    var tl = '總分走勢：' + rs.map(function (r) { return r.date + ' ' + fmt(r.total) + '分' + r.verdict; }).join('、');
+    h += '<h3>總分走勢</h3><div class="chartwrap min">' + trendChart(rs, tl) + '</div>' +
+      '<div class="legend"><span><i></i>合格線：新人 70／正式 85（點上標示總分與判定）</span></div>' +
+      '<details class="vals"><summary>展開走勢數值表</summary><div class="scroll"><table><thead><tr><th>日期</th><th class="num">總分</th><th>判定</th></tr></thead><tbody>' +
+      rs.map(function (r) { return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + fmt(r.total) + '</td><td>' + vtag(r.verdict) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
+    var rates = sortedRates(dimRates(rs));
+    h += '<h3>七面向平均得分率</h3><div class="chartwrap">' + barChart(rates, s.name + ' 七面向平均得分率：' + rates.map(function (r) { return r.name + ' ' + (r.pct === null ? '無資料' : fmt(r.pct) + '%'); }).join('、')) + '</div>' +
+      '<details class="vals"><summary>展開數值表</summary><div class="scroll">' + barValsTable(rates) + '</div></details>';
+    h += '<h3>歷次成績單</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="num">題組數</th><th class="num">總分</th><th>判定</th><th>考核時身分</th><th>最弱面向</th></tr></thead><tbody>' +
+      rs.slice().reverse().map(function (r) {
+        return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + r.levels.length + '</td><td class="num">' + fmt(r.total) + '</td><td>' + vtag(r.verdict) + '</td><td>' + esc(r.tenure) + '</td><td>' + esc(r.weakest.join('、')) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    h += '<h3>改善單</h3>' + (tk.length ? '<div class="scroll"><table><thead><tr><th>來源成績單</th><th>期限</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
+      tk.map(function (t) {
+        var r = repById(t.rid), od = overdueDays(t);
+        return '<tr><td><span class="mono">' + esc(r.date) + '</span> ' + esc(fmt(r.total)) + ' 分 ' + vtag(r.verdict) + '</td><td class="mono">' + esc(t.due) + (od ? ' <span class="tag out">逾期 ' + od + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td><td><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
+      }).join('') + '</tbody></table></div>' : '<p>沒有改善單。</p>');
+    return h + '<div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
+  }
+  function openStu(sid) {
+    var s = stuOf(sid); if (!s || (isMgr() && s.store !== mgrStore)) return;
+    openSid = sid; $('dlgA').innerHTML = stuDetailHtml(s); if (!$('dlgA').open) $('dlgA').showModal();
+  }
+  function refreshA() { if ($('dlgA').open && openSid) { var sc = $('dlgA').scrollTop; $('dlgA').innerHTML = stuDetailHtml(stuOf(openSid)); $('dlgA').scrollTop = sc; } }
+
+  // ====== 分頁 2：弱項分析 ======
+  function renderInsights() {
+    var scope = isMgr() ? mgrStore : $('iScope').value, per = $('iPeriod').value;
+    $('iScope').hidden = isMgr(); $('iScopeFixed').hidden = !isMgr();
+    $('iScopeFixed').textContent = isMgr() ? mgrStore + '（固定為自己門市）' : '';
+    function gather(storeFilter) {
+      var out = [];
+      visStudents().forEach(function (s) {
+        if (storeFilter && s.store !== storeFilter) return;
+        var rs = repsOf(s.sid); if (per === '3') rs = rs.slice(-3);
+        out = out.concat(rs);
+      });
+      return out;
+    }
+    var reps = gather(scope), stuN = {};
+    reps.forEach(function (r) { stuN[r.sid] = 1; });
+    var scopeName = scope || '全公司', perName = per === '3' ? '每人最近 3 次' : '全部成績單';
+    $('iSummary').textContent = '範圍：' + scopeName + '；期間：' + perName + '；樣本：' + reps.length + ' 張成績單（' + Object.keys(stuN).length + ' 位考生）。';
+    if (!reps.length) {
+      $('iChart').innerHTML = '<div class="empty">此條件下沒有成績單</div>'; $('iVals').innerHTML = '';
+    } else {
+      var rates = sortedRates(dimRates(reps));
+      $('iChart').innerHTML = barChart(rates, scopeName + ' ' + perName + ' 七面向平均得分率：' + rates.map(function (r) { return r.name + ' ' + (r.pct === null ? '無資料' : fmt(r.pct) + '%'); }).join('、'));
+      $('iVals').innerHTML = barValsTable(rates);
+    }
+    var stores = isMgr() ? [mgrStore] : STORES;
+    $('heatTitle').textContent = isMgr() ? mgrStore + ' × 面向 平均得分率' : '門市 × 面向 平均得分率';
+    var h = '<table class="heat" style="min-width:760px"><thead><tr><th>門市</th>' + DIMS.map(function (d) { return '<th class="num" style="text-align:center">' + esc(d.name) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    stores.forEach(function (st) {
+      var rr = dimRates(gather(st));
+      h += '<tr><td' + (scope === st ? ' class="sel"' : '') + '><b>' + esc(st) + '</b></td>' + rr.map(function (x) {
+        if (x.pct === null) return '<td class="cell">—</td>';
+        var low = x.pct < 70;
+        return '<td class="cell' + (low ? ' low' : '') + '">' + fmt(x.pct) + '%' + (low ? '<div style="font-size:12px">偏低</div>' : '') + '</td>';
+      }).join('') + '</tr>';
+    });
+    $('iHeat').innerHTML = h + '</tbody></table>';
+    $('heatCard').hidden = false;
+  }
+
+  // ====== 分頁 3：改善單 ======
+  function statusTags(t) {
+    var od = overdueDays(t);
+    return '<span class="tag ' + SCLS[t.status] + '">' + esc(t.status) + '</span>' + (od ? '<span class="tag out">逾期</span>' : '');
+  }
+  function srcCell(t) {
+    var r = repById(t.rid);
+    return '<span class="mono">' + esc(r.date) + '</span> ' + esc(fmt(r.total)) + ' 分 ' + vtag(r.verdict) + (r.status === 'voided' ? '<span class="tag out">已作廢</span>' : '');
+  }
+  function fillStatusSel() {
+    var cur = $('tStatus').value;
+    var opts = ['', '待改善', '已輔導', '已結案'].concat(isCS() ? ['已取消'] : []).concat(['逾期']);
+    $('tStatus').innerHTML = opts.map(function (o) { return '<option value="' + o + '">' + (o || '全部狀態') + '</option>'; }).join('');
+    $('tStatus').value = opts.indexOf(cur) >= 0 ? cur : '';
+  }
+  function renderTickets() {
+    var sf = $('tStatus').value, st = isMgr() ? '' : $('tStore').value;
+    var list = visTickets().filter(function (t) {
+      var s = stuOf(t.sid);
+      if (st && s.store !== st) return false;
+      if (sf === '逾期') return overdueDays(t) > 0;
+      if (sf && t.status !== sf) return false;
+      return true;
+    }).sort(function (a, b) { return a.open < b.open ? 1 : a.open > b.open ? -1 : 0; });
+    $('tBody').innerHTML = list.map(function (t) {
+      var s = stuOf(t.sid), od = overdueDays(t);
+      return '<tr class="' + (t.status === '已取消' ? 'off' : '') + '"><td>' + esc(s.name) + ' <span class="mono sub">' + esc(s.id) + '</span></td><td>' + esc(s.store) + '</td><td>' + srcCell(t) + '</td>' +
+        '<td style="white-space:normal;min-width:160px">' + dimTags(t.dims) + '</td>' +
+        '<td><span class="mono">' + esc(t.due) + '</span>' + (od ? ' <span class="tag out">逾期 ' + od + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td>' +
+        '<td><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
+    }).join('');
+    $('tEmpty').hidden = list.length > 0;
+    $('tCount').textContent = '共 ' + list.length + ' 張';
+    $('tNote').textContent = isCS() ? '客服部看得到全部改善單，包含已取消；可編輯、結案或取消。'
+      : isMgr() ? '只顯示自己門市、未取消的改善單；可為待改善或已輔導的改善單回填輔導紀錄。'
+      : '總公司主管只能查看，且看不到已取消的改善單。';
+  }
+
+  function ticketDetailHtml(t) {
+    var s = stuOf(t.sid), r = repById(t.rid), od = overdueDays(t);
+    var h = '<div class="dlg"><h2>改善單</h2>';
+    if (od) h += '<div class="msg err" role="alert">已逾期 ' + od + ' 天（期限 ' + esc(t.due) + '）</div>';
+    h += '<dl class="kv"><dt>考生</dt><dd>' + esc(s.name) + '（' + esc(s.id) + '）' + esc(s.store) + '</dd>' +
+      '<dt>狀態</dt><dd>' + statusTags(t) + '</dd>' +
+      '<dt>來源成績單</dt><dd>' + srcCell(t) + '<div class="sub">考核時身分：' + esc(r.tenure) + '</div></dd>' +
+      '<dt>開單時間</dt><dd class="mono">' + esc(t.openAt) + '</dd>' +
+      '<dt>期限</dt><dd class="mono">' + esc(t.due) + '</dd>' +
+      '<dt>改善面向</dt><dd>' + dimTags(t.dims) + '</dd></dl>';
+    if (t.counsel) h += '<div class="rec"><b>輔導紀錄</b><br>輔導日期：' + esc(t.counsel.date) + '<br>回填人：' + esc(t.counsel.by) + '<br>回填時間：' + esc(t.counsel.at) + '<br>備註：<span class="txt">' + (t.counsel.note ? esc(t.counsel.note) : '（未填）') + '</span></div>';
+    if (t.close) { var cr = repById(t.close.rid); h += '<div class="rec"><b>結案資訊</b><br>複檢成績單：' + esc(cr.at) + ' ' + esc(fmt(cr.total)) + ' 分 ' + esc(cr.verdict) + '<br>結案人：' + esc(t.close.by) + '<br>結案時間：' + esc(t.close.at) + '<br>結案備註：<span class="txt">' + (t.close.note ? esc(t.close.note) : '（無）') + '</span></div>'; }
+    if (t.cancel) h += '<div class="rec"><b>取消資訊</b><br>原因：<span class="txt">' + esc(t.cancel.reason) + '</span><br>取消人：' + esc(t.cancel.by) + '<br>取消時間：' + esc(t.cancel.at) + '</div>';
+    h += '<div class="actions">';
+    if (isCS() && isOpenT(t)) {
+      h += '<button class="btn" type="button" data-act="edit">編輯面向與期限</button><button class="btn primary" type="button" data-act="close">結案</button><button class="btn danger" type="button" data-act="cancel">取消改善單</button>';
+    }
+    if (isMgr() && isOpenT(t) && s.store === mgrStore) {
+      h += '<button class="btn primary" type="button" data-act="counsel">' + (t.status === '已輔導' ? '編輯輔導紀錄' : '回填已輔導') + '</button>';
+    }
+    return h + '<button class="btn" type="button" data-closeB="1">關閉</button></div></div>';
+  }
+  function openTicket(id) {
+    var t = ticketById(id); if (!t) return;
+    openTid = id; $('dlgB').innerHTML = ticketDetailHtml(t); if (!$('dlgB').open) $('dlgB').showModal();
+  }
+  function refreshB() { var t = openTid && ticketById(openTid); if ($('dlgB').open && t) $('dlgB').innerHTML = ticketDetailHtml(t); else if ($('dlgB').open) $('dlgB').close(); }
+
+  // 動作對話框（點擊時才建立；不符權限的身分，函式一開始就擋掉，畫面上也不會有入口）
+  function removeDyn() { dyn.forEach(function (d) { if (d.open) d.close(); d.remove(); }); dyn = []; }
+  function makeDlg(html) {
+    var d = document.createElement('dialog'); d.innerHTML = '<form class="dlg" novalidate>' + html + '</form>';
+    document.body.appendChild(d); dyn.push(d);
+    function rm() { if (d.open) d.close(); d.remove(); dyn = dyn.filter(function (x) { return x !== d; }); }
+    d.addEventListener('cancel', function () { setTimeout(rm, 0); });
+    d.querySelector('[data-no]').addEventListener('click', rm);
+    d.showModal();
+    return { el: d, rm: rm, q: function (sel) { return d.querySelector(sel); } };
+  }
+  function afterChange(msg) { renderAll(); refreshA(); refreshB(); toast(msg); }
+
+  function actEdit(t) {
+    if (!isCS() || !isOpenT(t)) return;
+    var D = makeDlg('<h2>編輯改善面向與期限</h2><p>至少選 1 個面向；期限不可早於開單日（' + esc(t.open) + '）。</p><div class="chks" style="margin-top:8px">' +
+      DIMS.map(function (d, i) { return '<label class="chk"><input type="checkbox" name="dim" value="' + esc(d.name) + '"' + (t.dims.indexOf(d.name) >= 0 ? ' checked' : '') + '><span>' + esc(d.name) + '</span></label>'; }).join('') +
+      '</div><label class="field">期限<input class="ctrl" type="date" id="eDue" min="' + esc(t.open) + '" value="' + esc(t.due) + '"></label>' +
+      '<div class="msg err" id="eErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit">儲存</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var dims = []; Array.prototype.forEach.call(D.el.querySelectorAll('input[name=dim]:checked'), function (c) { dims.push(c.value); });
+      var due = D.q('#eDue').value, err = D.q('#eErr');
+      var m = !dims.length ? '請至少選 1 個改善面向。' : !due ? '請選擇期限。' : due < t.open ? '期限不可早於開單日（' + t.open + '）。' : '';
+      if (m) { err.textContent = m; err.hidden = false; return; }
+      t.dims = DIMS.map(function (d) { return d.name; }).filter(function (n) { return dims.indexOf(n) >= 0; }); t.due = due;
+      D.rm(); afterChange('已更新改善面向與期限。');
+    });
+  }
+  function actClose(t) {
+    if (!isCS() || !isOpenT(t)) return;
+    var cands = repsOf(t.sid).filter(function (r) { return r.at > t.openAt && (r.verdict === '及格' || r.verdict === '優秀'); });
+    var D = makeDlg('<h2>結案</h2>' + (cands.length
+      ? '<p>請選擇一張複檢成績單（只列送出時間晚於開單時間 ' + esc(t.openAt) + '、判定為及格或優秀的成績單）。</p><label class="field">複檢成績單<select class="ctrl" id="cRep">' +
+        cands.map(function (r) { return '<option value="' + esc(r.id) + '">' + esc(r.at) + '｜' + esc(fmt(r.total)) + ' 分｜' + esc(r.verdict) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="field">結案備註（選填）<textarea class="ctrl" id="cNote"></textarea></label>'
+      : '<div class="msg warn">需要該考生有一張開單後、達合格線的新成績單</div>') +
+      '<div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit"' + (cands.length ? '' : ' disabled') + '>確認結案</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!cands.length) return;
+      t.close = { rid: D.q('#cRep').value, by: CS_NAME, note: D.q('#cNote').value.trim(), at: nowStamp() };
+      t.status = '已結案'; D.rm(); afterChange('改善單已結案。');
+    });
+  }
+  function actCancel(t) {
+    if (!isCS() || !isOpenT(t)) return;
+    var D = makeDlg('<h2>取消改善單</h2><p>取消後這張改善單只有客服部看得到。</p><label class="field">取消原因（必填）<textarea class="ctrl" id="xReason"></textarea></label>' +
+      '<label class="chk"><input type="checkbox" id="xSure"><span>我確認要取消這張改善單</span></label><div class="msg err" id="xErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn danger" type="submit" id="xYes" disabled>確認取消</button></div>');
+    var reason = D.q('#xReason'), sure = D.q('#xSure'), yes = D.q('#xYes');
+    function sync() { yes.disabled = !(reason.value.trim() && sure.checked); }
+    reason.addEventListener('input', sync); sure.addEventListener('change', sync);
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!reason.value.trim() || !sure.checked) { var e = D.q('#xErr'); e.textContent = '請填寫取消原因並勾選確認。'; e.hidden = false; return; }
+      t.cancel = { reason: reason.value.trim(), by: CS_NAME, at: nowStamp() }; t.status = '已取消';
+      D.rm(); afterChange('改善單已取消。');
+    });
+  }
+  function actCounsel(t) {
+    var s = stuOf(t.sid);
+    if (!isMgr() || s.store !== mgrStore || !isOpenT(t)) return;
+    var c = t.counsel;
+    var D = makeDlg('<h2>' + (c ? '編輯輔導紀錄' : '回填已輔導') + '</h2><p>' + esc(s.name) + '（' + esc(s.id) + '）</p>' +
+      '<label class="field">輔導日期（不可早於開單日 ' + esc(t.open) + '、不可晚於今天）<input class="ctrl" type="date" id="gDate" min="' + esc(t.open) + '" max="' + TODAY + '" value="' + esc(c ? c.date : TODAY) + '"></label>' +
+      '<label class="field">輔導備註（必填，不限字數）<textarea class="ctrl" id="gNote" placeholder="請寫下輔導的內容與之後的追蹤方式"></textarea></label>' +
+      '<div class="msg err" id="gErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit">儲存</button></div>');
+    D.q('#gNote').value = c ? c.note : '';
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var date = D.q('#gDate').value, note = D.q('#gNote').value.trim(), err = D.q('#gErr');
+      var m = !date ? '請選擇輔導日期。' : date < t.open ? '輔導日期不可早於開單日（' + t.open + '）。' : date > TODAY ? '輔導日期不可晚於今天。' : !note ? '輔導備註必填。' : '';
+      if (m) { err.textContent = m; err.hidden = false; return; }
+      t.counsel = { date: date, note: note, by: MGR_NAME[mgrStore] || ('店長（' + mgrStore + '）'), at: nowStamp() };
+      t.status = '已輔導'; D.rm(); afterChange(c ? '輔導紀錄已更新。' : '已回填為「已輔導」。');
+    });
+  }
+
+  // ====== 身分、分頁、整體重畫 ======
+  function applyRole() {
+    var lab = ROLE_LABEL[role] + (isMgr() ? '・' + mgrStore : '');
+    $('whoBadge').textContent = lab;
+    $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS();
+    $('mgrStoreSel').hidden = !isMgr();
+    $('hStore').hidden = isMgr(); $('tStore').hidden = isMgr();
+    fillStatusSel();
+  }
+  function renderAll() { applyRole(); renderHistory(); renderInsights(); renderTickets(); }
+
+  function showTab(name, setHash) {
+    if (['history', 'insights', 'tickets'].indexOf(name) < 0) name = 'history';
+    curTab = name;
+    ['history', 'insights', 'tickets'].forEach(function (n) {
+      $('p-' + n).hidden = n !== name;
+      $('tab-' + n).setAttribute('aria-selected', n === name ? 'true' : 'false');
+      $('tab-' + n).tabIndex = n === name ? 0 : -1;
+    });
+    if (setHash && location.hash !== '#' + name) location.hash = name;
+  }
+  window.addEventListener('hashchange', function () { showTab(location.hash.slice(1), false); });
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+    b.addEventListener('click', function () { showTab(b.dataset.tab, true); });
+    b.addEventListener('keydown', function (e) {
+      var order = ['history', 'insights', 'tickets'], i = order.indexOf(b.dataset.tab);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        var n = order[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; showTab(n, true); $('tab-' + n).focus();
+      }
+    });
+  });
+
+  $('roleSel').addEventListener('change', function () {
+    role = this.value; removeDyn();
+    ['dlgA', 'dlgB'].forEach(function (id) { if ($(id).open) $(id).close(); });
+    openSid = null; openTid = null;
+    renderAll();
+    toast('已切換為：' + $('whoBadge').textContent);
+  });
+  $('mgrStoreSel').addEventListener('change', function () {
+    mgrStore = this.value; removeDyn();
+    ['dlgA', 'dlgB'].forEach(function (id) { if ($(id).open) $(id).close(); });
+    openSid = null; openTid = null;
+    renderAll(); toast('已切換為：' + $('whoBadge').textContent);
+  });
+  $('logout').addEventListener('click', function () { toast('樣品不需登入，這裡不會真的登出。'); });
+  $('hSearch').addEventListener('input', renderHistory);
+  $('hStore').addEventListener('change', renderHistory);
+  $('iScope').addEventListener('change', renderInsights);
+  $('iPeriod').addEventListener('change', renderInsights);
+  $('tStatus').addEventListener('change', renderTickets);
+  $('tStore').addEventListener('change', renderTickets);
+  $('hBody').addEventListener('click', function (e) { var b = e.target.closest('[data-stu]'); if (b) openStu(+b.dataset.stu); });
+  $('tBody').addEventListener('click', function (e) { var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk); });
+  $('dlgA').addEventListener('click', function (e) {
+    if (e.target.closest('[data-closeA]')) { $('dlgA').close(); return; }
+    var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk);
+  });
+  $('dlgA').addEventListener('close', function () { openSid = null; $('dlgA').innerHTML = ''; });
+  $('dlgB').addEventListener('close', function () { openTid = null; $('dlgB').innerHTML = ''; });
+  $('dlgB').addEventListener('click', function (e) {
+    if (e.target.closest('[data-closeB]')) { $('dlgB').close(); return; }
+    var a = e.target.closest('[data-act]'); if (!a) return;
+    var t = ticketById(openTid); if (!t) return;
+    var k = a.dataset.act;
+    if (k === 'edit') actEdit(t); else if (k === 'close') actClose(t); else if (k === 'cancel') actCancel(t); else if (k === 'counsel') actCounsel(t);
+  });
+
+  // ====== 啟動 ======
+  $('iScope').innerHTML = '<option value="">全公司</option>' + STORES.map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
+  fillStoreSel($('hStore'), true); fillStoreSel($('tStore'), true); fillStoreSel($('mgrStoreSel'), false);
+  $('mgrStoreSel').value = mgrStore;
+  renderAll();
+  showTab(location.hash.slice(1), false);
+})();
+</script>
+</body>
+</html>

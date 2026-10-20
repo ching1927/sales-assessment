@@ -34,6 +34,11 @@
 - 成績單（所有已開通角色）｜`reports.html`｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含附圖，不含備註文字、題組名稱、步驟、考點
 - 三頁導覽統一｜`roster.html`、`assess.html`、`reports.html`｜頁首「進行考核」（只有客服部，實心藍膠囊）、「成績單」「人員名冊」（淡藍膠囊）、登出（灰色小字）；身分資訊（信箱與角色標籤，灰色邊框方塊）與導覽之間有分隔線，手機上導覽自成一行；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」；客服部另有「帳號管理」淡藍膠囊（accounts.html 頁首導覽同款）
 
+### 考核後台（樣品與設計稿；SQL 尚未在 Supabase 執行，正式版尚未做）
+
+- 考核後台樣品（假資料）｜`樣品/backoffice.html`｜三個分頁「人員歷史」（列表、走勢圖、七面向平均、歷次成績單）、「弱項分析」（全公司或單一門市、最近 3 次或全部、門市×面向熱度表）、「改善單」（狀態與門市篩選；客服部編輯面向與期限、結案需複檢成績單、取消；店長回填已輔導，備註必填不限字數；主管只讀）；右上角可切換身分示範
+- 改善單與分析設計稿｜`supabase/backoffice_schema.sql`、`supabase/backoffice_verify_fake.sql`、`supabase/README_backoffice.md`｜成績單送出且判定需複訓或不及格時自動開單（預設 14 天）；成績單作廢時 open／coached 的單自動取消；improve_update_plan／improve_mark_coached／improve_close／improve_cancel；improvement_ticket_view、analytics_dim_rates；驗證腳本含真實 assess_submit／assess_void 流程，結尾自動復原
+
 ### 帳號管理（正式版；SQL 已在 Supabase 執行並通過 113 項驗證；網頁尚未用真實登入實測）
 
 - 帳號管理頁（只有客服部）｜`accounts.html`、`js/accounts-api.js`｜列出帳號（信箱、角色、門市、對應員工），新增、編輯、移除（二次確認）；護欄由資料庫把關，訊息直接顯示；底部操作紀錄（新到舊、每次 50 筆、載入更多、只增不改）
