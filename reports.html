@@ -122,6 +122,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
         <div class="who-nav">
           <a class="nav primary" id="toAssess" href="assess.html" hidden>進行考核</a>
           <a class="nav" href="roster.html">人員名冊</a>
+          <a class="nav" id="toAccounts" href="accounts.html" hidden>帳號管理</a>
           <button class="link" id="logout" type="button">登出</button>
         </div>
       </div>
@@ -430,6 +431,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
     if (isManager()) label += '・' + (storeName[me.store_code] || me.store_code || '');
     $('whoBadge').textContent = label;
     $('toAssess').hidden = !isCS();
+    $('toAccounts').hidden = !isCS();
     $('storeFilter').hidden = isManager();
     $('roleNote').textContent = isCS()
       ? '客服部可看全部成績單，包含暫存中與已作廢，並可作廢已送出的成績單。'

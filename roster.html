@@ -61,6 +61,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 .dlg h2{font-size:18px;margin-bottom:var(--sp-4)}
 .field{display:block;margin-bottom:var(--sp-3);font-size:13px;color:var(--ink-2);font-weight:600}
 .field input,.field select{display:block;width:100%;margin-top:6px;font-weight:400}
+.field[hidden]{display:none}
 .err{color:var(--danger);font-size:13px;min-height:18px;margin-bottom:var(--sp-2)}
 .actions{display:flex;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-2)}
 .note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3)}
@@ -96,6 +97,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         <div class="who-nav">
           <a class="nav primary" id="toAssess" href="assess.html" hidden>進行考核</a>
           <a class="nav" href="reports.html">成績單</a>
+          <a class="nav" id="toAccounts" href="accounts.html" hidden>帳號管理</a>
           <button class="link" id="logout" type="button">登出</button>
         </div>
       </div>
@@ -147,6 +149,10 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     <label class="field">職級
       <select class="ctrl" id="fPos"></select>
     </label>
+    <label class="field" id="fPosOtherWrap" hidden>請輸入職級（最多 20 字）
+      <input class="ctrl" id="fPosOther" maxlength="20" autocomplete="off" placeholder="例：營運經理">
+    </label>
+    <div id="fPosHint" style="margin:-4px 0 var(--sp-3);font-size:13px;color:var(--accent-deep);font-weight:600" hidden></div>
     <label class="field">到職日（可留空，之後補填）
       <input class="ctrl" id="fHire" type="date">
     </label>
@@ -169,6 +175,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 <script src="js/api.js"></script>
 <script>
 (function () {
+  var OTHER = '__other';
   var POSITIONS = ['店長', '業務', '收車業務', '業務/助理', '助理', '工讀'];
   var DEFAULT_INC = { '業務': true, '收車業務': true, '業務/助理': true, '店長': false, '助理': false, '工讀': false };
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
@@ -275,9 +282,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('whoBadge').textContent = label;
     $('storeFilter').hidden = isManager();
     $('toAssess').hidden = !isCS();
+    $('toAccounts').hidden = !isCS();
     $('addBtn').hidden = !isCS();
     $('thOps').hidden = !isCS();
-    $('fPos').innerHTML = POSITIONS.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('');
+    $('fPos').innerHTML = POSITIONS.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join('') +
+      '<option value="' + OTHER + '">其他（自行輸入）</option>';
   }
 
   function start() {
@@ -333,34 +342,46 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   // 表單
   var dlg = $('dlg');
-  function ensurePosOption(v) {
-    var found = Array.prototype.some.call($('fPos').options, function (o) { return o.value === v; });
-    if (!found) {
-      var o = document.createElement('option');
-      o.textContent = v; o.value = v;
-      $('fPos').appendChild(o);
-    }
+  function syncPosOther() {
+    $('fPosOtherWrap').hidden = $('fPos').value !== OTHER;
+    $('fPosHint').hidden = true;
   }
+  // 輸入的文字恰好是標準職級：提示並套用其納入考核預設（新增時）
+  // 只在失焦與送出時判斷，打字過程不自動切換
+  function applyStdPos() {
+    if ($('fPos').value !== OTHER) return;
+    var v = $('fPosOther').value.trim();
+    if (POSITIONS.indexOf(v) < 0) return;
+    $('fPos').value = v;                 // 下拉切回標準選項，輸入框收起（提示保留）
+    $('fPosOtherWrap').hidden = true;
+    $('fPosOther').value = '';
+    $('fPosHint').textContent = '已改用標準職級：' + v;
+    $('fPosHint').hidden = false;
+    if (!editingId) $('fInc').value = DEFAULT_INC[v] ? '1' : '0';
+  }
+  $('fPosOther').addEventListener('blur', applyStdPos);
   function openForm(id) {
     editingId = id;
     $('fErr').textContent = '';
     $('dlgTitle').textContent = id ? '編輯人員' : '新增人員';
     var p = id ? people.filter(function (x) { return x.id === id; })[0] : null;
     if (id && !p) return;
-    if (p) ensurePosOption(p.job_title);
     $('fId').value = p ? p.id : '';
     $('fId').disabled = !!p;
     $('fNick').value = p ? (p.nickname || '') : '';
     $('fFull').value = p ? (p.full_name || '') : '';
     $('fStore').value = p ? p.store_code : '';
-    $('fPos').value = p ? p.job_title : POSITIONS[1];
+    if (p && POSITIONS.indexOf(p.job_title) < 0) { $('fPos').value = OTHER; $('fPosOther').value = p.job_title; }
+    else { $('fPos').value = p ? p.job_title : POSITIONS[1]; $('fPosOther').value = ''; }
+    syncPosOther();
     $('fHire').value = p ? (p.hire_date || '') : '';
     $('fStatus').value = p ? p.status : '在職';
-    $('fInc').value = (p ? p.include_in_assessment : DEFAULT_INC[$('fPos').value]) ? '1' : '0';
+    $('fInc').value = (p ? p.include_in_assessment : !!DEFAULT_INC[$('fPos').value]) ? '1' : '0';
     dlg.showModal();
   }
   // 新增時，換職級會帶出預設的納入考核（編輯時不自動改，避免蓋掉逐人調整）
   $('fPos').addEventListener('change', function () {
+    syncPosOther();
     if (!editingId) $('fInc').value = DEFAULT_INC[this.value] ? '1' : '0';
   });
   $('fCancel').addEventListener('click', function () { dlg.close(); });
@@ -378,10 +399,18 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     }
     if (!err && !nick && !full) err = '暱稱與姓名至少要填一個';
     if (!err && !$('fStore').value) err = '請選擇門市';
+    applyStdPos();
+    var pos = $('fPos').value;
+    if (pos === OTHER) {
+      pos = $('fPosOther').value.trim();
+      if (POSITIONS.indexOf(pos) >= 0) { if (!editingId) $('fInc').value = DEFAULT_INC[pos] ? '1' : '0'; }
+      else if (!err && !pos) err = '請輸入職級（不可空白）';
+      else if (!err && pos.length > 20) err = '職級最多 20 字';
+    }
     if (err) { $('fErr').textContent = err; return; }
     var data = {
       nickname: nick || null, full_name: full || null, store_code: $('fStore').value,
-      job_title: $('fPos').value, hire_date: $('fHire').value || null,
+      job_title: pos, hire_date: $('fHire').value || null,
       status: $('fStatus').value, include_in_assessment: $('fInc').value === '1'
     };
     busy = true; $('fSave').disabled = true; $('fErr').textContent = '';

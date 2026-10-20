@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>帳號管理</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+select,input{font-family:inherit;font-size:14px;color:var(--ink)}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.top{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:var(--sp-2) 0 var(--sp-4)}
+.top h1{font-size:22px;font-weight:700}
+.who{display:flex;flex-wrap:wrap;gap:var(--sp-3) var(--sp-4);align-items:center;font-size:13px;color:var(--ink-2)}
+.who-id,.who-nav{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+.who-nav{padding-left:var(--sp-4);border-left:1px solid var(--ink-line)}
+.who .badge{background:rgba(15,23,42,.06);color:var(--ink);border:1px solid var(--ink-line);font-weight:600;padding:4px 12px;border-radius:var(--r-ctrl);font-size:13px}
+@media (max-width:640px){.who-nav{flex-basis:100%;padding-left:0;border-left:none}}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);color:var(--ink);
+  font-size:14px;font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn[disabled]{opacity:.6;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-deep)}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.link{background:none;border:none;color:var(--accent);font-weight:600;font-size:13px;padding:6px 4px}
+#logout{color:var(--ink-2)}
+.nav{display:inline-block;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:15px;padding:8px 16px;border-radius:var(--r-pill);text-decoration:none}
+.nav.primary{background:var(--accent);color:#fff}
+.nav:hover{filter:brightness(.96)}
+.nav[hidden]{display:none}
+.notice.ok{background:var(--success-soft);color:var(--success)}
+.msg{margin-bottom:var(--sp-4)}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.count{margin-left:auto;color:var(--ink-2);font-size:13px}
+.tablebox{padding:0;margin-bottom:var(--sp-6)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;min-width:760px;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:rgba(255,255,255,0.8)}
+tbody tr:last-child td{border-bottom:none}
+td.wrap{white-space:normal;min-width:180px}
+.mono{font-family:var(--mono)}
+.sub2{color:var(--ink-3);font-size:12px;margin-left:6px}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
+.tag.cs{background:var(--info-soft);color:var(--accent-deep)}
+.tag.hq{background:var(--track);color:var(--ink-2)}
+.tag.mgr{background:var(--success-soft);color:var(--success)}
+.opsrow{display:flex;gap:var(--sp-2)}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+h2.sec{font-size:16px;font-weight:700;margin:0 0 var(--sp-1)}
+.sechint{color:var(--ink-3);font-size:12px;margin-bottom:var(--sp-3)}
+.logbox{padding:var(--sp-4) 0 0;margin-bottom:var(--sp-6)}
+.logbox .head{padding:0 var(--sp-4)}
+.more{padding:var(--sp-3) var(--sp-4);text-align:center;border-top:1px solid var(--ink-line)}
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:440px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--glass-bg-strong);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));margin:auto;color:var(--ink)}
+dialog::backdrop{background:rgba(15,23,42,0.30)}
+.dlg{padding:var(--sp-6);max-height:90vh;overflow-y:auto}
+.dlg h2{font-size:18px;margin-bottom:var(--sp-4)}
+.dlg p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+.field{display:block;margin-bottom:var(--sp-3);font-size:13px;color:var(--ink-2);font-weight:600}
+.field[hidden]{display:none}
+.field input,.field select{display:block;width:100%;margin-top:6px;font-weight:400}
+.field input:disabled{color:var(--ink-3)}
+.err{color:var(--danger);font-size:13px;min-height:18px;margin-bottom:var(--sp-2)}
+.actions{display:flex;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-2)}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+@media (max-width:640px){
+  .top h1{font-size:19px}
+  .opsrow .btn.sm{min-height:44px;min-width:56px}
+  .toolbar .btn{min-height:44px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <a class="btn" id="blockedGo" href="roster.html" hidden>前往人員名冊</a>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <div class="top">
+      <h1>帳號管理</h1>
+      <div class="who">
+        <div class="who-id">
+          <span>目前身分</span>
+          <span id="whoEmail"></span>
+          <span class="badge" id="whoBadge"></span>
+        </div>
+        <div class="who-nav">
+          <a class="nav primary" href="assess.html">進行考核</a>
+          <a class="nav" href="reports.html">成績單</a>
+          <a class="nav" href="roster.html">人員名冊</a>
+          <button class="link" id="logout" type="button">登出</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="notice msg" id="msg" role="alert" hidden></div>
+
+    <section class="toolbar glass" aria-label="操作">
+      <button class="btn primary" id="addBtn" type="button">新增帳號</button>
+      <span class="count" id="count" aria-live="polite"></span>
+    </section>
+
+    <section class="tablebox glass">
+      <div class="scroll" tabindex="0" aria-label="帳號表格，可左右捲動">
+        <table>
+          <thead>
+            <tr><th>信箱</th><th>角色</th><th>門市</th><th>對應員工</th><th>操作</th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty" hidden>目前沒有帳號</div>
+    </section>
+
+    <section class="logbox glass" aria-label="操作紀錄">
+      <div class="head">
+        <h2 class="sec">操作紀錄</h2>
+        <p class="sechint">只有客服部看得到；紀錄只增不改，無法編輯或刪除。</p>
+      </div>
+      <div class="scroll" tabindex="0" aria-label="操作紀錄表格，可左右捲動">
+        <table style="min-width:680px">
+          <thead>
+            <tr><th>時間</th><th>操作人</th><th>動作</th><th>對象信箱</th><th>內容</th></tr>
+          </thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="logEmpty" hidden>目前沒有操作紀錄</div>
+      <div class="more" id="logMore" hidden>
+        <button class="btn" id="logMoreBtn" type="button">載入更多</button>
+      </div>
+    </section>
+
+    <p class="note">移除帳號後，此人仍能用 Google 登入，但會看到「帳號尚未開通」。</p>
+  </div>
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<dialog id="dlg">
+  <form class="dlg" id="form" method="dialog" novalidate>
+    <h2 id="dlgTitle"></h2>
+    <label class="field">信箱（只收 @2motor.tw）
+      <input class="ctrl" id="fEmail" type="text" inputmode="email" autocapitalize="off" autocomplete="off" placeholder="例：name@2motor.tw">
+    </label>
+    <label class="field">角色
+      <select class="ctrl" id="fRole">
+        <option value="cs_admin">客服部</option>
+        <option value="hq_viewer">總公司主管</option>
+        <option value="store_manager">店長</option>
+      </select>
+    </label>
+    <label class="field" id="fStoreWrap" hidden>門市（店長必填）
+      <select class="ctrl" id="fStore"></select>
+    </label>
+    <label class="field">對應員工（選填，可輸入文字篩選）
+      <input class="ctrl" id="fEmp" list="empList" autocomplete="off" placeholder="可輸入文字篩選，並從清單選擇">
+      <datalist id="empList"></datalist>
+    </label>
+    <div class="err" id="fErr" role="alert"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="fCancel">取消</button>
+      <button class="btn primary" type="submit" id="fSave">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="cdlg">
+  <div class="dlg">
+    <h2>確定要移除這個帳號？</h2>
+    <p id="cText"></p>
+    <div class="err" id="cErr" role="alert"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="cCancel">取消</button>
+      <button class="btn danger" type="button" id="cOk">確定移除</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/accounts-api.js"></script>
+<script>
+(function () {
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+  var ROLE_CLASS = { cs_admin: 'cs', hq_viewer: 'hq', store_manager: 'mgr' };
+  var ROLE_ORDER = { cs_admin: 0, hq_viewer: 1, store_manager: 2 };
+  var ACTION_LABEL = { insert: '新增', update: '修改', delete: '移除' };
+  var ACTION_CLASS = { insert: 'mgr', update: 'cs', delete: 'hq' };
+  var EMAIL_RE = /^[^@\s]+@2motor\.tw$/;
+  var NONE = '（無）';
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+  function stamp(iso) { return new Date(iso).toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 16); }
+
+  var me = null;          // app_users 那一列
+  var myEmail = '';
+  var stores = [];
+  var storeName = {};
+  var employees = [];
+  var empById = {};
+  var accounts = [];
+  var logs = [];
+  var logHasMore = false;
+  var busy = false;
+  var editing = null;
+  var removing = null;
+  var missingStore = null;   // 編輯時原門市不在清單內的代號
+  var keepEmp = null;        // 編輯時對應員工在名冊找不到：{id, text}
+
+  function showMsg(t, kind) {
+    var m = $('msg');
+    m.textContent = t;
+    m.className = 'notice msg' + (kind === 'ok' ? ' ok' : kind === 'bad' ? ' bad' : '');
+    m.hidden = !t;
+  }
+  function errText(e) { return (e && e.userMessage) || AccountsApi.explain(e); }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { AccountsApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text, showGo) {
+    $('loading').hidden = true;
+    $('app').hidden = true;
+    $('blockedText').textContent = text;
+    $('blockedGo').hidden = !showGo;
+    $('blocked').hidden = false;
+  }
+
+  function empLabel(e) {
+    var n = (e.nickname || '').trim() || (e.full_name || '').trim();
+    return n + '（' + e.id + '）';
+  }
+  function empName(e) { return (e.nickname || '').trim() || (e.full_name || '').trim(); }
+  // 員工 id → 顯示文字；名冊找不到就只顯示員編
+  function empText(id) {
+    if (!id) return NONE;
+    var e = empById[id];
+    return e ? empLabel(e) : id;
+  }
+  function storeText(code) { return storeName[code] || code; }
+  function roleWho(role, store) {
+    return (ROLE_LABEL[role] || role) + (role === 'store_manager' ? '・' + storeText(store) : '');
+  }
+
+  // ====== 帳號列表 ======
+  function empCell(a) {
+    if (!a.employee_id) return '—';
+    var n = (a.nickname || '').trim() || (a.full_name || '').trim();
+    if (!n) return '<span class="mono">' + esc(a.employee_id) + '</span>';
+    return esc(n) + '<span class="sub2 mono">' + esc(a.employee_id) + '</span>';
+  }
+
+  function renderAccounts() {
+    var rows = accounts.slice().sort(function (a, b) {
+      var ra = ROLE_ORDER[a.role], rb = ROLE_ORDER[b.role];
+      if (ra == null) ra = 9;
+      if (rb == null) rb = 9;
+      return ra - rb || AccountsApi.storeRank(a.store_code) - AccountsApi.storeRank(b.store_code) || cmp(a.email, b.email);
+    });
+    $('tbody').innerHTML = rows.map(function (a) {
+      var self = a.email === myEmail;
+      return '<tr>' +
+        '<td class="mono">' + esc(a.email) + (self ? '<span class="sub2">（你）</span>' : '') + '</td>' +
+        '<td><span class="tag ' + (ROLE_CLASS[a.role] || 'hq') + '">' + esc(ROLE_LABEL[a.role] || a.role) + '</span></td>' +
+        '<td>' + (a.role === 'store_manager' ? esc(storeText(a.store_code)) : '—') + '</td>' +
+        '<td>' + empCell(a) + '</td>' +
+        '<td><div class="opsrow">' +
+          '<button type="button" class="btn sm" data-edit="' + esc(a.email) + '" aria-label="編輯 ' + esc(a.email) + '">編輯</button>' +
+          '<button type="button" class="btn sm" data-del="' + esc(a.email) + '" aria-label="移除 ' + esc(a.email) + '">移除</button>' +
+        '</div></td></tr>';
+    }).join('');
+    $('empty').hidden = rows.length > 0;
+    $('count').textContent = '共 ' + rows.length + ' 個帳號';
+  }
+
+  // ====== 操作紀錄 ======
+  function rowOf(x) { return x && typeof x === 'object' ? x : null; }
+
+  // 由 old_row／new_row 比對產生摘要
+  function summarize(l) {
+    var o = rowOf(l.old_row), n = rowOf(l.new_row);
+    if (l.action === 'insert' && n) {
+      return '角色：' + roleWho(n.role, n.store_code) + (n.employee_id ? '；對應員工：' + empText(n.employee_id) : '');
+    }
+    if (l.action === 'delete' && o) {
+      return '角色：' + roleWho(o.role, o.store_code) + (o.employee_id ? '；對應員工：' + empText(o.employee_id) : '');
+    }
+    if (l.action === 'update' && o && n) {
+      var d = [];
+      if (o.email !== n.email) d.push('信箱：' + o.email + ' → ' + n.email);
+      if (o.role !== n.role) d.push('角色：' + (ROLE_LABEL[o.role] || o.role) + ' → ' + (ROLE_LABEL[n.role] || n.role));
+      if ((o.store_code || null) !== (n.store_code || null)) {
+        d.push('門市：' + (o.store_code ? storeText(o.store_code) : NONE) + ' → ' + (n.store_code ? storeText(n.store_code) : NONE));
+      }
+      if ((o.employee_id || null) !== (n.employee_id || null)) {
+        d.push('對應員工：' + empText(o.employee_id) + ' → ' + empText(n.employee_id));
+      }
+      return d.length ? d.join('；') : '（無內容變更）';
+    }
+    return '—';
+  }
+
+  function renderLogs() {
+    $('logBody').innerHTML = logs.map(function (l) {
+      return '<tr><td class="mono">' + esc(stamp(l.at)) + '</td>' +
+        '<td class="mono">' + esc(l.by_email) + '</td>' +
+        '<td><span class="tag ' + (ACTION_CLASS[l.action] || 'hq') + '">' + esc(ACTION_LABEL[l.action] || l.action) + '</span></td>' +
+        '<td class="mono">' + esc(l.email) + '</td>' +
+        '<td class="wrap">' + esc(summarize(l)) + '</td></tr>';
+    }).join('');
+    $('logEmpty').hidden = logs.length > 0;
+    $('logMore').hidden = !logHasMore;
+  }
+
+  var logVer = 0;   // 載入版本號：舊請求回來時若版本已過期就丟棄，避免互相覆蓋
+  function loadLogsFirst() {
+    var ver = ++logVer;
+    return AccountsApi.loadAudit(null).then(function (rows) {
+      if (ver !== logVer) return;
+      logs = rows;
+      logHasMore = rows.length === AccountsApi.AUDIT_PAGE;
+      renderLogs();
+    });
+  }
+  $('logMoreBtn').addEventListener('click', function () {
+    if (busy || !logs.length) return;
+    var btn = this;
+    var ver = logVer;
+    btn.disabled = true;
+    AccountsApi.loadAudit(logs[logs.length - 1].id).then(function (rows) {
+      if (ver !== logVer) return;
+      logs = logs.concat(rows);
+      logHasMore = rows.length === AccountsApi.AUDIT_PAGE;
+      renderLogs();
+    }).catch(function (e) { showMsg(errText(e), 'bad'); })
+      .then(function () { btn.disabled = false; });
+  });
+
+  // ====== 讀取 ======
+  function fillStoreSelect() {
+    $('fStore').innerHTML = stores.map(function (s) { return '<option value="' + esc(s.code) + '">' + esc(s.name) + '</option>'; }).join('');
+  }
+  function fillEmpList() {
+    $('empList').innerHTML = employees.map(function (e) { return '<option value="' + esc(empLabel(e)) + '"></option>'; }).join('');
+  }
+  function reloadAll() {
+    return Promise.all([AccountsApi.loadStores(), AccountsApi.loadEmployees(), AccountsApi.loadAccounts()]).then(function (r) {
+      stores = r[0]; employees = r[1]; accounts = r[2];
+      storeName = {}; stores.forEach(function (s) { storeName[s.code] = s.name; });
+      empById = {}; employees.forEach(function (e) { empById[e.id] = e; });
+      fillStoreSelect();
+      fillEmpList();
+      renderAccounts();
+      return loadLogsFirst();
+    });
+  }
+  // 寫入成功後只需重讀帳號與紀錄
+  function reloadAfterWrite() {
+    return AccountsApi.loadAccounts().then(function (rows) {
+      accounts = rows;
+      renderAccounts();
+      return loadLogsFirst();
+    });
+  }
+
+  // ====== 表單（新增／編輯） ======
+  var dlg = $('dlg');
+  function syncStore() { $('fStoreWrap').hidden = $('fRole').value !== 'store_manager'; }
+  $('fRole').addEventListener('change', syncStore);
+  $('fEmail').addEventListener('input', function () {
+    var v = this.value.toLowerCase();
+    if (v !== this.value) this.value = v;
+  });
+
+  function openForm(email) {
+    editing = email;
+    var a = email ? accounts.filter(function (x) { return x.email === email; })[0] : null;
+    if (email && !a) return;
+    $('fErr').textContent = '';
+    $('dlgTitle').textContent = a ? '編輯帳號' : '新增帳號';
+    $('fEmail').value = a ? a.email : '';
+    $('fEmail').disabled = !!a;
+    $('fRole').value = a ? a.role : 'hq_viewer';
+    // 門市下拉：原門市不在清單內時，保留一個原值選項並預設選它（不悄悄改成第一間）
+    fillStoreSelect();
+    missingStore = a && a.role === 'store_manager' && a.store_code && !storeName[a.store_code] ? a.store_code : null;
+    if (missingStore) {
+      $('fStore').insertAdjacentHTML('afterbegin', '<option value="' + esc(missingStore) + '">（原門市：' + esc(missingStore) + '，已不在門市清單）</option>');
+      $('fStore').value = missingStore;
+      $('fErr').textContent = '提醒：這個帳號的原門市已不在門市清單內，請確認門市後再儲存。';
+    } else {
+      $('fStore').value = a && a.role === 'store_manager' ? a.store_code : (stores[0] ? stores[0].code : '');
+    }
+    // 對應員工：員編在名冊找不到時，保留原值（沒改動就原樣送出）
+    var e = a && a.employee_id ? empById[a.employee_id] : null;
+    keepEmp = null;
+    if (a && a.employee_id && !e) keepEmp = { id: a.employee_id, text: '（找不到員編 ' + a.employee_id + '）' };
+    $('fEmp').value = e ? empLabel(e) : (keepEmp ? keepEmp.text : '');
+    syncStore();
+    dlg.showModal();
+  }
+  $('addBtn').addEventListener('click', function () { showMsg(''); openForm(null); });
+  $('fCancel').addEventListener('click', function () { dlg.close(); });
+
+  $('form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (busy) return;
+    var role = $('fRole').value;
+    var store = role === 'store_manager' ? $('fStore').value : null;
+    var empInput = $('fEmp').value.trim();
+    var empId = null;
+    var err = '';
+    if (empInput && keepEmp && empInput === keepEmp.text) {
+      empId = keepEmp.id;
+    } else if (empInput) {
+      var low = empInput.toLowerCase();
+      var hit = employees.filter(function (e) { return empLabel(e) === empInput || e.id.toLowerCase() === low; })[0];
+      if (hit) empId = hit.id; else err = '請從清單選擇對應員工，或清空此欄';
+    }
+    var email = editing || $('fEmail').value.trim().toLowerCase();
+    if (!editing) {
+      if (!email) err = '請填信箱';
+      else if (!EMAIL_RE.test(email)) err = '只收公司信箱（@2motor.tw）';
+      else if (accounts.some(function (x) { return x.email === email; })) err = '這個信箱已經有帳號了';
+    }
+    if (!err && role === 'store_manager' && !store) err = '店長必須選門市';
+    var cur = editing ? accounts.filter(function (x) { return x.email === editing; })[0] : null;
+    if (!err && editing && !cur) err = '這個帳號已不存在，請重新整理頁面。';
+    if (!err && cur && cur.role === role && (cur.store_code || null) === store && (cur.employee_id || null) === empId) err = '沒有任何變更';
+    if (err) { $('fErr').textContent = err; return; }
+
+    busy = true; $('fSave').disabled = true; $('fErr').textContent = '';
+    var job = editing
+      ? AccountsApi.updateAccount(editing, { role: role, store_code: store, employee_id: empId })
+      : AccountsApi.insertAccount({ email: email, role: role, store_code: store, employee_id: empId });
+    job.then(function () {
+      dlg.close();
+      showMsg(editing ? '已更新帳號：' + editing : '已新增帳號：' + email, 'ok');
+      return reloadAfterWrite().catch(function (e) { showMsg(errText(e), 'bad'); });
+    }).catch(function (e) { $('fErr').textContent = errText(e); })
+      .then(function () { busy = false; $('fSave').disabled = false; });
+  });
+
+  // ====== 移除（二次確認） ======
+  var cdlg = $('cdlg');
+  $('cCancel').addEventListener('click', function () { cdlg.close(); });
+  $('cOk').addEventListener('click', function () {
+    if (busy || !removing) return;
+    var email = removing;
+    busy = true; $('cOk').disabled = true; $('cErr').textContent = '';
+    AccountsApi.deleteAccount(email).then(function () {
+      cdlg.close();
+      showMsg('已移除帳號：' + email, 'ok');
+      return reloadAfterWrite().catch(function (e) { showMsg(errText(e), 'bad'); });
+    }).catch(function (e) { $('cErr').textContent = errText(e); })
+      .then(function () { busy = false; $('cOk').disabled = false; });
+  });
+
+  $('tbody').addEventListener('click', function (e) {
+    var ed = e.target.closest('[data-edit]');
+    if (ed) { showMsg(''); openForm(ed.dataset.edit); return; }
+    var del = e.target.closest('[data-del]');
+    if (del) {
+      showMsg('');
+      removing = del.dataset.del;
+      $('cErr').textContent = '';
+      $('cText').textContent = '要移除 ' + removing + ' 嗎？移除後此人仍能用 Google 登入，但會看到帳號尚未開通。';
+      cdlg.showModal();
+    }
+  });
+
+  // ====== 啟動：登入、網域、開通三道檢查，再確認是客服部 ======
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  AccountsApi.onSignedOut(function () { goLogin(''); });
+
+  AccountsApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    var email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      AccountsApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    myEmail = email.toLowerCase();
+    $('whoEmail').textContent = email;
+    return AccountsApi.loadMe(email).then(function (row) {
+      if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      if (row.role !== 'cs_admin') {
+        showBlocked('只有客服部可以管理帳號。即將帶你前往人員名冊。', true);
+        setTimeout(function () { location.replace('roster.html'); }, 3000);
+        return;
+      }
+      me = row;
+      $('whoBadge').textContent = ROLE_LABEL[row.role];
+      return reloadAll().then(function () {
+        $('loading').hidden = true;
+        $('app').hidden = false;
+      });
+    });
+  }).catch(function (e) {
+    showBlocked(errText(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+</body>
+</html>
