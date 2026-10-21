@@ -16,7 +16,7 @@
 --     （連線層級物件，不受 rollback 影響，裡面只有結果文字，沒有任何資料表內容），
 --     rollback 之後再 execute 它，所以最後一個結果就是「序號／測項／預期／實際／通過」表。
 --   * rollback 之前還會先 select 一次同樣的表當備援；若畫面出現兩張一樣的表，看最後一張即可。
---   * 第一列「總結」顯示 N/M 項通過；「通過」欄全是「通過」才算驗證成功。
+--   * 第一列「總結」顯示 N/M 項通過（有失敗時後面附「；未通過：#序號…」，最多列 20 個）；「通過」欄全是「通過」才算驗證成功。
 -- 假門市代碼 ZZ-K1、假員工編號 MI-9801、假信箱 vr-cs／vr-hq／vr-sm@2motor.tw、
 --   假分類一律以 ZZ 開頭；若真實資料剛好撞到，腳本會在建立假資料時報錯並停下（rollback 後不影響任何資料）。
 -- 注意：假題庫的 questions.id 會用掉幾個流水號（序號不會因 rollback 倒退），無害。
@@ -685,7 +685,8 @@ $$;
 -- ============================================================
 do $$
 declare
-  v_pat text := '(_pw_ok|_assert_pw|list_categories|draw_questions|admin_(login|list_questions|save_question|delete_question|rename_category|reset))';
+  -- 與 bank_retire_legacy.sql 開頭防護使用同一個表示式（只比對函式呼叫，兩邊必須同步）
+  v_pat text := '(^|[^a-z0-9_])(_pw_ok|_assert_pw|list_categories|draw_questions|admin_(login|list_questions|save_question|delete_question|rename_category|reset))\s*\(';
   v_sig text[] := array[
     'public.list_categories(text)',
     'public.draw_questions(text, text[])',
@@ -714,6 +715,13 @@ begin
   perform set_config('request.jwt.claims', '', true);
 
   -- ===== 實證：新系統沒有任何地方呼叫舊的密碼函式 =====
+  -- 先證明比對表示式本身正確：鎖的 key 字串不命中，真的呼叫才命中
+  perform pg_temp.vr_eq('9 停用舊抽選器', '表示式：鎖的 key 字串 hashtext(''exam_draw_questions'') 不命中', 'false',
+    ('perform pg_advisory_xact_lock(hashtext(''exam_draw_questions''));' ~* v_pat)::text);
+  perform pg_temp.vr_eq('9 停用舊抽選器', '表示式：真的呼叫 public.draw_questions(…)、admin_login(…) 都命中', 'true/true/true',
+    ('select public.draw_questions(''x'', array[''y''])' ~* v_pat)::text || '/' ||
+    ('select admin_login(''x'')' ~* v_pat)::text || '/' ||
+    ('perform public._assert_pw (p_pw);' ~* v_pat)::text);
   perform pg_temp.vr_eq('9 停用舊抽選器', '實證：舊 10 個以外的 public 函式（含全部 assess_*、bank_*）內容都沒有引用舊函式', '0',
     pg_temp.vr_q1(format($q$select count(*)::text from pg_proc p
                              where p.pronamespace = 'public'::regnamespace and p.prokind = 'f'
@@ -829,8 +837,12 @@ declare
   v_total int;
   v_ok int;
   v_rows text;
+  v_fail text;
 begin
   select count(*), count(*) filter (where pass) into v_total, v_ok from pg_temp.vr;
+  -- 未通過的序號（最多列 20 個），免得在上百列裡找失敗項
+  select string_agg('#' || f.n, '、' order by f.n) into v_fail
+  from (select n from pg_temp.vr where not pass order by n limit 20) f;
   select string_agg(
            format('(%s, %L, %L, %L, %L)',
                   n, grp || '｜' || name, coalesce(expected, ''), coalesce(actual, '(null)'),
@@ -846,7 +858,8 @@ begin
 
   execute 'prepare bank_vr_out as select * from (values (0, '
           || quote_literal('總結') || ', ' || quote_literal('全部通過') || ', '
-          || quote_literal(v_ok::text || '/' || v_total::text || ' 項通過') || ', '
+          || quote_literal(v_ok::text || '/' || v_total::text || ' 項通過'
+                           || case when v_fail is not null then '；未通過：' || v_fail else '' end) || ', '
           || quote_literal(case when v_ok = v_total then '通過' else '失敗' end)
           || '), ' || v_rows
           || ') as t("序號", "測項", "預期", "實際", "通過") order by 1';

@@ -43,7 +43,10 @@
 -- ---------- 防護：先確認新系統沒有引用舊函式，且 8 個舊函式都在 ----------
 do $$
 declare
-  v_pat text := '(_pw_ok|_assert_pw|list_categories|draw_questions|admin_(login|list_questions|save_question|delete_question|rename_category|reset))';
+  -- 只比對「函式呼叫」：名稱前面不能是字母數字底線、名稱後面（可有空白）必須是左括號。
+  -- 這樣 hashtext('exam_draw_questions') 這種鎖的 key 字串不會誤報。
+  -- 與 bank_verify_fake.sql 區段 9 使用同一個表示式，兩邊必須同步。
+  v_pat text := '(^|[^a-z0-9_])(_pw_ok|_assert_pw|list_categories|draw_questions|admin_(login|list_questions|save_question|delete_question|rename_category|reset))\s*\(';
   v_names text;
   v_n int;
 begin

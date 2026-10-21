@@ -77,6 +77,13 @@
 - 整個「業務考核系統」資料夾搜尋舊函式名稱：只出現在 `roster_schema.sql`、`assess_schema.sql`、`backoffice_schema.sql` 的說明註解，與 `assess_verify_fake.sql` 的驗證；前端頁面與 js 沒有任何呼叫。
 - **沒有發現任何呼叫，所以不需要停下回報。** 但這是讀檔結論，資料庫實際狀態以兩道自動檢查為準：`bank_retire_legacy.sql` 開頭有一段防護，會在資料庫掃描所有 public 函式、policy、檢視，只要發現有東西引用舊函式就丟錯停下、什麼都不改；`bank_verify_fake.sql` 區段 9 也有同樣的實證測項。**若這兩處任何一處報告有引用，請停下回報，不要自行處理。**
 
+### 第一次實跑的誤報與修正
+
+第一次在真實資料庫跑驗證腳本，區段 9 的實證測項回報「6 個函式引用了舊函式」。原因是誤報：命中的 6 個函式（`assess_abandon`、`assess_draw`、`bank_delete_question`、`bank_rename_category`、`bank_reset`、`bank_save_question`）只含 `pg_advisory_xact_lock(hashtext('exam_draw_questions'))` 這一行，鎖的 key 字串 `exam_draw_questions` 含有子字串 `draw_questions`，單純文字比對就誤判。
+修正：比對表示式改成只比對「函式呼叫」——名稱前面不能是字母、數字、底線，名稱後面（可有空白）必須是左括號。`bank_retire_legacy.sql` 開頭防護與驗證區段 9 使用同一個表示式（修改要同步），區段 9 另加兩個小測項證明表示式正確（鎖的 key 字串不命中、真的呼叫會命中）。
+限制：這個防護只比對呼叫的寫法；若有人用動態 SQL（以字串拼出函式名稱再 execute）呼叫舊函式，無法被偵測，以現況（已讀檔實證沒有）為準。
+驗證腳本的總結列也改成在有失敗時附上「；未通過：#序號…」（最多 20 個），不用再捲動找失敗項。
+
 ### 停用步驟（之後老闆同意才做）
 
 1. 先跑 `bank_verify_fake.sql` 確認全部通過，並請客服部試用新題庫管理頁確認好用。
