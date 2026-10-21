@@ -175,7 +175,7 @@
         .eq('status', 'draft').eq('examiner_email', email.toLowerCase()).order('created_at', { ascending: false }))
         .then(function (r) { return r.data || []; });
     },
-    // 載入一張草稿：考核本身＋題組（含機密表的名稱、步驟、備註）＋圖片
+    // 載入一張草稿：考核本身＋題組（備註在 assessment_items.note；機密表只取名稱、步驟）＋圖片
     loadDraft: function (assessmentId) {
       return wrap(sb.from('assessments')
         .select('id,employee_id,employee_label,store_code,examiner_email,status,tenure,tenure_source,created_at')
@@ -185,16 +185,16 @@
         return window.AssessApi.loadItemsFull(assessmentId).then(function (items) { return { a: a, items: items }; });
       });
     },
-    // 客服部用：題組（含 levels、分數）＋機密（題組名稱、步驟、備註）＋圖片
+    // 客服部用：題組（含 levels、分數）＋機密（題組名稱、步驟）＋備註＋圖片
     loadItemsFull: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims')
+        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,note')
         .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
         var items = r.data || [];
         var ids = items.map(function (i) { return i.id; });
         if (!ids.length) return [];
         return Promise.all([
-          wrap(sb.from('assessment_item_secrets').select('item_id,title,steps,note').in('item_id', ids)),
+          wrap(sb.from('assessment_item_secrets').select('item_id,title,steps').in('item_id', ids)),
           loadImages(ids)
         ]).then(function (res) {
           var sec = {};
@@ -204,7 +204,7 @@
             return {
               id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {},
               item_score: i.item_score, dim_points: i.dim_points, na_dims: i.na_dims, weakest_dims: i.weakest_dims,
-              title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], note: s.note || '',
+              title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], note: i.note || '',
               imgs: res[1][i.id] || []
             };
           });
@@ -227,15 +227,15 @@
           .order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
-    // 總公司主管與店長用：只讀 assessment_items（精簡欄位）與圖片；絕不查機密表
+    // 總公司主管與店長用：只讀 assessment_items（精簡欄位，含考官備註）與圖片；絕不查機密表
     loadItemsLimited: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,item_score,dim_points')
+        .select('id,seq,category,code,item_score,dim_points,note')
         .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
         var items = r.data || [];
         return loadImages(items.map(function (i) { return i.id; })).then(function (imgs) {
           return items.map(function (i) {
-            return { id: i.id, seq: i.seq, category: i.category, code: i.code, item_score: i.item_score, dim_points: i.dim_points, imgs: imgs[i.id] || [] };
+            return { id: i.id, seq: i.seq, category: i.category, code: i.code, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', imgs: imgs[i.id] || [] };
           });
         });
       });

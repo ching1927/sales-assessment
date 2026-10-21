@@ -303,8 +303,8 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
     return h;
   }
 
-  // 總公司主管／店長：只有日期、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數與附圖
-  // （不產生題組名稱、步驟、考點、備註文字、作廢鈕；也不查機密表）
+  // 總公司主管／店長：只有日期、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數、考官備註與附圖
+  // （不產生題組名稱、步驟、考點、作廢鈕；也不查機密表；考官備註來自 assessment_items.note）
   function detailLimited(r, items) {
     var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(stamp(dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
@@ -319,7 +319,8 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
         DIMS.map(function (d) {
           var pt = dp[d.name];
           return '<tr><td>' + esc(d.name) + '</td><td class="num">' + (pt == null ? '不適用' : esc(fmt(pt)) + ' / ' + d.weight) + '</td></tr>';
-        }).join('') + '</tbody></table></div>' + imgsHtml(it) + '</div>';
+        }).join('') + '</tbody></table></div>' +
+        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + '</div>' + imgsHtml(it) + '</div>';
     });
     h += '<div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
@@ -438,7 +439,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
     $('storeFilter').hidden = isManager();
     $('roleNote').textContent = isCS()
       ? '客服部可看全部成績單，包含暫存中與已作廢，並可作廢已送出的成績單。'
-      : '只顯示已送出且未作廢的成績單；題組名稱、步驟、考點與考官備註只有客服部看得到。';
+      : '只顯示已送出且未作廢的成績單；考官備註與備註附圖主管與店長也看得到；題組名稱、步驟與考點只有客服部看得到。';
     $('thead').innerHTML = '<tr><th>日期時間</th><th>考生</th><th>門市</th><th>考核時身分</th><th class="num">總分</th><th>判定</th><th>狀態</th><th>操作</th></tr>';
   }
 

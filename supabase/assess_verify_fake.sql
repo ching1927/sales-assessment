@@ -420,10 +420,10 @@ begin
     (select count(*)::text from information_schema.columns
       where table_schema = 'public' and table_name = 'assessment_summaries'
         and column_name in ('title', 'steps', 'note')));
-  perform pg_temp.vr_eq('權限矩陣', 'assessment_items 沒有 title／steps／note／question_id／was_drawn_before 欄位', '0',
+  perform pg_temp.vr_eq('權限矩陣', 'assessment_items 沒有 title／steps／question_id／was_drawn_before 欄位', '0',
     (select count(*)::text from information_schema.columns
       where table_schema = 'public' and table_name = 'assessment_items'
-        and column_name in ('title', 'steps', 'note', 'question_id', 'was_drawn_before')));
+        and column_name in ('title', 'steps', 'question_id', 'was_drawn_before')));
   perform pg_temp.vr_eq('權限矩陣', 'assessment_summaries 沒有 question_id／was_drawn_before 欄位', '0',
     (select count(*)::text from information_schema.columns
       where table_schema = 'public' and table_name = 'assessment_summaries'
@@ -765,8 +765,8 @@ begin
   -- 完整評分並送出
   perform public.assess_save_item(v_ia, pg_temp.vr_mk('良','優','良','待加強','優','良','優'), '考官備註甲');
   perform public.assess_save_item(v_ib, pg_temp.vr_mk('優','優','優','優','優','優','優'), null);
-  perform pg_temp.vr_eq('流程 save','考官備註已存入機密表','考官備註甲',
-    (select s.note from public.assessment_item_secrets s where s.item_id = v_ia));
+  perform pg_temp.vr_eq('流程 save','考官備註已存入 assessment_items.note','考官備註甲',
+    (select i.note from public.assessment_items i where i.id = v_ia));
 
   select * into r from public.assess_submit(v_s1);
   perform pg_temp.vr_eq('流程 submit','總分','88.8', r.total_score::text);

@@ -382,7 +382,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     Object.keys(dirty).forEach(function (id) { flushItem(id); });
     return saveChain.then(function () { return !hasUnsaved(); });
   }
-  // 放棄或送出後：取消計時器、作廢在途請求的回呼、清掉 dirty
+  // 放棄或送出後：取消延遲暫存、作廢在途請求的回呼、清掉 dirty
   function resetSave() {
     Object.keys(timers).forEach(function (k) { clearTimeout(timers[k]); });
     saveEpoch++;
@@ -533,7 +533,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       h += '</div></div>';
     });
     if (nas >= MAX_NA) h += '<div class="msg warn">此題組已有 ' + MAX_NA + ' 個面向標「不適用」，已達上限，其餘面向的「不適用」暫時不能選。要再選請先取消其中一個。</div>';
-    h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填，只有客服部看得到）</label>' +
+    h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填；送出後總公司主管與該門市店長也看得到，請不要貼入題組腳本或考點原文）</label>' +
       '<textarea class="ctrl" id="noteBox" data-note="' + S.cur + '" placeholder="例如：第 2 步回答不夠具體">' + esc(it.note || '') + '</textarea>';
     h += attachHtml(it);
     h += '<div class="navrow"><button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
@@ -672,7 +672,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var h = '<div class="attach" id="attachZone" tabindex="0" aria-label="附圖區，可貼上、拖曳或選擇圖片">' +
       '<p class="hint" style="margin-bottom:8px"><b>附圖</b>（<span id="attachCount">' + imgs.length + '</span> / ' + MAX_IMGS + ' 張）：在備註框按 Ctrl+V 貼上圖片，或把圖片拖進這裡，或按「選擇圖片」。只收 png、jpeg、webp，單張原檔不超過 8MB。</p>' +
       '<div class="row"><button type="button" class="btn" id="pickBtn">選擇圖片</button>' +
-      '<span class="priv">圖片可能含客人個資，請只附必要的內容；送出後總公司主管與該門市店長也看得到圖片。</span></div>';
+      '<span class="priv">圖片可能含客人個資，請只附必要的內容；送出後總公司主管與該門市店長也看得到圖片與考官備註，請不要貼入題組腳本或考點原文。</span></div>';
     return h + '<div id="attachDyn">' + attachDynHtml(it) + '</div></div>';
   }
   function attachDynHtml(it) {
