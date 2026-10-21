@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>帳號管理</title>
 <link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
 <style>
 select,input{font-family:inherit;font-size:14px;color:var(--ink)}
 .page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
@@ -88,24 +89,28 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   </section>
 
   <div id="app" hidden>
-    <div class="top">
-      <h1>帳號管理</h1>
-      <div class="who">
-        <div class="who-id">
-          <span>目前身分</span>
-          <span id="whoEmail"></span>
-          <span class="badge" id="whoBadge"></span>
-        </div>
-        <div class="who-nav">
-          <a class="nav primary" href="assess.html">進行考核</a>
-          <a class="nav" href="reports.html">成績單</a>
-          <a class="nav" href="backoffice.html">考核後台</a>
-          <a class="nav" href="roster.html">人員名冊</a>
-          <a class="nav" href="questions.html">題庫管理</a>
-          <button class="link" id="logout" type="button">登出</button>
+    <header class="ab-bar">
+      <div class="ab-in">
+        <a class="ab-brand" href="roster.html" aria-label="貳輪嶼 MOTOR ISLAND"><img src="img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND"></a>
+        <nav class="ab-tabs" aria-label="主要功能">
+        <a class="ab-tab" href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
+        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
+        <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
+        <a class="ab-tab" href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
+        <a class="ab-tab on" href="accounts.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
+        </nav>
+        <div class="ab-me">
+          <div class="ab-me-txt"><b id="whoEmail"></b><span class="ab-role" id="whoBadge"></span></div>
+          <div class="ab-avatar" id="whoAvatar" aria-hidden="true"></div>
+          <button class="ab-icon" id="logout" type="button" aria-label="登出" title="登出"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
         </div>
       </div>
-    </div>
+    </header>
+    <section class="ab-hero">
+      <div class="ab-crumb">管理　/　帳號管理</div>
+      <h1>帳號管理</h1>
+    </section>
 
     <div class="notice msg" id="msg" role="alert" hidden></div>
 
@@ -520,5 +525,6 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   });
 })();
 </script>
+<script src="js/appbar.js"></script>
 </body>
 </html>

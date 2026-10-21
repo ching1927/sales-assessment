@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>業務考核系統｜登入</title>
 <link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
 <style>
 .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:var(--sp-6) var(--sp-4)}
 .card{width:100%;max-width:420px;padding:var(--sp-8) var(--sp-6)}
@@ -19,11 +20,15 @@ h1{font-size:22px;font-weight:700;margin-bottom:var(--sp-2)}
 .btn[disabled]{opacity:.6;cursor:default;transform:none}
 .btn svg{width:20px;height:20px}
 .foot{margin-top:var(--sp-6)}
+.logo{display:block;height:44px;width:auto;margin-bottom:var(--sp-6)}
+.btn{background:var(--ci-black);color:#fff;border-color:var(--ci-black)}
+.btn svg{color:var(--ci-yellow)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <main class="card glass">
+    <img class="logo" src="img/logo.png" alt="貳輪嶼 MOTOR ISLAND">
     <h1>業務考核系統</h1>
     <p class="sub">請使用公司 Google 帳號（@2motor.tw）登入。</p>
     <div class="notice" id="notice" role="alert" hidden></div>

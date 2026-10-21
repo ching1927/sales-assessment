@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>考核後台</title>
 <link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
 <style>
 /* 公版 tokens 沒有的兩個中性色（與已確認樣品相同）：純白（按鈕字、對話框底、圖表標記與文字描邊）、對話框遮罩 */
 body{--surface-solid:#fff;--scrim:rgba(15,23,42,0.30)}
@@ -120,24 +121,28 @@ dialog::backdrop{background:var(--scrim)}
   </section>
 
   <div id="app" hidden>
-    <div class="top">
-      <h1>考核後台</h1>
-      <div class="who">
-        <div class="who-id">
-          <span>目前身分</span>
-          <span id="whoEmail"></span>
-          <span class="badge" id="whoBadge"></span>
-        </div>
-        <div class="who-nav">
-          <a class="nav primary" id="toAssess" href="assess.html" hidden>進行考核</a>
-          <a class="nav" href="reports.html">成績單</a>
-          <a class="nav" href="roster.html">人員名冊</a>
-          <a class="nav" id="toAccounts" href="accounts.html" hidden>帳號管理</a>
-          <a class="nav" id="toQuestions" href="questions.html" hidden>題庫管理</a>
-          <button class="link" id="logout" type="button">登出</button>
+    <header class="ab-bar">
+      <div class="ab-in">
+        <a class="ab-brand" href="roster.html" aria-label="貳輪嶼 MOTOR ISLAND"><img src="img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND"></a>
+        <nav class="ab-tabs" aria-label="主要功能">
+        <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
+        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
+        <a class="ab-tab on" href="backoffice.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
+        <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
+        <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
+        </nav>
+        <div class="ab-me">
+          <div class="ab-me-txt"><b id="whoEmail"></b><span class="ab-role" id="whoBadge"></span></div>
+          <div class="ab-avatar" id="whoAvatar" aria-hidden="true"></div>
+          <button class="ab-icon" id="logout" type="button" aria-label="登出" title="登出"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
         </div>
       </div>
-    </div>
+    </header>
+    <section class="ab-hero">
+      <div class="ab-crumb">考核　/　考核後台</div>
+      <h1>考核後台</h1>
+    </section>
 
     <div class="msg err" id="pageMsg" role="alert" hidden></div>
 
@@ -806,5 +811,6 @@ dialog::backdrop{background:var(--scrim)}
   });
 })();
 </script>
+<script src="js/appbar.js"></script>
 </body>
 </html>

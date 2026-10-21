@@ -1,0 +1,63 @@
+/* 貳輪嶼 CI 版面：黑・藍・黃・白（老闆指定，覆寫公版單一藍）＋共用導覽列與頁首橫幅。各頁在 tokens.css 之後載入。 */
+:root{--ci-black:#0A0A0A;--ci-blue:#0669EB;--ci-yellow:#D9FF00;
+  --accent:#0669EB;--accent-deep:#0553BC;--accent-soft:rgba(6,105,235,.12);--info:#0669EB;--info-soft:rgba(6,105,235,.12);
+  --ink:#0A0A0A;--ink-2:#4A4F5A;--ab-h:64px}
+body{background:radial-gradient(60% 40% at 90% 0%,rgba(6,105,235,.08),transparent 60%),radial-gradient(50% 40% at 0% 100%,rgba(217,255,0,.12),transparent 60%),linear-gradient(180deg,#FAFAFA 0%,#F0F2F5 100%)}
+
+/* ===== 導覽列（黑底、全寬、固定在最上方） ===== */
+.ab-bar{position:sticky;top:0;z-index:50;margin:calc(-1 * var(--sp-4)) calc(50% - 50vw) 0;background:var(--ci-black);box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.ab-in{max-width:1100px;margin:0 auto;padding:0 var(--sp-4);height:64px;display:flex;align-items:center;gap:var(--sp-4)}
+.ab-brand{display:flex;align-items:center;flex:none;text-decoration:none}
+.ab-brand img{height:38px;width:auto;display:block}
+.ab-tabs{display:flex;gap:2px;padding:4px;border-radius:var(--r-pill);background:rgba(255,255,255,.09);margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.ab-tabs::-webkit-scrollbar{display:none}
+.ab-tab{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r-pill);font-size:14px;font-weight:600;
+  color:rgba(255,255,255,.74);text-decoration:none;white-space:nowrap;
+  transition:background var(--dur-micro) var(--ease),color var(--dur-micro) var(--ease)}
+.ab-tab svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ab-tab:hover{color:#fff;background:rgba(255,255,255,.14)}
+.ab-tab.on{background:var(--ci-yellow);color:var(--ci-black);box-shadow:0 2px 12px rgba(217,255,0,.35)}
+.ab-tab[hidden]{display:none}
+.ab-me{display:flex;align-items:center;gap:var(--sp-3);flex:none}
+.ab-me-txt{line-height:1.3;text-align:right}
+.ab-me-txt b{display:block;font-size:13px;color:#fff;font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ab-role{display:inline-block;padding:2px 9px;border-radius:var(--r-pill);background:var(--ci-yellow);color:var(--ci-black);font-size:12px;font-weight:700}
+.ab-role:empty{display:none}
+.ab-avatar{width:34px;height:34px;border-radius:50%;background:var(--ci-yellow);color:var(--ci-black);font-weight:700;font-size:14px;display:grid;place-items:center}
+.ab-icon{width:36px;height:36px;border-radius:50%;border:0.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.10);color:#fff;
+  display:grid;place-items:center;transition:background var(--dur-micro) var(--ease)}
+.ab-icon:hover{background:rgba(255,255,255,.2)}
+.ab-icon svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:1130px){
+  :root{--ab-h:116px}
+  .ab-in{flex-wrap:wrap;height:auto;padding-top:10px;padding-bottom:10px;row-gap:10px}
+  .ab-me{margin-left:auto}
+  .ab-tabs{order:3;width:100%;margin:0}
+  .ab-me-txt{display:none}
+}
+
+/* ===== 頁首橫幅 ===== */
+.ab-hero{position:relative;overflow:hidden;margin:var(--sp-6) 0 var(--sp-4);padding:var(--sp-6) var(--sp-8);border-radius:var(--r-card);
+  background:linear-gradient(135deg,#0A0A0A 0%,#14171F 100%);color:#fff;box-shadow:var(--shadow)}
+.ab-hero::before{content:"";position:absolute;right:-30px;top:-20px;width:300px;height:150px;background:url(img/mark-lime.png) no-repeat center/contain;opacity:.16;pointer-events:none}
+.ab-hero::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--ci-yellow)}
+.ab-hero>*{position:relative;z-index:1}
+.ab-crumb{font-size:12px;font-weight:700;color:var(--ci-yellow);letter-spacing:1.5px;margin-bottom:var(--sp-2)}
+.ab-hero h1{font-size:28px;font-weight:800;letter-spacing:-.3px;line-height:1.25;color:#fff}
+@media (max-width:640px){.ab-hero{padding:var(--sp-4) var(--sp-6)}.ab-hero h1{font-size:22px}}
+
+/* ===== 共用小升級 ===== */
+.btn.primary{box-shadow:var(--specular),0 6px 18px var(--accent-soft)}
+.scroll tbody tr{transition:background var(--dur-micro) var(--ease)}
+.scroll tbody tr:hover{background:var(--accent-soft)}
+th{font-weight:700;letter-spacing:.3px}
+.ab-icon#logout{color:#fff}
+
+/* 固定導覽列不要蓋住頁內 sticky 面板與捲動定位 */
+body .script{top:calc(var(--ab-h) + var(--sp-4));max-height:calc(100vh - var(--ab-h) - 32px)}
+body .formcol{top:calc(var(--ab-h) + var(--sp-4))}
+#formCol{scroll-margin-top:calc(var(--ab-h) + var(--sp-4))}
+@media (max-width:1130px){
+  .ab-me-txt{display:block}
+  .ab-me-txt b{display:none}
+}
