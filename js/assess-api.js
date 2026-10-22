@@ -230,12 +230,12 @@
     // 總公司主管與店長用：只讀 assessment_items（精簡欄位，含考官備註）與圖片；絕不查機密表
     loadItemsLimited: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,item_score,dim_points,note')
+        .select('id,seq,category,code,levels,item_score,dim_points,note')
         .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
         var items = r.data || [];
         return loadImages(items.map(function (i) { return i.id; })).then(function (imgs) {
           return items.map(function (i) {
-            return { id: i.id, seq: i.seq, category: i.category, code: i.code, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', imgs: imgs[i.id] || [] };
+            return { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', imgs: imgs[i.id] || [] };
           });
         });
       });

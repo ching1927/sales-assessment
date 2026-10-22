@@ -69,6 +69,7 @@ tr.off td{color:var(--ink-3)}
 .chartwrap{overflow-x:auto}
 .chartwrap svg{display:block;width:100%;height:auto}
 .chartwrap.min svg{min-width:520px}
+.chartwrap.radar svg{max-width:460px;margin:0 auto}
 details.vals{margin-top:var(--sp-2)}
 details.vals summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
 details.vals table{margin-top:8px}
@@ -228,6 +229,7 @@ dialog::backdrop{background:var(--scrim)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/scoring.js"></script>
+<script src="js/radar.js"></script>
 <script src="js/backoffice-api.js"></script>
 <script>
 (function () {
@@ -491,7 +493,7 @@ dialog::backdrop{background:var(--scrim)}
     } else h += '<h3>總分走勢</h3><p>目前沒有可顯示的總分。</p>';
     var rates = sortedRates(dimRates(rs));
     if (rates.every(function (r) { return r.pct === null; })) h += '<h3>七面向平均得分率</h3><p>目前沒有可分析的面向資料。</p>'; else
-    h += '<h3>七面向平均得分率</h3><div class="chartwrap">' + barChart(rates, p.name + ' 七面向平均得分率：' + ratesLabel(rates)) + '</div>' +
+    h += '<h3>七面向平均得分率</h3><div class="chartwrap radar">' + Radar.svg(rates, p.name + ' 七面向平均得分率：' + ratesLabel(rates)) + '</div>' +
       '<details class="vals"><summary>展開數值表</summary><div class="scroll">' + barValsTable(rates) + '</div></details>';
     h += '<h3>歷次成績單</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="num">題組數</th><th class="num">總分</th><th>判定</th><th>考核時身分</th><th>最弱面向</th></tr></thead><tbody>' +
       rs.slice().reverse().map(function (r) {

@@ -44,6 +44,7 @@ td.num,th.num{text-align:right}
 tbody tr:last-child td{border-bottom:none}
 tr.off td{color:var(--ink-3)}
 .mono{font-family:var(--mono)}
+.chartwrap.radar svg{display:block;width:100%;max-width:460px;height:auto;margin:0 auto var(--sp-3)}
 .tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
 .tag.new{background:var(--info-soft);color:var(--accent-deep)}
 .tag.reg{background:var(--track);color:var(--ink-2)}
@@ -165,6 +166,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/scoring.js"></script>
+<script src="js/radar.js"></script>
 <script src="js/assess-api.js"></script>
 <script>
 (function () {
@@ -273,6 +275,20 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
   // ====== 詳細內容 ======
   function weakSpans(list) { return (list || []).map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') || '—'; }
 
+  // 七面向雷達圖：各面向在所有題組的平均得分率（不適用、未評不計入）；最弱面向以資料庫算出的 weakest_dims 為準
+  function radarBlock(items, weak) {
+    var rows = DIMS.map(function (d) {
+      var s = 0, n = 0;
+      (items || []).forEach(function (it) {
+        var lv = (it.levels || {})[d.name], p = Scoring.LEVELS[lv];
+        if (lv !== NA && p !== undefined) { s += p; n++; }
+      });
+      return { name: d.name, pct: n ? s / n : null, weak: (weak || []).indexOf(d.name) >= 0 };
+    });
+    if (rows.every(function (r) { return r.pct === null; })) return '';
+    return '<div class="chartwrap radar">' + Radar.svg(rows, '七面向得分率：' + rows.map(function (r) { return r.name + ' ' + (r.pct === null ? '無資料' : fmt(r.pct) + '%'); }).join('、')) + '</div>';
+  }
+
   // 客服部：完整內容（題組名稱、步驟、考點、備註、作廢鈕都只在這個函式裡產生）
   function detailCS(r, items) {
     var weak = r.weakest_dims || [];
@@ -285,7 +301,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
       '<dt>狀態</dt><dd>' + statusTag(r) + '</dd>' +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '尚未結算' : esc(fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
-      '<dt>最弱面向</dt><dd>' + weakSpans(weak) + '</dd></dl>';
+      '<dt>最弱面向</dt><dd>' + weakSpans(weak) + '</dd></dl>' + radarBlock(items, weak);
     items.forEach(function (it, i) {
       var dp = it.dim_points || {};
       h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
@@ -316,7 +332,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
       '<dt>考生身分</dt><dd>' + esc(r.tenure) + '</dd>' +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '—' : esc(fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
-      '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>';
+      '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>' + radarBlock(items, r.weakest_dims);
     items.forEach(function (it) {
       var dp = it.dim_points || {};
       h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>雷達圖樣品（假資料）</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../app.css">
+<style>
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+h2{font-size:18px;margin:var(--sp-6) 0 var(--sp-3)}
+.panel{padding:var(--sp-6);margin-bottom:var(--sp-4)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-6);align-items:center}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.chartwrap svg{display:block;width:100%;height:auto;max-width:520px;margin:0 auto}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;margin-bottom:var(--sp-3)}
+dt{color:var(--ink-2)}dd{font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--ink-line)}
+th{font-size:12px;color:var(--ink-2)}td.num,th.num{text-align:right;font-family:var(--mono)}
+tr.weakrow td{background:var(--warning-soft)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;background:var(--info-soft);color:var(--accent-deep)}
+.legend{display:flex;gap:var(--sp-4);font-size:12px;color:var(--ink-2);margin-top:var(--sp-2);justify-content:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.note{font-size:12px;color:var(--ink-3);margin-top:var(--sp-3);line-height:1.6}
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="ab-hero"><div class="ab-crumb">樣品　/　雷達圖（假資料）</div><h1>成績單與考核後台的雷達圖</h1></section>
+
+  <h2>① 成績單詳情：這張成績單的七面向（兩個題組平均）</h2>
+  <section class="glass panel two">
+    <div>
+      <dl><dt>考生</dt><dd>範例同仁乙（新人）</dd><dt>總分</dt><dd>89.5（合格線 70 分）</dd><dt>判定</dt><dd>及格</dd><dt>最弱面向</dt><dd style="color:var(--warning)">主動引導</dd></dl>
+      <span class="tag">基礎 D6</span> <span class="tag">進階 D7</span>
+      <div class="note">雷達圖為這張成績單所有題組的平均；下方保留各題組的面向表格當明細。</div>
+    </div>
+    <div class="chartwrap" id="r1"></div>
+  </section>
+
+  <h2>② 考核後台・人員歷史：七面向平均得分率</h2>
+  <section class="glass panel two">
+    <div class="chartwrap" id="r2"></div>
+    <div>
+      <table><thead><tr><th>面向</th><th class="num">平均得分率</th><th class="num">樣本數 n</th></tr></thead><tbody id="tb"></tbody></table>
+      <div class="legend"><span><i style="background:var(--accent)"></i>得分率</span><span><i style="background:var(--warning)"></i>最弱面向</span></div>
+      <div class="note">外圈 100%、環線 25／50／75；「—」代表該面向沒有資料（不適用不計入）。</div>
+    </div>
+  </section>
+  <p class="foot">由 貳輪嶼 製作</p>
+</main>
+<script src="../js/radar.js"></script>
+<script>
+var rows1=[['資訊正確性',100],['預設訊息運用',85],['問題掌握',100],['主動引導',55],['風險意識',85],['語氣與禮貌',70],['文字品質',70]];
+var rows2=[['資訊正確性',92],['預設訊息運用',70],['問題掌握',85],['主動引導',40],['風險意識',null],['語氣與禮貌',100],['文字品質',78]];
+function mk(a){var min=Math.min.apply(null,a.filter(function(x){return x[1]!==null}).map(function(x){return x[1]}));return a.map(function(x){return{name:x[0],pct:x[1],weak:x[1]!==null&&x[1]===min}})}
+var m1=mk(rows1),m2=mk(rows2);
+document.getElementById('r1').innerHTML=Radar.svg(m1,'七面向：'+m1.map(function(r){return r.name+' '+r.pct+'%'}).join('、'));
+document.getElementById('r2').innerHTML=Radar.svg(m2,'七面向平均得分率');
+document.getElementById('tb').innerHTML=m2.map(function(r,i){return '<tr'+(r.weak?' class="weakrow"':'')+'><td>'+r.name+(r.weak?'（最弱）':'')+'</td><td class="num">'+(r.pct===null?'—':r.pct+'%')+'</td><td class="num">'+[6,6,6,6,0,6,5][i]+'</td></tr>'}).join('');
+</script>
+</body>
+</html>
