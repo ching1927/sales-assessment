@@ -33,7 +33,7 @@
 - 考官備註文字對主管與店長可見｜`supabase/notes_visible_schema.sql`、`supabase/notes_visible_verify_fake.sql`（驗證，結尾自動復原）、`supabase/README_notes_visible.md`、`assess.html`、`reports.html`、`js/assess-api.js`｜備註改存 assessment_items.note（舊 secrets.note 停用並清空）；客服部、主管、同門市店長讀得到（主管與店長限已送出未作廢）；備註框與附圖區提醒考官不要貼腳本或考點
 - 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址
 - 成績單（所有已開通角色）｜`reports.html`｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
-- 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`reports.html`｜頁首黑底導覽列（貳輪嶼 LOGO、圖示分頁、目前頁黃底、頭像、登出圖示；窄螢幕分頁自成一行、信箱隱藏只留角色標籤）；分頁順序：進行考核（客服部）、成績單、考核後台、人員名冊、題庫管理（客服部）、帳號管理（客服部）；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」
+- 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`reports.html`｜頁首黑底導覽列（貳輪嶼 LOGO、圖示分頁、目前頁黃底、頭像、登出圖示；窄螢幕分頁自成一行、信箱隱藏只留角色標籤）；分頁順序：人員名冊、進行考核（客服部）、成績單、考核後台、題庫管理（客服部）、帳號管理（客服部）；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」
 
 ### 題庫管理（正式版；bank_schema.sql 已在 Supabase 執行，162 項驗證通過；老闆用測試分類實測通過）
 
@@ -49,7 +49,7 @@
 ### 考核後台（正式版；SQL 已在 Supabase 執行，161 項驗證通過；網頁尚未用真實登入實測）
 
 - 考核後台頁｜`backoffice.html`、`js/backoffice-api.js`｜所有已開通角色可進；三個分頁「人員歷史」「弱項分析」「改善單」，網址 #history、#insights、#tickets；資料皆讀資料庫（不查機密表）；改善單動作呼叫 improve_update_plan／improve_close／improve_cancel（客服部）、improve_mark_coached（店長自己門市或客服部）；主管只讀；已取消單只有客服部看得到；主管與店長視角的改善單紀錄不顯示他人信箱（頁首仍顯示自己的信箱）
-- 導覽「考核後台」｜`roster.html`、`assess.html`、`reports.html`、`accounts.html`｜所有已開通角色看得到；順序：進行考核（客服部）、成績單、考核後台、人員名冊、題庫管理（客服部）、帳號管理（客服部）
+- 導覽「考核後台」｜`roster.html`、`assess.html`、`reports.html`、`accounts.html`｜所有已開通角色看得到；順序：人員名冊、進行考核（客服部）、成績單、考核後台、題庫管理（客服部）、帳號管理（客服部）
 - 自動開單與自動取消｜資料庫觸發器（backoffice_schema.sql）｜成績單送出且判定需複訓或不及格時自動開單（期限 14 天）；成績單作廢時 open／coached 的單自動取消；**上線後要用真實流程送一張不及格成績單驗證**
 
 ### 考核後台（樣品與設計稿，已被正式版取代）
