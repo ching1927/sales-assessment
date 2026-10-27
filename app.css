@@ -28,7 +28,7 @@ body{background:radial-gradient(60% 40% at 90% 0%,rgba(6,105,235,.08),transparen
   display:grid;place-items:center;transition:background var(--dur-micro) var(--ease)}
 .ab-icon:hover{background:rgba(255,255,255,.2)}
 .ab-icon svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-@media (max-width:1130px){
+@media (max-width:1280px){
   :root{--ab-h:116px}
   .ab-in{flex-wrap:wrap;height:auto;padding-top:10px;padding-bottom:10px;row-gap:10px}
   .ab-me{margin-left:auto}
@@ -57,7 +57,7 @@ th{font-weight:700;letter-spacing:.3px}
 body .script{top:calc(var(--ab-h) + var(--sp-4));max-height:calc(100vh - var(--ab-h) - 32px)}
 body .formcol{top:calc(var(--ab-h) + var(--sp-4))}
 #formCol{scroll-margin-top:calc(var(--ab-h) + var(--sp-4))}
-@media (max-width:1130px){
+@media (max-width:1280px){
   .ab-me-txt{display:block}
   .ab-me-txt b{display:none}
 }

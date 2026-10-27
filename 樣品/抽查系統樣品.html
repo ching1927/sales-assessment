@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>抽查系統樣品（假資料）</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../app.css">
+<style>
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+h2{font-size:18px;margin:var(--sp-6) 0 var(--sp-3)}
+.panel{padding:var(--sp-6);margin-bottom:var(--sp-4)}
+.rules{font-size:14px;line-height:1.8;color:var(--ink-2)}
+.rules b{color:var(--ink)}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:14px;font-family:inherit;color:var(--ink);width:100%}
+textarea.ctrl{min-height:72px;resize:vertical}
+label{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3)}
+.dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-3);margin:var(--sp-3) 0}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--specular),var(--hairline);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.sm{padding:4px 12px;min-height:30px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--ink-line);vertical-align:middle}
+th{font-size:12px;color:var(--ink-2)}
+tr.void td{color:var(--ink-3);text-decoration:line-through}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700}
+.tag.y{background:var(--ci-yellow);color:var(--ci-black)}
+.tag.r{background:var(--danger);color:#fff}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.gray{background:var(--track);color:var(--ink-2)}
+.meter{display:inline-flex;gap:4px;vertical-align:middle;margin-right:8px}
+.meter i{width:14px;height:14px;border-radius:4px;background:var(--track)}
+.meter i.on{background:var(--ci-yellow);box-shadow:0 0 0 1px var(--ci-black)}
+.meter.r i.on{background:var(--danger);box-shadow:none}
+.alert{border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);background:var(--danger-soft);color:var(--danger);font-weight:600;font-size:14px;display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;justify-content:space-between}
+.alert.done{background:var(--track);color:var(--ink-2)}
+.log{font-size:13px;color:var(--ink-2);margin-top:var(--sp-3);line-height:1.7}
+.sub{font-size:12px;color:var(--ink-3)}
+.note{font-size:12px;color:var(--ink-3);margin-top:var(--sp-3);line-height:1.6}
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="ab-hero"><div class="ab-crumb">樣品　/　抽查（假資料）</div><h1>抽查系統：黃單、紅單與回考核期</h1></section>
+
+  <section class="glass panel rules">
+    <b>規則：</b>抽查對象是「正式業務」，包含通過新人考核列入正式的人，以及系統上線前就已入職的正式業務。客服部每次抽查判定「適當／不適當」並用七面向打分；判定<b>不適當</b>就開一張<b>黃單</b>（觀察單）。
+    同一人當月（日曆月）累積 <b>5</b> 張有效黃單，自動開<b>紅單</b>（改善紅單），黃單重新從 0 算。同一人日曆季內累積 <b>2</b> 張紅單，標示「建議移除官方 LINE 回覆權限」並<b>回到考核期</b>，要通過<b>正式員工 85 分</b>才算過。評錯的單可作廢（寫原因、不刪除）。
+  </section>
+
+  <div id="alerts"></div>
+
+  <h2>人員抽查狀態</h2>
+  <section class="glass panel" style="padding:0"><div class="scroll"><table>
+    <thead><tr><th>人員</th><th>門市</th><th>本月黃單（滿 5 開紅單）</th><th>本季紅單（滿 2 移除權限）</th><th>狀態</th></tr></thead>
+    <tbody id="stateBody"></tbody></table></div></section>
+
+  <h2>登記一次抽查（客服部）</h2>
+  <section class="glass panel">
+    <div class="grid">
+      <div><label for="emp">被抽查人員</label><select class="ctrl" id="emp"></select></div>
+      <div><label for="day">抽查日期</label><input class="ctrl" type="date" id="day"></div>
+      <div><label for="verdict">判定</label><select class="ctrl" id="verdict"><option value="適當">適當</option><option value="不適當">不適當（開黃單）</option></select></div>
+    </div>
+    <label for="msg">抽到的訊息（文字，或寫截圖位置）</label>
+    <textarea class="ctrl" id="msg" placeholder="例：客人詢問車況，業務回覆……"></textarea>
+    <div class="dims" id="dims"></div>
+    <label for="why">原因／說明（判定不適當時必填）</label>
+    <textarea class="ctrl" id="why" placeholder="例：沒有確認客人需求就直接報價"></textarea>
+    <div style="display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3);flex-wrap:wrap">
+      <button class="btn primary" id="go" type="button">登記這次抽查</button>
+      <span class="sub" id="scorePv">本次分數：—</span>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <h2>單據清單（黃單、紅單）</h2>
+  <section class="glass panel" style="padding:0"><div class="scroll"><table>
+    <thead><tr><th>日期</th><th>種類</th><th>人員</th><th>原因</th><th>狀態</th><th></th></tr></thead>
+    <tbody id="tickBody"></tbody></table></div></section>
+  <p class="note">樣品說明：資料為假資料，操作不會存到任何地方；重新整理會回到初始狀態。試試看：對「範例同仁甲」登記一次不適當（本月第 5 張黃單，自動開紅單）；對「範例同仁丙」登記一次不適當（本月第 5 張黃單，開出本季第 2 張紅單，標示建議移除權限並回考核期）。</p>
+  <p class="foot">由 貳輪嶼 製作</p>
+</main>
+<script>
+var DIMS = [['資訊正確性', 20], ['預設訊息運用', 15], ['問題掌握', 15], ['主動引導', 15], ['風險意識', 15], ['語氣與禮貌', 10], ['文字品質', 10]];
+var LV = { '優': 100, '良': 70, '待加強': 40, '不及格': 0, '不適用': null };
+var TODAY = new Date('2026-10-22T09:00:00+08:00');
+function ds(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+var EMP = [
+  { id: 'MI-0001', name: '範例同仁甲', store: '範例門市一' },
+  { id: 'MI-0002', name: '範例同仁乙', store: '範例門市一' },
+  { id: 'MI-0003', name: '範例同仁丙', store: '範例門市二' }
+];
+var T = [], seq = 0, probation = {}, removalDone = {};
+function add(type, emp, day, why) { T.push({ id: ++seq, type: type, emp: emp, day: day, why: why, void: false, at: seq }); }
+// 假資料：甲本月 4 黃；丙本季已 1 紅、紅單之後本月又 4 黃；乙 1 黃
+['2026-10-02', '2026-10-06', '2026-10-13', '2026-10-19'].forEach(function (d, i) {
+  add('黃', 'MI-0001', d, ['沒確認需求就報價', '回覆含錯字', '語氣不夠客氣', '漏回客人第二個問題'][i]);
+});
+add('黃', 'MI-0002', '2026-10-15', '未使用預設訊息');
+add('紅', 'MI-0003', '2026-10-05', '本月累積 5 張黃單，自動開立');
+['2026-10-08', '2026-10-12', '2026-10-16', '2026-10-20'].forEach(function (d, i) {
+  add('黃', 'MI-0003', d, ['價格資訊不正確', '缺少主動引導', '風險說明不足', '文字品質'][i]);
+});
+function ym(d) { return d.slice(0, 7); }
+function qOf(d) { return d.slice(0, 4) + 'Q' + Math.ceil(+d.slice(5, 7) / 3); }
+function valid(t) { return !t.void; }
+function lastRed(emp, month) {
+  var r = T.filter(function (t) { return t.type === '紅' && valid(t) && t.emp === emp && ym(t.day) === month; });
+  return r.length ? Math.max.apply(null, r.map(function (t) { return t.at; })) : 0;
+}
+function yellowCount(emp, month) {
+  var lr = lastRed(emp, month);
+  return T.filter(function (t) { return t.type === '黃' && valid(t) && t.emp === emp && ym(t.day) === month && t.at > lr; }).length;
+}
+function redCount(emp, q) {
+  return T.filter(function (t) { return t.type === '紅' && valid(t) && t.emp === emp && qOf(t.day) === q; }).length;
+}
+function evalRules(emp, day) {
+  var out = [];
+  if (yellowCount(emp, ym(day)) >= 5) {
+    add('紅', emp, day, '本月累積 5 張黃單，自動開立');
+    out.push('本月累積滿 5 張黃單，已自動開立一張改善紅單，黃單重新從 0 算。');
+  }
+  if (redCount(emp, qOf(day)) >= 2 && !probation[emp]) {
+    probation[emp] = true; removalDone[emp] = false;
+    out.push('本季累積 2 張紅單：建議移除官方 LINE 回覆權限，並已回到考核期。');
+  }
+  return out;
+}
+function nm(id) { return EMP.filter(function (e) { return e.id === id; })[0].name; }
+function meter(n, max, cls) {
+  var s = '<span class="meter ' + (cls || '') + '">';
+  for (var i = 0; i < max; i++) s += '<i class="' + (i < n ? 'on' : '') + '"></i>';
+  return s + '</span>' + n + ' / ' + max;
+}
+function render() {
+  var m = ym(ds(TODAY)), q = qOf(ds(TODAY));
+  document.getElementById('stateBody').innerHTML = EMP.map(function (e) {
+    var y = yellowCount(e.id, m), r = redCount(e.id, q);
+    var st = probation[e.id] ? '<span class="tag r">回考核期（需 85 分）</span>'
+      : (y >= 4 ? '<span class="tag y">再 1 張黃單就開紅單</span>' : '<span class="tag ok">正常</span>');
+    return '<tr><td><b>' + e.name + '</b><div class="sub">' + e.id + '</div></td><td>' + e.store + '</td><td>' + meter(y, 5) + '</td><td>' + meter(r, 2, 'r') + '</td><td>' + st + '</td></tr>';
+  }).join('');
+  document.getElementById('alerts').innerHTML = EMP.filter(function (e) { return probation[e.id]; }).map(function (e) {
+    return removalDone[e.id]
+      ? '<div class="alert done">' + e.name + '：已執行移除官方 LINE 回覆權限，並回到考核期（正式員工 85 分才算通過）。</div>'
+      : '<div class="alert"><span>' + e.name + '：本季累積 2 張紅單，建議移除官方 LINE 回覆權限；已回到考核期（正式員工 85 分才算通過）。</span><button class="btn sm danger" data-done="' + e.id + '" type="button">已關閉 LINE 權限，標記已執行</button></div>';
+  }).join('');
+  document.getElementById('tickBody').innerHTML = T.slice().sort(function (a, b) { return b.at - a.at; }).map(function (t) {
+    return '<tr class="' + (t.void ? 'void' : '') + '"><td>' + t.day + '</td><td><span class="tag ' + (t.type === '紅' ? 'r' : 'y') + '">' + t.type + '單</span></td><td>' + nm(t.emp) + '</td><td>' + t.why + (t.void ? '（已作廢：' + t.voidWhy + '）' : '') + '</td><td>' + (t.void ? '<span class="tag gray">已作廢</span>' : '<span class="tag ok">有效</span>') + '</td><td>' + (t.void ? '' : '<button class="btn sm" data-void="' + t.id + '" type="button">作廢</button>') + '</td></tr>';
+  }).join('');
+}
+function scoreNow() {
+  var s = 0, w = 0;
+  DIMS.forEach(function (d, i) {
+    var v = LV[document.getElementById('d' + i).value];
+    if (v !== null) { s += v * d[1]; w += d[1]; }
+  });
+  return w ? Math.round(s / w * 10) / 10 : null;
+}
+function showScore() { var s = scoreNow(); document.getElementById('scorePv').textContent = '本次分數：' + (s === null ? '—' : s); }
+(function init() {
+  document.getElementById('emp').innerHTML = EMP.map(function (e) { return '<option value="' + e.id + '">' + e.name + '（' + e.store + '）</option>'; }).join('');
+  document.getElementById('day').value = ds(TODAY);
+  document.getElementById('dims').innerHTML = DIMS.map(function (d, i) {
+    return '<div><label for="d' + i + '">' + d[0] + '（' + d[1] + '）</label><select class="ctrl" id="d' + i + '">' +
+      Object.keys(LV).map(function (k) { return '<option' + (k === '良' ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select></div>';
+  }).join('');
+  document.getElementById('dims').addEventListener('change', showScore);
+  document.getElementById('go').addEventListener('click', function () {
+    var emp = document.getElementById('emp').value, day = document.getElementById('day').value,
+        v = document.getElementById('verdict').value, why = document.getElementById('why').value.trim(),
+        log = document.getElementById('log');
+    if (v === '不適當' && !why) { log.textContent = '判定不適當時，原因必填。'; return; }
+    var s = scoreNow();
+    var lines = ['已登記：' + nm(emp) + '，' + day + '，判定「' + v + '」，七面向分數 ' + (s === null ? '—' : s) + '。'];
+    if (v === '不適當') {
+      add('黃', emp, day, why);
+      lines.push('已開立一張黃單。');
+      lines = lines.concat(evalRules(emp, day));
+    }
+    log.innerHTML = lines.join('<br>');
+    document.getElementById('why').value = '';
+    render();
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.done) { removalDone[b.dataset.done] = true; render(); }
+    if (b.dataset.void) {
+      var r = prompt('作廢原因（必填）'); if (!r || !r.trim()) return;
+      var t = T.filter(function (x) { return String(x.id) === b.dataset.void; })[0];
+      t.void = true; t.voidWhy = r.trim(); render();
+    }
+  });
+  showScore(); render();
+})();
+</script>
+</body>
+</html>

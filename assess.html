@@ -214,6 +214,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         <a class="ab-tab on" href="assess.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
         <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
         <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab" href="spotcheck.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>抽查</a>
         <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
         <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
         </nav>
@@ -446,7 +447,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       drafts.forEach(function (d) {
         h += '<div class="dcard"><div class="l1"><span>' + esc(d.employee_label) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(d.employee_id) + '</span>' +
           '<span class="tag ' + (TAG[d.tenure] || 'unk') + '">' + esc(d.tenure) + '</span>' +
-          (d.tenure_source === '手動指定' ? '<span class="tag unk">手動指定</span>' : '') + '</div>' +
+          (d.tenure_source === '手動指定' ? '<span class="tag unk">手動指定</span>' : '') +
+          (d.tenure_source === '考核期' ? '<span class="tag out">考核期</span>' : '') + '</div>' +
           '<div class="l2">' + esc(storeName[d.store_code] || d.store_code) + '・開始於 ' + esc(stamp(d.created_at)) + '</div>' +
           '<div class="ops"><button type="button" class="btn sm primary" data-act="resume" data-id="' + esc(d.id) + '">繼續</button>' +
           '<button type="button" class="link warn" data-act="dropdraft" data-id="' + esc(d.id) + '">放棄</button></div></div>';
@@ -576,7 +578,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       '<div class="vs">總分 ' + fmt(res.total) + ' 分（合格線 ' + res.passLine + ' 分・' + esc(S.emp.tenure) + '）</div></div>';
     h += '<section class="panel glass"><h2>4 結算</h2><dl class="kv">' +
       '<dt>考生</dt><dd>' + esc(S.emp.label) + '（' + esc(S.emp.id) + '）' + esc(storeName[S.emp.store] || S.emp.store) + '</dd>' +
-      '<dt>考核時身分</dt><dd>' + esc(S.emp.tenure) + (isManual() ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + '</dd>' +
+      '<dt>考核時身分</dt><dd>' + esc(S.emp.tenure) + (isManual() ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + (S.emp.source === '考核期' ? '<span class="tag out" style="margin-left:6px">考核期</span>' : '') + '</dd>' +
       '<dt>總分</dt><dd>' + fmt(res.total) + '（' + S.items.length + ' 個題組的平均）</dd>' +
       '<dt>最弱面向</dt><dd>' + res.weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') + '</dd></dl></section>';
     h += '<section class="panel glass"><h2>各題組七面向分數</h2>' + dimTable(
@@ -615,7 +617,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       '<div class="vs">總分 ' + fmt(total) + ' 分（合格線 ' + esc(db.pass_line) + ' 分・' + esc(db.tenure) + '）</div></div>';
     h += '<section class="panel glass"><dl class="kv">' +
       '<dt>考生</dt><dd>' + esc(f.emp.label) + '（' + esc(f.emp.id) + '）' + esc(storeName[f.emp.store] || f.emp.store) + '</dd>' +
-      '<dt>考核時身分</dt><dd>' + esc(db.tenure) + (f.emp.source === '手動指定' ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + '</dd>' +
+      '<dt>考核時身分</dt><dd>' + esc(db.tenure) + (f.emp.source === '手動指定' ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + (f.emp.source === '考核期' ? '<span class="tag out" style="margin-left:6px">考核期</span>' : '') + '</dd>' +
       '<dt>總分</dt><dd>' + fmt(total) + '（' + esc(db.item_count) + ' 個題組的平均）</dd>' +
       '<dt>最弱面向</dt><dd>' + weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') + '</dd></dl></section>';
     h += '<section class="panel glass"><h2>各題組分數</h2>' + dimTable(

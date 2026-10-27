@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>抽查</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<style>
+/* 公版 tokens 沒有的兩個中性色（與其他頁相同）：純白（按鈕字、對話框底）、對話框遮罩 */
+body{--surface-solid:#fff;--scrim:rgba(15,23,42,0.30)}
+[hidden]{display:none!important}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button:disabled{cursor:not-allowed;opacity:.5}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+h2.sec{font-size:18px;margin:var(--sp-6) 0 var(--sp-3)}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:16px}
+textarea.ctrl{min-height:72px;resize:vertical}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease);text-decoration:none;display:inline-block;cursor:pointer}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:var(--surface-solid);border-color:var(--accent)}
+.btn.danger{background:var(--danger);color:var(--surface-solid);border-color:var(--danger)}
+.btn.outdanger{color:var(--danger)}
+.btn.sm{padding:5px 12px;min-height:32px;font-size:13px}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.toolbar .grow{flex:1 1 160px;min-width:130px}
+.count{margin-left:auto;color:var(--ink-2);font-size:13px}
+.tablebox{padding:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line);vertical-align:middle}
+th{font-size:12px;color:var(--ink-2);font-weight:600;background:var(--glass-bg-strong)}
+tbody tr:last-child td{border-bottom:none}
+td.wrap{white-space:normal;min-width:200px;overflow-wrap:anywhere}
+tr.void td{color:var(--ink-3)}
+tr.void td.nostrike{text-decoration:none}
+tr.void td.strike{text-decoration:line-through}
+.mono{font-family:var(--mono)}
+.sub{font-size:12px;color:var(--ink-3)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;margin:1px 2px 1px 0}
+.tag.y{background:var(--ci-yellow);color:var(--ci-black)}
+.tag.r{background:var(--danger);color:var(--surface-solid)}
+.tag.ok{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.gray{background:var(--track);color:var(--ink-2)}
+.meter{display:inline-flex;gap:4px;vertical-align:middle;margin-right:8px}
+.meter i{width:14px;height:14px;border-radius:4px;background:var(--track)}
+.meter i.on{background:var(--ci-yellow);box-shadow:0 0 0 1px var(--ci-black)}
+.meter.r i.on{background:var(--danger);box-shadow:none}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+.note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3);line-height:1.6}
+.intro{font-size:14px;line-height:1.8;color:var(--ink-2);padding:var(--sp-4) var(--sp-6);margin-bottom:var(--sp-4)}
+.intro b{color:var(--ink)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.msg.ok{background:var(--success-soft);color:var(--success);font-weight:600}
+.msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
+.alert{border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);background:var(--danger-soft);color:var(--danger);font-weight:600;font-size:14px;display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;justify-content:space-between}
+.alert.done{background:var(--track);color:var(--ink-2)}
+.alert .ops{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+.panel{padding:var(--sp-6);margin-bottom:var(--sp-4)}
+label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:4px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3)}
+.dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-3);margin:var(--sp-3) 0}
+.panel .ctrl{width:100%}
+.regfoot{display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3);flex-wrap:wrap}
+.log{font-size:13px;color:var(--ink-2);margin-top:var(--sp-3);line-height:1.7}
+.txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
+dialog::backdrop{background:var(--scrim)}
+.dlg{padding:var(--sp-6)}
+.dlg h2{font-size:19px;margin-bottom:var(--sp-3)}
+.dlg p{font-size:14px;line-height:1.6;color:var(--ink-2)}
+.actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
+.field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
+.field textarea,.field input[type=date]{display:block;width:100%;margin-top:6px;font-weight:400}
+.field textarea{min-height:100px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);font-size:14px;color:var(--ink)}
+.chk input{width:22px;height:22px;flex:0 0 auto}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);padding:12px 20px;border-radius:var(--r-ctrl);
+  background:var(--ink);color:var(--surface-solid);font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)}
+@media (max-width:640px){
+  .panel{padding:var(--sp-4)}
+  .intro{padding:var(--sp-4)}
+}
+@media (max-width:480px){
+  .toolbar .ctrl{flex:1 1 100%}
+  .count{margin-left:0}
+  .dlg{padding:var(--sp-4)}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <header class="ab-bar">
+      <div class="ab-in">
+        <a class="ab-brand" href="roster.html" aria-label="貳輪嶼 MOTOR ISLAND"><img src="img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND"></a>
+        <nav class="ab-tabs" aria-label="主要功能">
+        <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
+        <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
+        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
+        <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab on" href="spotcheck.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>抽查</a>
+        <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
+        <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
+        </nav>
+        <div class="ab-me">
+          <div class="ab-me-txt"><b id="whoEmail"></b><span class="ab-role" id="whoBadge"></span></div>
+          <div class="ab-avatar" id="whoAvatar" aria-hidden="true"></div>
+          <button class="ab-icon" id="logout" type="button" aria-label="登出" title="登出"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+        </div>
+      </div>
+    </header>
+    <section class="ab-hero">
+      <div class="ab-crumb">考核　/　抽查</div>
+      <h1>抽查</h1>
+    </section>
+
+    <div class="msg err" id="pageMsg" role="alert" hidden></div>
+
+    <section class="glass intro">
+      <b>規則：</b>抽查對象是「正式業務」。客服部每次抽查判定「適當／不適當」並用七面向打分；判定<b>不適當</b>就開一張<b>黃單</b>（觀察單）。
+      同一人當月（日曆月）紅單之後累積 <b>5</b> 張有效黃單，自動開<b>紅單</b>（改善紅單），黃單重新從 0 算。同一人日曆季內有效紅單滿 <b>2</b> 張，標示「建議移除官方 LINE 回覆權限」並<b>回到考核期</b>，要通過<b>正式員工 85 分</b>才算過。評錯的單可作廢（寫原因、不刪除），但作廢不會倒回已開出的紅單或回考核期。
+    </section>
+
+    <div id="alerts"></div>
+
+    <h2 class="sec">人員抽查狀態</h2>
+    <section class="tablebox glass">
+      <div class="scroll" tabindex="0" aria-label="人員抽查狀態表，可左右捲動">
+        <table style="min-width:640px">
+          <thead><tr><th>人員</th><th>門市</th><th>本月黃單（滿 5 開紅單）</th><th>本季紅單（滿 2 移除權限）</th><th>狀態</th></tr></thead>
+          <tbody id="stBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="stEmpty" hidden>目前沒有可顯示的人員</div>
+    </section>
+
+    <div id="regWrap" hidden>
+      <h2 class="sec">登記一次抽查（客服部）</h2>
+      <form class="glass panel" id="regForm" novalidate>
+        <div class="fgrid">
+          <div><label class="lb" for="rEmp">被抽查人員</label><select class="ctrl" id="rEmp"></select></div>
+          <div><label class="lb" for="rDay">抽查日期</label><input class="ctrl" type="date" id="rDay"></div>
+          <div><label class="lb" for="rVerdict">判定</label><select class="ctrl" id="rVerdict"><option value="適當">適當</option><option value="不適當">不適當（開黃單）</option></select></div>
+        </div>
+        <label class="lb" for="rMsg">抽到的訊息（文字，或寫截圖位置）</label>
+        <textarea class="ctrl" id="rMsg" placeholder="例：客人詢問車況，業務回覆……"></textarea>
+        <div class="dims" id="rDims"></div>
+        <label class="lb" for="rWhy">原因／說明（判定不適當時必填）</label>
+        <textarea class="ctrl" id="rWhy" placeholder="例：沒有確認客人需求就直接報價"></textarea>
+        <div class="regfoot">
+          <button class="btn primary" id="rGo" type="submit">登記這次抽查</button>
+          <span class="sub" id="rScore">本次分數：—</span>
+        </div>
+        <div class="msg err" id="rErr" role="alert" hidden></div>
+        <div class="log" id="rLog" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+
+    <h2 class="sec">單據清單（黃單、紅單）</h2>
+    <section class="toolbar glass" aria-label="篩選">
+      <select class="ctrl" id="fKind" aria-label="種類篩選"><option value="">全部種類</option><option value="黃">黃單</option><option value="紅">紅單</option></select>
+      <select class="ctrl grow" id="fEmp" aria-label="人員篩選"></select>
+      <select class="ctrl" id="fStatus" aria-label="狀態篩選"><option value="">全部狀態</option><option value="有效">有效</option><option value="作廢">已作廢</option></select>
+      <span class="count" id="tCount" aria-live="polite"></span>
+    </section>
+    <section class="tablebox glass">
+      <div class="scroll" tabindex="0" aria-label="單據清單，可左右捲動">
+        <table style="min-width:900px">
+          <thead><tr><th>日期</th><th>種類</th><th>人員</th><th>門市</th><th>原因</th><th>狀態</th><th>輔導</th><th id="thOps">操作</th></tr></thead>
+          <tbody id="tBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="tEmpty" hidden>沒有符合條件的單據</div>
+    </section>
+    <p class="note" id="roleNote"></p>
+  </div>
+
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/spotcheck-api.js"></script>
+<script>
+(function () {
+  var DIMS = Scoring.DIMENSIONS;
+  var NA = Scoring.NOT_APPLICABLE;
+  var LEVEL_NAMES = Object.keys(Scoring.LEVELS).concat([NA]);   // 優、良、待加強、不及格、不適用
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+  function today() { return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 10); }
+
+  // ====== 狀態 ======
+  var me = null, stores = [], storeName = {};
+  var statusRows = [], tickets = [], probs = [], cands = [];
+  var busy = false, dyn = [];
+
+  function isCS() { return !!me && me.role === 'cs_admin'; }
+  function isMgr() { return !!me && me.role === 'store_manager'; }
+  function errText(e) { return (e && e.userMessage) || SpotApi.explain(e); }
+  function sName(code) { return storeName[code] || code || '—'; }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { SpotApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text) {
+    $('loading').hidden = true; $('app').hidden = true;
+    $('blockedText').textContent = text; $('blocked').hidden = false;
+  }
+  function showPageMsg(t) { var m = $('pageMsg'); m.textContent = t; m.hidden = !t; }
+  function toast(t) {
+    var el = $('toast'); el.textContent = t; el.hidden = false;
+    clearTimeout(toast.tm); toast.tm = setTimeout(function () { el.hidden = true; }, 3200);
+  }
+  // 客服部可輔導任何單；店長只能輔導自己門市的單（資料庫另外把關）
+  function canCoach(t) { return t.status === '有效' && (isCS() || (isMgr() && t.store_code === me.store_code)); }
+  function canVoid(t) { return isCS() && t.status === '有效'; }
+
+  // ====== 畫面：警示列 ======
+  function renderAlerts() {
+    var list = probs.filter(function (p) { return p.status === '待執行' || p.status === '已執行'; });
+    $('alerts').innerHTML = list.map(function (p) {
+      var name = esc(p.employee_label || p.employee_id);
+      if (p.status === '待執行') {
+        return '<div class="alert"><span>' + name + '（' + esc(sName(p.store_code)) + '）：本季累積 2 張紅單，建議移除官方 LINE 回覆權限；已回到考核期（正式員工 85 分才算通過）。觸發日 ' + esc(p.triggered_on) + '。</span>' +
+          (isCS() ? '<span class="ops"><button class="btn sm danger" data-exec="' + esc(p.id) + '" type="button">已關閉 LINE 權限，標記已執行</button>' +
+            '<button class="btn sm outdanger" data-cancelp="' + esc(p.id) + '" type="button">取消回考核期</button></span>' : '') + '</div>';
+      }
+      return '<div class="alert done"><span>' + name + '（' + esc(sName(p.store_code)) + '）：已於 ' + esc(p.executed_on || '—') + ' 執行移除官方 LINE 回覆權限，並回到考核期（正式員工 85 分才算通過）。</span>' +
+        (isCS() ? '<span class="ops"><button class="btn sm outdanger" data-cancelp="' + esc(p.id) + '" type="button">取消回考核期</button></span>' : '') + '</div>';
+    }).join('');
+  }
+
+  // ====== 畫面：人員抽查狀態 ======
+  function meter(n, max, cls) {
+    var s = '<span class="meter ' + (cls || '') + '" role="img" aria-label="' + n + ' / ' + max + '">';
+    for (var i = 0; i < max; i++) s += '<i class="' + (i < n ? 'on' : '') + '"></i>';
+    return s + '</span>' + n + ' / ' + max;
+  }
+  function renderStatus() {
+    var rows = statusRows.slice().sort(function (a, b) {
+      return SpotApi.storeRank(a.store_code) - SpotApi.storeRank(b.store_code) || cmp(a.employee_id, b.employee_id);
+    });
+    $('stBody').innerHTML = rows.map(function (r) {
+      var y = Number(r.yellow_month) || 0, q = Number(r.red_quarter) || 0;
+      var ps = r.probation_status;
+      var st = ps === '待執行' ? '<span class="tag r">回考核期（需 85 分）</span><span class="tag gray">待移除 LINE 權限</span>'
+        : ps === '已執行' ? '<span class="tag r">回考核期（需 85 分）</span><span class="tag gray">已移除 LINE 權限</span>'
+        : y >= 4 ? '<span class="tag y">再 1 張黃單就開紅單</span>'
+        : '<span class="tag ok">正常</span>';
+      return '<tr><td><b>' + esc(r.employee_label || r.employee_id) + '</b> <span class="mono sub">' + esc(r.employee_id) + '</span></td><td>' + esc(sName(r.store_code)) + '</td>' +
+        '<td>' + meter(Math.min(y, 5), 5) + (y > 5 ? '（' + y + '）' : '') + '</td><td>' + meter(Math.min(q, 2), 2, 'r') + (q > 2 ? '（' + q + '）' : '') + '</td><td>' + st + '</td></tr>';
+    }).join('');
+    $('stEmpty').hidden = rows.length > 0;
+  }
+
+  // ====== 畫面：登記表單 ======
+  function buildForm() {
+    $('rDims').innerHTML = DIMS.map(function (d, i) {
+      return '<div><label class="lb" for="rd' + i + '">' + esc(d.name) + '（' + d.weight + '）</label><select class="ctrl" id="rd' + i + '">' +
+        LEVEL_NAMES.map(function (k) { return '<option value="' + esc(k) + '"' + (k === '良' ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select></div>';
+    }).join('');
+    $('rDay').value = today();
+    showScore();
+  }
+  function fillCands() {
+    var cur = $('rEmp').value;
+    var sorted = cands.slice().sort(function (a, b) { return SpotApi.storeRank(a.store_code) - SpotApi.storeRank(b.store_code) || cmp(a.id, b.id); });
+    $('rEmp').innerHTML = '<option value="">請選擇被抽查人員</option>' + sorted.map(function (c) {
+      var nm = (c.nickname || '').trim() || (c.full_name || '').trim() || c.id;
+      return '<option value="' + esc(c.id) + '">' + esc(nm + '（' + sName(c.store_code) + '・' + c.id + '）') + '</option>';
+    }).join('');
+    if (cur && Array.prototype.some.call($('rEmp').options, function (o) { return o.value === cur; })) $('rEmp').value = cur;
+  }
+  function readLevels() {
+    var lv = {};
+    DIMS.forEach(function (d, i) { lv[d.name] = $('rd' + i).value; });
+    return lv;
+  }
+  function showScore() {
+    var r = Scoring.scoreItem(readLevels());
+    $('rScore').textContent = r.ok ? '本次分數：' + r.score :'本次分數：—';
+    return r;
+  }
+  function resultLines(label, day, verdict, res, score) {
+    var d = res && Array.isArray(res) ? res[0] : res;
+    d = d || {};
+    var lines = ['已登記：' + label + '，' + day + '，判定「' + verdict + '」，七面向分數 ' + (d.total_score != null ? d.total_score : score) + '。'];
+    if (d.weakest_dims && d.weakest_dims.length) lines.push('最弱面向：' + d.weakest_dims.join('、') + '。');
+    if (d.yellow_id) lines.push('已開立一張黃單。');
+    if (d.red_id) lines.push('本月累積滿 5 張黃單，已自動開立一張改善紅單，黃單重新從 0 算。');
+    if (d.probation_id) lines.push('本季累積 2 張紅單：建議移除官方 LINE 回覆權限，並已回到考核期。');
+    return lines;
+  }
+  function submitReg(ev) {
+    ev.preventDefault();
+    if (!isCS() || busy) return;
+    var err = $('rErr'); err.hidden = true;
+    var emp = $('rEmp').value, day = $('rDay').value, verdict = $('rVerdict').value, why = $('rWhy').value.trim(), msg = $('rMsg').value.trim();
+    var sc = showScore();
+    var m = !emp ? '請選擇被抽查人員。' : !day ? '請選擇抽查日期。'
+      : !sc.ok ? sc.error
+      : (verdict === '不適當' && !why) ? '判定不適當時，原因必填。' : '';
+    if (m) { err.textContent = m; err.hidden = false; return; }
+    var label = $('rEmp').options[$('rEmp').selectedIndex].text;
+    busy = true; $('rGo').disabled = true;
+    SpotApi.register(emp, day, msg, readLevels(), verdict, why).then(function (res) {
+      var lines = resultLines(label, day, verdict, res, sc.score);
+      $('rLog').innerHTML = lines.map(esc).join('<br>');
+      $('rWhy').value = ''; $('rMsg').value = ''; $('rVerdict').value = '適當';
+      toast('抽查已登記。');
+      return reloadAll(true).catch(function (e) { showPageMsg('已登記，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
+    }, function (e) { err.textContent = errText(e); err.hidden = false; })
+      .then(function () { busy = false; $('rGo').disabled = false; });
+  }
+
+  // ====== 畫面：單據清單 ======
+  function fillEmpFilter() {
+    var cur = $('fEmp').value, seen = {}, arr = [];
+    tickets.forEach(function (t) { if (!seen[t.employee_id]) { seen[t.employee_id] = 1; arr.push({ id: t.employee_id, label: t.employee_label || t.employee_id }); } });
+    arr.sort(function (a, b) { return cmp(a.id, b.id); });
+    $('fEmp').innerHTML = '<option value="">全部人員</option>' + arr.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.label + '（' + a.id + '）') + '</option>'; }).join('');
+    if (cur && seen[cur]) $('fEmp').value = cur;
+  }
+  function renderTickets() {
+    var k = $('fKind').value, e = $('fEmp').value, s = $('fStatus').value;
+    var showOps = isCS() || isMgr();
+    $('thOps').hidden = !showOps;
+    var list = tickets.filter(function (t) {
+      return (!k || t.kind === k) && (!e || t.employee_id === e) && (!s || t.status === s);
+    });
+    $('tBody').innerHTML = list.map(function (t) {
+      var vd = t.status === '作廢';
+      var reason = '<span class="txt">' + esc(t.reason || '—') + '</span>';
+      if (t.kind === '紅' && t.source_ticket_ids && t.source_ticket_ids.length) reason += '<div class="sub">由 ' + esc(t.source_ticket_ids.length) + ' 張黃單湊成</div>';
+      if (vd) reason += '<div class="sub">已作廢：<span class="txt">' + esc(t.void_reason || '—') + '</span></div>';
+      var coach = vd ? '<span class="sub">—</span>'
+        : t.coached_on ? '<span class="tag ok">已輔導</span> <span class="mono">' + esc(t.coached_on) + '</span><div class="sub txt">' + esc(t.coach_note || '') + '</div>'
+        : '<span class="sub">尚未輔導</span>';
+      var ops = '';
+      if (canCoach(t)) ops += '<button class="btn sm" data-coach="' + esc(t.id) + '" type="button">' + (t.coached_on ? '編輯輔導' : '回填輔導') + '</button> ';
+      if (canVoid(t)) ops += '<button class="btn sm outdanger" data-void="' + esc(t.id) + '" type="button">作廢</button>';
+      return '<tr class="' + (vd ? 'void' : '') + '"><td class="mono ' + (vd ? 'strike' : '') + '">' + esc(t.issued_on) + '</td>' +
+        '<td><span class="tag ' + (t.kind === '紅' ? 'r' : 'y') + '">' + esc(t.kind) + '單</span></td>' +
+        '<td class="' + (vd ? 'strike' : '') + '">' + esc(t.employee_label || t.employee_id) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td>' +
+        '<td>' + esc(sName(t.store_code)) + '</td><td class="wrap">' + reason + '</td>' +
+        '<td>' + (vd ? '<span class="tag gray">已作廢</span>' : '<span class="tag ok">有效</span>') + '</td>' +
+        '<td class="wrap nostrike" style="min-width:150px">' + coach + '</td>' +
+        (showOps ? '<td>' + ops + '</td>' : '') + '</tr>';
+    }).join('');
+    $('tEmpty').textContent = tickets.length ? '沒有符合條件的單據' : '目前沒有單據';
+    $('tEmpty').hidden = list.length > 0;
+    $('tCount').textContent = '共 ' + list.length + ' 張';
+  }
+  function ticketById(id) { return tickets.filter(function (t) { return t.id === id; })[0]; }
+  function probById(id) { return probs.filter(function (p) { return p.id === id; })[0]; }
+
+  // ====== 對話框與寫入動作 ======
+  function makeDlg(html) {
+    var d = document.createElement('dialog'); d.innerHTML = '<form class="dlg" novalidate>' + html + '</form>';
+    document.body.appendChild(d); dyn.push(d);
+    function rm() { if (d.open) d.close(); d.remove(); dyn = dyn.filter(function (x) { return x !== d; }); }
+    d.addEventListener('cancel', function () { setTimeout(rm, 0); });
+    d.querySelector('[data-no]').addEventListener('click', rm);
+    d.showModal();
+    return { el: d, rm: rm, q: function (sel) { return d.querySelector(sel); } };
+  }
+  // 送出一個寫入：成功才關對話框並重讀；失敗把函式回傳的訊息顯示在對話框內
+  function submitAct(D, btn, errSel, job, okMsg) {
+    var err = D.q(errSel);
+    if (busy) return;
+    busy = true; btn.disabled = true; err.hidden = true;
+    job().then(function () {
+      D.rm(); toast(okMsg);
+      return reloadAll(false).catch(function (e) { showPageMsg('已儲存，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
+    }, function (e) { err.textContent = errText(e); err.hidden = false; })
+      .then(function () { busy = false; btn.disabled = false; });
+  }
+
+  function actVoid(t) {
+    if (!canVoid(t)) return;
+    var D = makeDlg('<h2>作廢' + esc(t.kind) + '單</h2><p>' + esc(t.employee_label || t.employee_id) + '（' + esc(t.issued_on) + '）。作廢後不刪除、次數會少算；但不會倒回已開出的紅單或回考核期。</p>' +
+      '<label class="field">作廢原因（必填）<textarea class="ctrl" id="vReason"></textarea></label>' +
+      '<div class="msg err" id="vErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn danger" type="submit" id="vOk">確認作廢</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var txt = D.q('#vReason').value.trim(), err = D.q('#vErr');
+      if (!txt) { err.textContent = '請填寫作廢原因。'; err.hidden = false; return; }
+      submitAct(D, D.q('#vOk'), '#vErr', function () { return SpotApi.voidTicket(t.id, txt); }, '已作廢。');
+    });
+  }
+  function actCoach(t) {
+    if (!canCoach(t)) return;
+    var had = !!t.coached_on;
+    var D = makeDlg('<h2>' + (had ? '編輯輔導紀錄' : '回填輔導') + '</h2><p>' + esc(t.employee_label || t.employee_id) + '（' + esc(t.kind) + '單，' + esc(t.issued_on) + '）</p>' +
+      '<label class="field">輔導日期<input class="ctrl" type="date" id="cDate" value="' + esc(had ? t.coached_on : today()) + '"></label>' +
+      '<label class="field">輔導備註（必填，不限字數）<textarea class="ctrl" id="cNote" placeholder="請寫下輔導的內容與之後的追蹤方式"></textarea></label>' +
+      '<div class="msg err" id="cErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="cOk">儲存</button></div>');
+    D.q('#cNote').value = had ? (t.coach_note || '') : '';
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var date = D.q('#cDate').value, note = D.q('#cNote').value.trim(), err = D.q('#cErr');
+      var m = !date ? '請選擇輔導日期。' : !note ? '輔導備註必填。' : '';
+      if (m) { err.textContent = m; err.hidden = false; return; }
+      submitAct(D, D.q('#cOk'), '#cErr', function () { return SpotApi.coach(t.id, date, note); }, had ? '輔導紀錄已更新。' : '已回填輔導。');
+    });
+  }
+  function actExec(p) {
+    if (!isCS() || p.status !== '待執行') return;
+    var D = makeDlg('<h2>標記已執行</h2><p>' + esc(p.employee_label || p.employee_id) + '：請確認你已實際關閉官方 LINE 回覆權限，再按確認留下紀錄。</p>' +
+      '<div class="msg err" id="eErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn primary" type="submit" id="eOk">確認已執行</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      submitAct(D, D.q('#eOk'), '#eErr', function () { return SpotApi.markExecuted(p.id); }, '已標記為已執行。');
+    });
+  }
+  function actCancelProb(p) {
+    if (!isCS() || (p.status !== '待執行' && p.status !== '已執行')) return;
+    var D = makeDlg('<h2>取消回考核期</h2><p>' + esc(p.employee_label || p.employee_id) + '：誤判時使用。取消後恢復為正式員工、清除考核期標記。</p>' +
+      '<label class="field">取消原因（必填）<textarea class="ctrl" id="xReason"></textarea></label>' +
+      '<label class="chk"><input type="checkbox" id="xSure"><span>我確認要取消這筆回考核期</span></label>' +
+      '<div class="msg err" id="xErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn danger" type="submit" id="xYes" disabled>確認取消</button></div>');
+    var reason = D.q('#xReason'), sure = D.q('#xSure'), yes = D.q('#xYes');
+    function sync() { yes.disabled = busy || !(reason.value.trim() && sure.checked); }
+    reason.addEventListener('input', sync); sure.addEventListener('change', sync);
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!reason.value.trim() || !sure.checked) { var e = D.q('#xErr'); e.textContent = '請填寫取消原因並勾選確認。'; e.hidden = false; return; }
+      var txt = reason.value.trim();
+      submitAct(D, yes, '#xErr', function () { return SpotApi.cancelProbation(p.id, txt); }, '已取消回考核期。');
+    });
+  }
+
+  // ====== 載入 ======
+  function renderAll() {
+    applyRole(); renderAlerts(); renderStatus(); fillEmpFilter(); renderTickets();
+  }
+  function reloadAll(withCands) {
+    var jobs = [SpotApi.loadStatus(), SpotApi.loadTickets(), SpotApi.loadProbations()];
+    if (withCands && isCS()) jobs.push(SpotApi.loadCandidates());
+    return Promise.all(jobs).then(function (r) {
+      statusRows = r[0]; tickets = r[1]; probs = r[2];
+      if (r[3]) { cands = r[3]; fillCands(); }
+      renderAll();
+    });
+  }
+
+  function applyRole() {
+    var lab = ROLE_LABEL[me.role] + (isMgr() ? '・' + sName(me.store_code) : '');
+    $('whoBadge').textContent = lab;
+    $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
+    $('regWrap').hidden = !isCS();
+    $('roleNote').textContent = isCS() ? '客服部可登記抽查、作廢單據、回填輔導，並處理回考核期。'
+      : isMgr() ? '只顯示自己門市的人員與單據；可為單據回填輔導紀錄，其餘唯讀。'
+      : '總公司主管只能查看，不能登記、作廢或回填輔導。';
+  }
+
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  $('regForm').addEventListener('submit', submitReg);
+  $('rDims').addEventListener('change', showScore);
+  $('fKind').addEventListener('change', renderTickets);
+  $('fEmp').addEventListener('change', renderTickets);
+  $('fStatus').addEventListener('change', renderTickets);
+  $('tBody').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var t;
+    if (b.dataset.coach) { t = ticketById(b.dataset.coach); if (t) actCoach(t); }
+    else if (b.dataset.void) { t = ticketById(b.dataset.void); if (t) actVoid(t); }
+  });
+  $('alerts').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var p;
+    if (b.dataset.exec) { p = probById(b.dataset.exec); if (p) actExec(p); }
+    else if (b.dataset.cancelp) { p = probById(b.dataset.cancelp); if (p) actCancelProb(p); }
+  });
+  SpotApi.onSignedOut(function () { goLogin(''); });
+
+  // ====== 啟動：登入、網域、開通三道檢查 ======
+  SpotApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    var email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      SpotApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    $('whoEmail').textContent = email;
+    return SpotApi.loadMe(email).then(function (row) {
+      if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      me = row;
+      return SpotApi.loadStores().then(function (st) {
+        stores = st; storeName = {};
+        stores.forEach(function (s) { storeName[s.code] = s.name; });
+        buildForm();
+        return reloadAll(true);
+      }).then(function () {
+        $('loading').hidden = true; $('app').hidden = false;
+      });
+    });
+  }).catch(function (e) {
+    showBlocked(errText(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+<script src="js/appbar.js"></script>
+</body>
+</html>
