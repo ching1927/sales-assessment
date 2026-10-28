@@ -38,7 +38,8 @@
 ### 抽查系統（網頁已寫好，尚未連真實資料庫；需先執行 supabase/spotcheck_schema.sql，規格見 supabase/README_spotcheck.md）
 
 - 抽查頁｜`spotcheck.html`、`js/spotcheck-api.js`｜所有已開通角色可進；開頁見「人員抽查狀態」表（本月黃單／本季紅單計量格）與單據清單；寫入全走 RPC（spot_register／spot_void_ticket／spot_coach／spot_mark_executed／spot_cancel_probation）
-- 登記抽查（只有客服部）｜`spotcheck.html`｜選人員、日期、判定、七面向等級（優良待加強不及格不適用）、原因；判定不適當原因必填；登記後顯示開了黃單／紅單／回考核期
+- 登記抽查（只有客服部）｜`spotcheck.html`｜「登記一次抽查」區塊在「人員抽查狀態」之前（警示列仍最上面；主管與店長沒有登記區塊，直接看狀態表）；選人員、日期、判定、七面向等級、原因（不適當必填）；「訊息抽檢-LINE聊天室網址」為必填單行網址（去空白、http／https 開頭、無空白、500 字內，否則顯示繁中提示不送出），以 p_message 傳送；登記後顯示開了黃單／紅單／回考核期；單據清單有「聊天室」欄（黃單用 inspection_id 對應 spot_inspections.message，http／https 開頭才顯示可點的「開啟 LINE 聊天室」連結，否則純文字；紅單顯示「—」；三種角色都看得到）
+- 備註網址（非必填）｜`assess.html`、`reports.html`、`js/assess-api.js`｜考官備註下方多一個網址欄，隨題組自動暫存（assess_save_item 第四參數 p_note_url，空字串傳 null），草稿重開會帶回；格式不合（非 http／https、含空白、超過 500 字）顯示提示、該題組不暫存、無法送出；成績單詳情（客服部與主管／店長版）有網址時在備註旁顯示「備註網址」連結，只有 http／https 才成連結（javascript: 等不會）
 - 回考核期警示列｜`spotcheck.html`｜待執行時客服部見「標記已執行」與「取消回考核期」（取消原因必填）；已執行時只剩取消；主管與店長只看
 - 單據作廢與輔導回填｜`spotcheck.html`｜客服部可作廢（原因必填）；客服部與該門市店長可回填輔導（日期＋備註必填）；總公司主管無任何操作按鈕
 - 導覽「抽查」｜`roster.html`、`assess.html`、`reports.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`｜所有已開通角色看得到，在「考核後台」之後

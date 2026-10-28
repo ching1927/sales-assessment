@@ -318,11 +318,19 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
           var isW = weak.indexOf(d.name) >= 0;
           return '<tr' + (isW ? ' class="weakrow"' : '') + '><td>' + esc(d.name) + (isW ? '（最弱）' : '') + '</td><td class="num">' + d.weight + '</td><td>' + (lv ? esc(lv) : '未評') + '</td><td class="num">' + (lv === NA ? '不適用' : (pt == null ? '—' : esc(fmt(pt)))) + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
-        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + '</div>' + imgsHtml(it) + '</div>';
+        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + noteUrlLink(it) + '</div>' + imgsHtml(it) + '</div>';
     });
     h += '<div class="actions">' + (r.status === 'submitted' ? '<button class="btn danger" type="button" data-void="' + esc(r.id) + '">作廢這張成績單</button>' : '') +
       '<button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
+  }
+
+  // 備註網址：只有 http／https 開頭才渲染成連結（其他如 javascript: 一律不成為連結）
+  function noteUrlLink(it) {
+    var u = it.note_url == null ? '' : String(it.note_url);
+    return /^https?:\/\//i.test(u)
+      ? '<br><a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">備註網址</a>'
+      : '';
   }
 
   // 總公司主管／店長：只有日期、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數、考官備註與附圖
@@ -342,7 +350,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
           var pt = dp[d.name];
           return '<tr><td>' + esc(d.name) + '</td><td class="num">' + (pt == null ? '不適用' : esc(fmt(pt)) + ' / ' + d.weight) + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
-        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + '</div>' + imgsHtml(it) + '</div>';
+        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + noteUrlLink(it) + '</div>' + imgsHtml(it) + '</div>';
     });
     h += '<div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;

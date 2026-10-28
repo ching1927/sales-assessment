@@ -143,7 +143,7 @@ create table if not exists public.spot_inspections (
   employee_label text not null,            -- 登記當下的暱稱或姓名（顯示用快照）
   store_code text not null references public.stores(code) on update cascade,  -- 登記當下的門市快照
   checked_on date not null,                -- 抽查日期（登記人填）
-  message text,                            -- 抽到的訊息文字
+  message text,                            -- 訊息抽檢-LINE聊天室網址（必填，http/https 開頭；欄位名稱沿用 message）
   levels jsonb not null check (jsonb_typeof(levels) = 'object'),   -- 七面向等級
   total_score numeric(4,1) not null check (total_score between 0 and 100),
   dim_points jsonb,
@@ -369,6 +369,8 @@ $$;
 
 -- 登記一次抽查（客服部）。
 -- 驗證人員資格、七面向等級（缺一不可、不適用最多 2 個）、不適當必填原因；寫入抽查；
+-- p_message ＝「訊息抽檢-LINE聊天室網址」：去頭尾空白後必填、符合 ^https?://[^[:space:]]+$（不分大小寫）、長度 <= 500，
+-- 存去空白後的值；這項驗證排在其他所有驗證之後（其他錯誤優先）。
 -- 不適當就開黃單，並在「同一個交易內」套用紅單與回考核期的規則：
 --   * 本日曆月、最近一張有效紅單之後的有效黃單 >= 5 → 自動開一張紅單，黃單從 0 重算
 --   * 本日曆季、最近一筆回考核期紀錄之後的有效紅單 >= 2 → 自動開一筆回考核期（待執行），employees.probation_since 設為今天
@@ -391,6 +393,7 @@ declare
   v_today date := (now() at time zone 'Asia/Taipei')::date;
   v_emp public.employees%rowtype;
   v_reason text := nullif(btrim(coalesce(p_reason, ''), E' \t\r\n' || chr(12288)), '');
+  v_url text := btrim(coalesce(p_message, ''), E' \t\r\n' || chr(12288));
   v_label text;
   s record;
   v_ins uuid;
@@ -436,13 +439,18 @@ begin
   -- 七面向等級驗證＋計分（鍵必須是七面向、值必須是四級或不適用、七個缺一不可、不適用最多 2 個）
   select * into s from public.assess_score_item(p_levels);
 
+  -- 訊息抽檢-LINE聊天室網址（排在其他驗證之後）
+  if v_url !~* '^https?://[^[:space:]]+$' or length(v_url) > 500 then
+    raise exception '請填寫訊息抽檢的 LINE 聊天室網址（http 或 https 開頭，不可含空白）';
+  end if;
+
   v_label := coalesce(nullif(btrim(v_emp.nickname), ''), nullif(btrim(v_emp.full_name), ''));
 
   insert into public.spot_inspections
     (employee_id, employee_label, store_code, checked_on, message, levels,
      total_score, dim_points, weakest_dims, verdict, reason, examiner_email)
   values
-    (v_emp.id, v_label, v_emp.store_code, p_checked_on, p_message, p_levels,
+    (v_emp.id, v_label, v_emp.store_code, p_checked_on, v_url, p_levels,
      s.item_score, s.dim_points, s.weakest_dims, p_verdict, v_reason, v_me)
   returning id into v_ins;
 

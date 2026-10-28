@@ -41,6 +41,9 @@ begin
      or to_regprocedure('public.spot_register(text, date, text, jsonb, text, text)') is null then
     raise exception '請先執行 spotcheck_schema.sql';
   end if;
+  if to_regprocedure('public.assess_save_item(uuid, jsonb, text, text)') is null then
+    raise exception '請先執行 url_patch.sql（assess_save_item 需為四參數版本）';
+  end if;
 end
 $$;
 
@@ -215,7 +218,7 @@ declare
   v text;
 begin
   v := pg_temp.vr_as('authenticated', p_email,
-         format($q$select public.spot_register(%L, %L::date, '假訊息', %L::jsonb, %L, %L)::text$q$,
+         format($q$select public.spot_register(%L, %L::date, 'https://line.me/R/ti/p/test-1', %L::jsonb, %L, %L)::text$q$,
                 p_emp, pg_temp.vr_today()::text, pg_temp.vr_lv(p_verdict)::text, p_verdict, p_reason),
          true);
   if v like 'ERROR:%' then
@@ -242,9 +245,28 @@ create or replace function pg_temp.vr_rawreg(p_emp text, p_levels jsonb, p_verdi
 returns text language plpgsql as $$
 begin
   return pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
-           format($q$select public.spot_register(%L, %L::date, '假訊息', %L::jsonb, %L, %L)::text$q$,
+           format($q$select public.spot_register(%L, %L::date, 'https://line.me/R/ti/p/test-1', %L::jsonb, %L, %L)::text$q$,
                   p_emp, pg_temp.vr_today()::text, p_levels::text, p_verdict, p_reason),
            true);
+end $$;
+
+-- 自訂「訊息抽檢-LINE聊天室網址」的登記（適當、全優），回傳結果文字或 'ERROR: …'
+create or replace function pg_temp.vr_regurl(p_emp text, p_url text)
+returns text language plpgsql as $$
+begin
+  return pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
+           format($q$select public.spot_register(%L, %L::date, %L, %L::jsonb, '適當', null)::text$q$,
+                  p_emp, pg_temp.vr_today()::text, p_url, pg_temp.vr_lv('適當')::text),
+           true);
+end $$;
+
+-- 網址不合格：預期被拒並回傳指定訊息（用 9814，最後確認沒有留下任何資料）
+create or replace function pg_temp.vr_urlbad(p_name text, p_url text)
+returns void language plpgsql as $$
+begin
+  perform pg_temp.vr_eq('3 網址', p_name, 'true',
+    (pg_temp.vr_regurl('MI-9814', p_url)
+       like 'ERROR: 請填寫訊息抽檢的 LINE 聊天室網址（http 或 https 開頭，不可含空白）')::text);
 end $$;
 
 -- 某人某種單據的張數（預設只算有效）
@@ -506,7 +528,7 @@ begin
   perform pg_temp.vr_eq('0 結構','既有 assess 函式與成績單檢視都還在','6/true',
     pg_temp.vr_q1($q$select (select count(to_regprocedure(s)) from unnest(array[
         'public.assess_void(uuid, text)', 'public.assess_draw(uuid, text[])',
-        'public.assess_save_item(uuid, jsonb, text)', 'public.assess_abandon(uuid)',
+        'public.assess_save_item(uuid, jsonb, text, text)', 'public.assess_abandon(uuid)',
         'public.assess_candidates()', 'public.assess_categories()']) as s)::text
         || '/' || (to_regclass('public.assessment_summaries') is not null)::text$q$));
 exception when others then
@@ -528,7 +550,7 @@ begin
 
   -- spot_register：只有客服部（先被角色擋下，不會碰到員工）
   perform pg_temp.vr_denyset('1 角色權限','spot_register',
-    $q$select public.spot_register('MI-9801', current_date, 'x', '{}'::jsonb, '適當', null)$q$, 'hsna');
+    $q$select public.spot_register('MI-9801', current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, 'hsna');
 
   -- spot_void_ticket：只有客服部
   perform pg_temp.vr_denyset('1 角色權限','spot_void_ticket',
@@ -620,19 +642,19 @@ declare
   v_ok2 text;
 begin
   perform pg_temp.vr_deny('3 資格','新人（到職 30 天）不能被抽查','authenticated','vr-cs1@2motor.tw',
-    $q$select public.spot_register('MI-9803', current_date, 'x', '{}'::jsonb, '適當', null)$q$, '%新人%');
+    $q$select public.spot_register('MI-9803', current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, '%新人%');
   perform pg_temp.vr_deny('3 資格','到職剛好 90 天仍算新人，不能被抽查','authenticated','vr-cs1@2motor.tw',
-    $q$select public.spot_register('MI-9804', current_date, 'x', '{}'::jsonb, '適當', null)$q$, '%新人%');
+    $q$select public.spot_register('MI-9804', current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, '%新人%');
   perform pg_temp.vr_deny('3 資格','不納入考核的人不能被抽查','authenticated','vr-cs1@2motor.tw',
-    $q$select public.spot_register('MI-9806', current_date, 'x', '{}'::jsonb, '適當', null)$q$, '%不在考核名單%');
+    $q$select public.spot_register('MI-9806', current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, '%不在考核名單%');
   perform pg_temp.vr_deny('3 資格','離職的人不能被抽查','authenticated','vr-cs1@2motor.tw',
-    $q$select public.spot_register('MI-9807', current_date, 'x', '{}'::jsonb, '適當', null)$q$, '%離職%');
+    $q$select public.spot_register('MI-9807', current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, '%離職%');
   perform pg_temp.vr_deny('3 資格','考核期的人不能被抽查','authenticated','vr-cs1@2motor.tw',
-    $q$select public.spot_register('MI-9808', current_date, 'x', '{}'::jsonb, '適當', null)$q$, '%考核期%');
+    $q$select public.spot_register('MI-9808', current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, '%考核期%');
   perform pg_temp.vr_deny('3 資格','不存在的員工編號被拒','authenticated','vr-cs1@2motor.tw',
-    $q$select public.spot_register('MI-0000', current_date, 'x', '{}'::jsonb, '適當', null)$q$, '%找不到員工%');
+    $q$select public.spot_register('MI-0000', current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, '%找不到員工%');
   perform pg_temp.vr_deny('3 資格','員工編號為空被拒','authenticated','vr-cs1@2motor.tw',
-    $q$select public.spot_register(null, current_date, 'x', '{}'::jsonb, '適當', null)$q$, '%找不到員工%');
+    $q$select public.spot_register(null, current_date, 'https://line.me/R/ti/p/test-1', '{}'::jsonb, '適當', null)$q$, '%找不到員工%');
   perform pg_temp.vr_eq('3 資格','被拒的登記沒有留下任何抽查或單據（新人 9803、考核期 9808）','0/0',
     pg_temp.vr_q1($q$select (select count(*) from public.spot_inspections where employee_id in ('MI-9803','MI-9808'))::text
                      || '/' || (select count(*) from public.spot_tickets where employee_id in ('MI-9803','MI-9808'))::text$q$));
@@ -645,13 +667,13 @@ begin
 
   -- 輸入驗證（用 9814 試，最後確認一筆都沒寫進去）
   perform pg_temp.vr_deny('3 驗證','判定不是「適當／不適當」被拒','authenticated','vr-cs1@2motor.tw',
-    format($q$select public.spot_register('MI-9814', current_date, 'x', %L::jsonb, '亂填', null)$q$, pg_temp.vr_lv('適當')::text),
+    format($q$select public.spot_register('MI-9814', current_date, 'https://line.me/R/ti/p/test-1', %L::jsonb, '亂填', null)$q$, pg_temp.vr_lv('適當')::text),
     '%判定必須是%');
   perform pg_temp.vr_deny('3 驗證','判定為空被拒','authenticated','vr-cs1@2motor.tw',
-    format($q$select public.spot_register('MI-9814', current_date, 'x', %L::jsonb, null, null)$q$, pg_temp.vr_lv('適當')::text),
+    format($q$select public.spot_register('MI-9814', current_date, 'https://line.me/R/ti/p/test-1', %L::jsonb, null, null)$q$, pg_temp.vr_lv('適當')::text),
     '%判定必須是%');
   perform pg_temp.vr_deny('3 驗證','抽查日期為空被拒','authenticated','vr-cs1@2motor.tw',
-    format($q$select public.spot_register('MI-9814', null, 'x', %L::jsonb, '適當', null)$q$, pg_temp.vr_lv('適當')::text),
+    format($q$select public.spot_register('MI-9814', null, 'https://line.me/R/ti/p/test-1', %L::jsonb, '適當', null)$q$, pg_temp.vr_lv('適當')::text),
     '%抽查日期不可空白%');
   perform pg_temp.vr_eq('3 驗證','判定不適當、原因為 null 被拒','true',
     (pg_temp.vr_rawreg('MI-9814', pg_temp.vr_lv('不適當'), '不適當', null) like 'ERROR: %原因不可空白%')::text);
@@ -670,9 +692,52 @@ begin
     (pg_temp.vr_rawreg('MI-9814', pg_temp.vr_mk('超讚','優','優','優','優','優','優'), '適當', null) like 'ERROR: %等級不正確%')::text);
   perform pg_temp.vr_eq('3 驗證','等級物件為 null 被拒','true',
     (pg_temp.vr_rawreg('MI-9814', null, '適當', null) like 'ERROR: %評分格式不正確%')::text);
+  -- 訊息抽檢-LINE聊天室網址：必填、http/https 開頭、不含空白、<= 500 字
+  perform pg_temp.vr_urlbad('網址為 null 被拒', null);
+  perform pg_temp.vr_urlbad('網址為空字串被拒', '');
+  perform pg_temp.vr_urlbad('網址只有空白被拒', '   ');
+  perform pg_temp.vr_urlbad('網址只有全形空白與換行被拒', chr(12288) || E'\n');
+  perform pg_temp.vr_urlbad('不是 http／https（ftp）被拒', 'ftp://line.me/R/ti/p/abc');
+  perform pg_temp.vr_urlbad('沒有通訊協定被拒', 'line.me/R/ti/p/abc');
+  perform pg_temp.vr_urlbad('只有通訊協定沒有網址被拒', 'https://');
+  perform pg_temp.vr_urlbad('網址中間含空白被拒', 'https://line.me/R/ti/p/a b');
+  perform pg_temp.vr_urlbad('網址中間含換行被拒', E'https://line.me/R/ti/p/a\nb');
+  perform pg_temp.vr_urlbad('網址 501 字被拒', 'https://line.me/' || repeat('a', 485));
+  perform pg_temp.vr_eq('3 網址','網址驗證排在其他驗證之後：判定錯誤時先報判定錯誤','true',
+    (pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
+       format($q$select public.spot_register('MI-9814', current_date, 'bad', %L::jsonb, '亂填', null)::text$q$, pg_temp.vr_lv('適當')::text), true)
+       like 'ERROR: %判定必須是%')::text);
+  perform pg_temp.vr_eq('3 網址','網址驗證排在其他驗證之後：不適當沒原因時先報原因','true',
+    (pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
+       format($q$select public.spot_register('MI-9814', current_date, 'bad', %L::jsonb, '不適當', null)::text$q$, pg_temp.vr_lv('不適當')::text), true)
+       like 'ERROR: %原因不可空白%')::text);
+  perform pg_temp.vr_eq('3 網址','網址驗證排在其他驗證之後：七面向缺一個時先報等級錯誤','true',
+    (pg_temp.vr_as('authenticated', 'vr-cs1@2motor.tw',
+       format($q$select public.spot_register('MI-9814', current_date, 'bad', %L::jsonb, '適當', null)::text$q$,
+              (pg_temp.vr_lv('適當') - '文字品質')::text), true)
+       like 'ERROR: %七個面向必須全部有值%')::text);
   perform pg_temp.vr_eq('3 驗證','所有被拒的登記都沒有留下抽查或單據（9814）','0/0',
     pg_temp.vr_q1($q$select (select count(*) from public.spot_inspections where employee_id = 'MI-9814')::text
                      || '/' || (select count(*) from public.spot_tickets where employee_id = 'MI-9814')::text$q$));
+
+  -- 網址合格的情況（用 9817）：前後空白去除、HTTPS 大寫可以、http 可以、剛好 500 字可以
+  j := pg_temp.vr_regurl('MI-9817', E'  \t https://line.me/R/ti/p/abc \n ')::jsonb;
+  perform pg_temp.vr_eq('3 網址','網址前後有空白、換行：通過，存的是去除空白後的值','https://line.me/R/ti/p/abc',
+    pg_temp.vr_q1(format('select message from public.spot_inspections where id = %L::uuid', j ->> 'inspection_id')));
+  j := pg_temp.vr_regurl('MI-9817', chr(12288) || 'https://line.me/R/ti/p/abc' || chr(12288))::jsonb;
+  perform pg_temp.vr_eq('3 網址','網址前後有全形空白：通過，存去除後的值','https://line.me/R/ti/p/abc',
+    pg_temp.vr_q1(format('select message from public.spot_inspections where id = %L::uuid', j ->> 'inspection_id')));
+  j := pg_temp.vr_regurl('MI-9817', 'HTTPS://LINE.ME/R/TI/P/ABC')::jsonb;
+  perform pg_temp.vr_eq('3 網址','大寫 HTTPS:// 通過（不分大小寫），原樣保存','HTTPS://LINE.ME/R/TI/P/ABC',
+    pg_temp.vr_q1(format('select message from public.spot_inspections where id = %L::uuid', j ->> 'inspection_id')));
+  j := pg_temp.vr_regurl('MI-9817', 'http://line.me/x')::jsonb;
+  perform pg_temp.vr_eq('3 網址','http:// 開頭通過','有', pg_temp.vr_has(j, 'inspection_id'));
+  j := pg_temp.vr_regurl('MI-9817', 'https://line.me/' || repeat('a', 484))::jsonb;
+  perform pg_temp.vr_eq('3 網址','剛好 500 字通過','500',
+    pg_temp.vr_q1(format('select length(message)::text from public.spot_inspections where id = %L::uuid', j ->> 'inspection_id')));
+  perform pg_temp.vr_eq('3 網址','被拒的網址沒有留下抽查（9814 仍為 0）；9817 只留下 5 筆成功的','0/5',
+    pg_temp.vr_q1($q$select (select count(*) from public.spot_inspections where employee_id = 'MI-9814')::text
+                     || '/' || (select count(*) from public.spot_inspections where employee_id = 'MI-9817')::text$q$));
 
   -- 不適用 2 個可以通過；判定「適當」不需要原因
   j := pg_temp.vr_rawreg('MI-9811', pg_temp.vr_mk('不適用','不適用','優','優','優','優','優'), '適當', null)::jsonb;
@@ -699,7 +764,7 @@ begin
     pg_temp.vr_q1(format($q$select kind || '/' || status || '/' || issued_on::text || '/' || store_code || '/' || employee_label
                                   || '/' || reason || '/' || (inspection_id = %L::uuid)::text
                            from public.spot_tickets where id = %L::uuid$q$, j ->> 'inspection_id', j ->> 'yellow_id')));
-  perform pg_temp.vr_eq('3 黃單','抽查內容：判定／原因／分數／登記人／訊息文字','不適當/回覆錯誤/64.0/vr-cs1@2motor.tw/假訊息',
+  perform pg_temp.vr_eq('3 黃單','抽查內容：判定／原因／分數／登記人／訊息文字','不適當/回覆錯誤/64.0/vr-cs1@2motor.tw/https://line.me/R/ti/p/test-1',
     pg_temp.vr_q1(format($q$select verdict || '/' || reason || '/' || total_score::text || '/' || examiner_email || '/' || message
                            from public.spot_inspections where id = %L::uuid$q$, j ->> 'inspection_id')));
   perform pg_temp.vr_eq('3 黃單','抽查內容：七面向各自得分（資訊正確性 8、問題掌握 0）與等級原樣保存','8/0/待加強',

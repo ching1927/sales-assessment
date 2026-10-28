@@ -107,3 +107,44 @@ SELECT 權限（RLS）：客服部、總公司主管看全部；店長只看 `st
 - **考核期前就開始的草稿**：若某人在被開回考核期「之前」已有一張草稿（來源是「自動」或「手動指定」），之後送出即使 >= 85 也**不會**清除考核期（規格只認 `tenure_source = '考核期'`）。**操作提醒（老闆決定維持現狀、不改程式）**：客服部要先放棄該草稿、再重新開始考核，送出才會依考核期標準（正式、85 分）判定並解除考核期。
 - 客服部本來就能直接改 `employees`（既有 RLS），手動改 `probation_since` 不會同步回考核期紀錄；請走 `spot_cancel_probation`。
 - 本檔未在真實 Postgres 執行過，語法與邏輯只做過人工核對；執行驗證腳本時才會得到實證。上線後建議用網頁真實流程各走一次：登記不適當到第 5 張（開紅單）、考核期的人考核（通過與沒過）。
+
+---
+
+## 七、網址欄位修補（url_patch.sql）
+
+> ⚠️ 尚未執行，也沒有在真實 Postgres 上跑過，只做過逐行人工核對。待老闆同意後才在 Supabase 執行。
+
+老闆追加兩項（2026-10-28 決定）：
+
+1. 抽查登記的「抽到的訊息」改為「訊息抽檢-LINE聊天室網址」，**必填**。
+2. 考核備註新增「備註網址」，**非必填**。
+
+### 檔案
+
+| 檔案 | 用途 |
+|---|---|
+| `url_patch.sql` | 要執行的修補：單一交易、可重複執行，只含這兩項（欄位＋約束＋兩個函式）。可直接在「已執行舊版 spotcheck_schema.sql」的資料庫上跑 |
+| `url_patch_verify_fake.sql` | 驗證 `note_url` 與 `assess_save_item` 新行為（假資料、全程 rollback） |
+| `spotcheck_schema.sql` | 其中的 `spot_register` 已同步成新版，所以**全新安裝**的 `spot_register` 也是新版；但 `note_url` 欄位與四參數 `assess_save_item` 只在 `url_patch.sql`，全新安裝後仍要再跑一次 `url_patch.sql` |
+| `spotcheck_verify_fake.sql` | 所有 `spot_register` 呼叫改傳合法網址（`https://line.me/R/ti/p/test-1`），並新增網址驗證斷言 |
+
+### 執行順序
+
+0. 先備份。前提：`spotcheck_schema.sql`、`notes_visible_schema.sql` 已執行。
+1. `url_patch.sql`（貼上整份 → Run）。
+2. `url_patch_verify_fake.sql`（預期：總結列「N/N 項通過」、「通過」欄全是「通過」）。
+3. `spotcheck_verify_fake.sql`（同上；前置檢查會確認 `assess_save_item` 已是四參數版本，沒跑 `url_patch.sql` 會直接報錯停下）。
+
+### 規則
+
+- **`spot_register`**：參數名稱 `p_message` 與欄位 `spot_inspections.message` 都不改（欄位現在存網址）。去頭尾空白（含全形空白、tab、換行）後必填，必須符合 `^https?://[^[:space:]]+$`（不分大小寫），長度 <= 500；存去空白後的值。失敗訊息：「請填寫訊息抽檢的 LINE 聊天室網址（http 或 https 開頭，不可含空白）」。**這項驗證排在所有其他驗證之後**（找不到員工、資格、日期、判定、原因、七面向等級的錯誤優先），所以既有錯誤的優先順序與訊息不變。
+- **`assessment_items.note_url`**（text，可空）：check ＝ null 或（長度 <= 500 且符合同一個格式，不分大小寫）；既有資料不受影響。
+- **`assess_save_item(p_item_id, p_levels, p_note, p_note_url default null)`**：以最後生效的版本（`notes_visible_schema.sql`）為基礎，其餘行為逐行保留（客服部檢查、題組歸屬、只限草稿、只限建立者本人、`assess_check_levels`、備註 `nullif(btrim(p_note), '')`）。`p_note_url` 去頭尾空白後，空字串或全空白視為 null；格式錯誤丟「備註網址格式不正確（需 http 或 https 開頭，不可含空白，最長 500 字）」，排在所有既有檢查之後。先 `drop function if exists` 舊的三參數版本再建新版（避免重載歧義），並重做 revoke／grant。
+- **可見性**：`note_url` 與備註同表，沿用 `assessment_items` 既有 RLS（客服部全看；主管看已送出；店長看自己門市已送出；草稿與作廢只有客服部），不需改 RLS。已送出或作廢後 `assess_save_item` 一律被拒（「只有草稿可以暫存評分」），網址同樣不可改。
+
+### 與規格的差異／需要知道的事
+
+- 規格正文第一至五節**未改動**（規格第二節資料表欄位 `spot_inspections.message` 的內容意義改為網址，欄位名稱與型別不變）。
+- **整份取代**：`assess_save_item` 每次呼叫會整份取代評分、備註與備註網址（與備註一樣：沒傳＝清除）。**舊的三參數呼叫（例如尚未更新的前端 `js/assess-api.js`，它只傳 `p_item_id／p_levels／p_note`）仍可運作，但每次存檔都會把 `note_url` 清成 null**；前端存檔時必須一併傳 `p_note_url`。
+- **舊驗證腳本受影響**：`notes_visible_verify_fake.sql` 區段 4 以三參數簽名 `'public.assess_save_item(uuid, jsonb, text)'::regprocedure` 查函式（並確認只有一個版本）；`url_patch.sql` 執行後該簽名已不存在，那一段會失敗，需另行更新（本次依指示未動該檔）。其餘舊腳本中的三參數「呼叫」寫法照舊可用（`url_patch_verify_fake.sql` 區段 5 用同樣寫法驗證）。
+- 網址驗證用的 `[[:space:]]` 是否涵蓋全形空白取決於資料庫的 locale；函式對「頭尾」的全形空白用 `btrim` 另外處理（去除），但網址「中間」夾全形空白不一定會被擋。

@@ -602,12 +602,12 @@ $$;
 -- ============================================================
 do $$
 declare
-  v_oid oid := 'public.assess_save_item(uuid, jsonb, text)'::regprocedure;
+  v_oid oid := 'public.assess_save_item(uuid, jsonb, text, text)'::regprocedure;
 begin
   perform pg_temp.vr_eq('4 簽名','assess_save_item 只有一個版本（沒有多出不同簽名的重載）','1',
     pg_temp.vr_q1($q$select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                      where n.nspname = 'public' and p.proname = 'assess_save_item'$q$));
-  perform pg_temp.vr_eq('4 簽名','參數：p_item_id uuid, p_levels jsonb, p_note text','p_item_id uuid, p_levels jsonb, p_note text',
+  perform pg_temp.vr_eq('4 簽名','參數：p_item_id uuid, p_levels jsonb, p_note text, p_note_url text（url_patch.sql 之後）','p_item_id uuid, p_levels jsonb, p_note text, p_note_url text',
     pg_get_function_identity_arguments(v_oid));
   perform pg_temp.vr_eq('4 簽名','回傳型別 void','void', pg_get_function_result(v_oid));
   perform pg_temp.vr_eq('4 簽名','仍是 security definer','true',

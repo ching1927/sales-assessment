@@ -330,6 +330,15 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // ====== 自動暫存 ======
   var dirty = {}, timers = {}, saveChain = Promise.resolve(), saving = 0, saveFailed = false, saveErr = '', uploading = 0, saveEpoch = 0;
   function itemById(id) { return S.items.filter(function (i) { return i.id === id; })[0]; }
+  // 備註網址檢查：空的可以；有填就必須 http／https 開頭、無空白、不超過 500 字。回傳錯誤訊息或空字串
+  function noteUrlError(s) {
+    s = String(s == null ? '' : s).trim();
+    if (!s) return '';
+    if (!/^https?:\/\/\S/i.test(s)) return '備註網址必須以 http:// 或 https:// 開頭，後面要接完整網址。';
+    if (/\s/.test(s)) return '備註網址不可含空白。';
+    if (s.length > 500) return '備註網址不可超過 500 字。';
+    return '';
+  }
   function hasUnsaved() { return Object.keys(dirty).length > 0 || saving > 0; }
   // 還有進行中的上傳或暫存（含排隊中、還在等 600ms 的）時回傳原因，否則回空字串
   function pendingReason() {
@@ -370,9 +379,15 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       var lv = {};
       Object.keys(it.levels).forEach(function (k) { if (it.levels[k]) lv[k] = it.levels[k]; });
       var note = it.note || '';
+      var noteUrl = (it.noteUrl || '').trim();
+      if (noteUrlError(noteUrl)) {   // 網址不合格：不送出這個題組的儲存，維持未暫存
+        saveFailed = true; saveErr = '備註網址格式不正確，這個題組尚未暫存';
+        updateSaved();
+        return;
+      }
       delete dirty[id];   // 請求進行中又有改動會再標回 dirty
       saving++; updateSaved();
-      return AssessApi.saveItem(id, lv, note).then(function () {
+      return AssessApi.saveItem(id, lv, note, noteUrl).then(function () {
         if (epoch !== saveEpoch) return;   // 在途請求的回呼：放棄後忽略
         saving--; saveFailed = false; S.savedOnce = true; updateSaved();
       }, function (err) {
@@ -541,7 +556,10 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     });
     if (nas >= MAX_NA) h += '<div class="msg warn">此題組已有 ' + MAX_NA + ' 個面向標「不適用」，已達上限，其餘面向的「不適用」暫時不能選。要再選請先取消其中一個。</div>';
     h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填；送出後總公司主管與該門市店長也看得到，請不要貼入題組腳本或考點原文）</label>' +
-      '<textarea class="ctrl" id="noteBox" data-note="' + S.cur + '" placeholder="例如：第 2 步回答不夠具體">' + esc(it.note || '') + '</textarea>';
+      '<textarea class="ctrl" id="noteBox" data-note="' + S.cur + '" placeholder="例如：第 2 步回答不夠具體">' + esc(it.note || '') + '</textarea>' +
+      '<label class="hint" style="display:block;margin-top:10px;font-weight:600" for="noteUrlBox">備註網址（非必填）</label>' +
+      '<input class="ctrl" type="url" id="noteUrlBox" data-note="' + S.cur + '" autocomplete="off" placeholder="https://..." value="' + esc(it.noteUrl || '') + '" style="width:100%">' +
+      '<div class="msg err" id="noteUrlErr" role="alert"' + (noteUrlError(it.noteUrl) ? '' : ' hidden') + '>' + esc(noteUrlError(it.noteUrl)) + '</div>';
     h += attachHtml(it);
     h += '<div class="navrow"><button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
       '<button class="btn" type="button" data-act="nextItem"' + (S.cur === S.items.length - 1 ? ' disabled' : '') + '>下一個題組</button></div></section></div></div>';
@@ -886,7 +904,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
 
   function itemFromDb(r) {
-    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: r.levels || {}, note: r.note || '', imgs: r.imgs || [] };
+    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: r.levels || {}, note: r.note || '', noteUrl: r.note_url || '', imgs: r.imgs || [] };
   }
   function empFromDraft(a) {
     return { id: a.employee_id, label: a.employee_label, store: a.store_code, tenure: a.tenure, source: a.tenure_source };
@@ -971,7 +989,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         var aid = S.aid;
         return AssessApi.draw(aid, cats).then(function (rows) {
           S.items = rows.map(function (r) {
-            return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round };
+            return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round };
           });
           S.drawn = true; S.cur = 0;
         }, function (err) {
@@ -1008,6 +1026,12 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   $('stage').addEventListener('input', function (e) {
     var t = e.target;
     if (t.id === 'noteBox') { var it = S.items[+t.getAttribute('data-note')]; it.note = t.value; markDirty(it); }
+    if (t.id === 'noteUrlBox') {
+      var iu = S.items[+t.getAttribute('data-note')]; iu.noteUrl = t.value;
+      var ue = noteUrlError(t.value), eb = $('noteUrlErr');
+      eb.textContent = ue; eb.hidden = !ue;
+      markDirty(iu);
+    }
   });
 
   // ====== 放棄考核 ======

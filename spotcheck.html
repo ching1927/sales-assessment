@@ -138,17 +138,6 @@ dialog::backdrop{background:var(--scrim)}
 
     <div id="alerts"></div>
 
-    <h2 class="sec">人員抽查狀態</h2>
-    <section class="tablebox glass">
-      <div class="scroll" tabindex="0" aria-label="人員抽查狀態表，可左右捲動">
-        <table style="min-width:640px">
-          <thead><tr><th>人員</th><th>門市</th><th>本月黃單（滿 5 開紅單）</th><th>本季紅單（滿 2 移除權限）</th><th>狀態</th></tr></thead>
-          <tbody id="stBody"></tbody>
-        </table>
-      </div>
-      <div class="empty" id="stEmpty" hidden>目前沒有可顯示的人員</div>
-    </section>
-
     <div id="regWrap" hidden>
       <h2 class="sec">登記一次抽查（客服部）</h2>
       <form class="glass panel" id="regForm" novalidate>
@@ -157,8 +146,8 @@ dialog::backdrop{background:var(--scrim)}
           <div><label class="lb" for="rDay">抽查日期</label><input class="ctrl" type="date" id="rDay"></div>
           <div><label class="lb" for="rVerdict">判定</label><select class="ctrl" id="rVerdict"><option value="適當">適當</option><option value="不適當">不適當（開黃單）</option></select></div>
         </div>
-        <label class="lb" for="rMsg">抽到的訊息（文字，或寫截圖位置）</label>
-        <textarea class="ctrl" id="rMsg" placeholder="例：客人詢問車況，業務回覆……"></textarea>
+        <label class="lb" for="rMsg">訊息抽檢-LINE聊天室網址</label>
+        <input class="ctrl" type="url" id="rMsg" autocomplete="off" placeholder="https://chat.line.biz/...">
         <div class="dims" id="rDims"></div>
         <label class="lb" for="rWhy">原因／說明（判定不適當時必填）</label>
         <textarea class="ctrl" id="rWhy" placeholder="例：沒有確認客人需求就直接報價"></textarea>
@@ -171,6 +160,17 @@ dialog::backdrop{background:var(--scrim)}
       </form>
     </div>
 
+    <h2 class="sec">人員抽查狀態</h2>
+    <section class="tablebox glass">
+      <div class="scroll" tabindex="0" aria-label="人員抽查狀態表，可左右捲動">
+        <table style="min-width:640px">
+          <thead><tr><th>人員</th><th>門市</th><th>本月黃單（滿 5 開紅單）</th><th>本季紅單（滿 2 移除權限）</th><th>狀態</th></tr></thead>
+          <tbody id="stBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="stEmpty" hidden>目前沒有可顯示的人員</div>
+    </section>
+
     <h2 class="sec">單據清單（黃單、紅單）</h2>
     <section class="toolbar glass" aria-label="篩選">
       <select class="ctrl" id="fKind" aria-label="種類篩選"><option value="">全部種類</option><option value="黃">黃單</option><option value="紅">紅單</option></select>
@@ -180,8 +180,8 @@ dialog::backdrop{background:var(--scrim)}
     </section>
     <section class="tablebox glass">
       <div class="scroll" tabindex="0" aria-label="單據清單，可左右捲動">
-        <table style="min-width:900px">
-          <thead><tr><th>日期</th><th>種類</th><th>人員</th><th>門市</th><th>原因</th><th>狀態</th><th>輔導</th><th id="thOps">操作</th></tr></thead>
+        <table style="min-width:1000px">
+          <thead><tr><th>日期</th><th>種類</th><th>人員</th><th>門市</th><th>原因</th><th>聊天室</th><th>狀態</th><th>輔導</th><th id="thOps">操作</th></tr></thead>
           <tbody id="tBody"></tbody>
         </table>
       </div>
@@ -217,7 +217,7 @@ dialog::backdrop{background:var(--scrim)}
 
   // ====== 狀態 ======
   var me = null, stores = [], storeName = {};
-  var statusRows = [], tickets = [], probs = [], cands = [];
+  var statusRows = [], tickets = [], probs = [], cands = [], msgById = {};
   var busy = false, dyn = [];
 
   function isCS() { return !!me && me.role === 'cs_admin'; }
@@ -322,6 +322,10 @@ dialog::backdrop{background:var(--scrim)}
     var emp = $('rEmp').value, day = $('rDay').value, verdict = $('rVerdict').value, why = $('rWhy').value.trim(), msg = $('rMsg').value.trim();
     var sc = showScore();
     var m = !emp ? '請選擇被抽查人員。' : !day ? '請選擇抽查日期。'
+      : !msg ? '請填寫訊息抽檢的 LINE 聊天室網址。'
+      : !/^https?:\/\/\S/i.test(msg) ? '網址必須以 http:// 或 https:// 開頭，後面要接完整網址。'
+      : /\s/.test(msg) ? '網址不可含空白。'
+      : msg.length > 500 ? '網址不可超過 500 字。'
       : !sc.ok ? sc.error
       : (verdict === '不適當' && !why) ? '判定不適當時，原因必填。' : '';
     if (m) { err.textContent = m; err.hidden = false; return; }
@@ -345,6 +349,16 @@ dialog::backdrop{background:var(--scrim)}
     $('fEmp').innerHTML = '<option value="">全部人員</option>' + arr.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.label + '（' + a.id + '）') + '</option>'; }).join('');
     if (cur && seen[cur]) $('fEmp').value = cur;
   }
+  // 聊天室欄：黃單用 inspection_id 對應抽查訊息；只有 http／https 開頭才成連結，否則純文字；紅單或查無則「—」
+  function chatCell(t) {
+    if (t.kind !== '黃' || !t.inspection_id) return '<span class="sub">—</span>';
+    var m = msgById[t.inspection_id];
+    if (m == null || String(m).trim() === '') return '<span class="sub">—</span>';
+    m = String(m).trim();
+    return /^https?:\/\//i.test(m)
+      ? '<a href="' + esc(m) + '" target="_blank" rel="noopener noreferrer">開啟 LINE 聊天室</a>'
+      : '<span class="sub">—</span>';
+  }
   function renderTickets() {
     var k = $('fKind').value, e = $('fEmp').value, s = $('fStatus').value;
     var showOps = isCS() || isMgr();
@@ -367,6 +381,7 @@ dialog::backdrop{background:var(--scrim)}
         '<td><span class="tag ' + (t.kind === '紅' ? 'r' : 'y') + '">' + esc(t.kind) + '單</span></td>' +
         '<td class="' + (vd ? 'strike' : '') + '">' + esc(t.employee_label || t.employee_id) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td>' +
         '<td>' + esc(sName(t.store_code)) + '</td><td class="wrap">' + reason + '</td>' +
+        '<td class="nostrike">' + chatCell(t) + '</td>' +
         '<td>' + (vd ? '<span class="tag gray">已作廢</span>' : '<span class="tag ok">有效</span>') + '</td>' +
         '<td class="wrap nostrike" style="min-width:150px">' + coach + '</td>' +
         (showOps ? '<td>' + ops + '</td>' : '') + '</tr>';
@@ -462,11 +477,13 @@ dialog::backdrop{background:var(--scrim)}
     applyRole(); renderAlerts(); renderStatus(); fillEmpFilter(); renderTickets();
   }
   function reloadAll(withCands) {
-    var jobs = [SpotApi.loadStatus(), SpotApi.loadTickets(), SpotApi.loadProbations()];
+    var jobs = [SpotApi.loadStatus(), SpotApi.loadTickets(), SpotApi.loadProbations(), SpotApi.loadInspectionMessages()];
     if (withCands && isCS()) jobs.push(SpotApi.loadCandidates());
     return Promise.all(jobs).then(function (r) {
       statusRows = r[0]; tickets = r[1]; probs = r[2];
-      if (r[3]) { cands = r[3]; fillCands(); }
+      msgById = {};
+      r[3].forEach(function (i) { msgById[i.id] = i.message; });
+      if (r[4]) { cands = r[4]; fillCands(); }
       renderAll();
     });
   }

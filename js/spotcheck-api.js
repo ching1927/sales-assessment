@@ -90,6 +90,12 @@
           .order('issued_on', { ascending: false }).order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
+    // 抽查紀錄只取 id 與訊息（LINE 聊天室網址），用來對應黃單的 inspection_id；RLS 已依角色過濾
+    loadInspectionMessages: function () {
+      return pageAll(function (from, to) {
+        return sb.from('spot_inspections').select('id,message').order('id').range(from, to);
+      });
+    },
     loadProbations: function () {
       return pageAll(function (from, to) {
         return sb.from('spot_probations')

@@ -145,8 +145,8 @@
     draw: function (assessmentId, cats) {
       return wrap(sb.rpc('assess_draw', { p_assessment_id: assessmentId, p_cats: cats })).then(function (r) { return r.data || []; });
     },
-    saveItem: function (itemId, levels, note) {
-      return wrap(sb.rpc('assess_save_item', { p_item_id: itemId, p_levels: levels, p_note: note || '' }));
+    saveItem: function (itemId, levels, note, noteUrl) {
+      return wrap(sb.rpc('assess_save_item', { p_item_id: itemId, p_levels: levels, p_note: note || '', p_note_url: noteUrl || null }));
     },
     submit: function (assessmentId) {
       return wrap(sb.rpc('assess_submit', { p_assessment_id: assessmentId })).then(function (r) {
@@ -188,7 +188,7 @@
     // 客服部用：題組（含 levels、分數）＋機密（題組名稱、步驟）＋備註＋圖片
     loadItemsFull: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,note')
+        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,note,note_url')
         .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
         var items = r.data || [];
         var ids = items.map(function (i) { return i.id; });
@@ -204,7 +204,7 @@
             return {
               id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {},
               item_score: i.item_score, dim_points: i.dim_points, na_dims: i.na_dims, weakest_dims: i.weakest_dims,
-              title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], note: i.note || '',
+              title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], note: i.note || '', note_url: i.note_url || '',
               imgs: res[1][i.id] || []
             };
           });
@@ -230,12 +230,12 @@
     // 總公司主管與店長用：只讀 assessment_items（精簡欄位，含考官備註）與圖片；絕不查機密表
     loadItemsLimited: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,note')
+        .select('id,seq,category,code,levels,item_score,dim_points,note,note_url')
         .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
         var items = r.data || [];
         return loadImages(items.map(function (i) { return i.id; })).then(function (imgs) {
           return items.map(function (i) {
-            return { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', imgs: imgs[i.id] || [] };
+            return { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', note_url: i.note_url || '', imgs: imgs[i.id] || [] };
           });
         });
       });
