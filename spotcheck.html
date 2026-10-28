@@ -161,6 +161,10 @@ dialog::backdrop{background:var(--scrim)}
     </div>
 
     <h2 class="sec">人員抽查狀態</h2>
+    <section class="toolbar glass" id="stTool" aria-label="人員抽查狀態篩選">
+      <select class="ctrl" id="stStore" aria-label="門市篩選"><option value="">全部門市</option></select>
+      <span class="count" id="stCount"></span>
+    </section>
     <section class="tablebox glass">
       <div class="scroll" tabindex="0" aria-label="人員抽查狀態表，可左右捲動">
         <table style="min-width:640px">
@@ -260,10 +264,25 @@ dialog::backdrop{background:var(--scrim)}
     for (var i = 0; i < max; i++) s += '<i class="' + (i < n ? 'on' : '') + '"></i>';
     return s + '</span>' + n + ' / ' + max;
   }
+  // 門市下拉：只列有人員資料的門市，重新載入後保留原本選的；店長只有自己門市，不顯示篩選
+  function fillStatusStores() {
+    var sel = $("stStore"), keep = sel.value, seen = {}, codes = [];
+    statusRows.forEach(function (r) { if (!seen[r.store_code]) { seen[r.store_code] = 1; codes.push(r.store_code); } });
+    codes.sort(function (a, b) { return SpotApi.storeRank(a) - SpotApi.storeRank(b) || cmp(a, b); });
+    sel.innerHTML = '<option value="">全部門市（' + statusRows.length + ' 人）</option>' + codes.map(function (c) {
+      var n = statusRows.filter(function (r) { return r.store_code === c; }).length;
+      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '（' + n + ' 人）</option>';
+    }).join("");
+    sel.value = seen[keep] ? keep : "";
+    $("stTool").hidden = isMgr() || codes.length < 2;
+  }
   function renderStatus() {
-    var rows = statusRows.slice().sort(function (a, b) {
+    fillStatusStores();
+    var pick = $("stStore").value;
+    var rows = statusRows.filter(function (r) { return !pick || r.store_code === pick; }).sort(function (a, b) {
       return SpotApi.storeRank(a.store_code) - SpotApi.storeRank(b.store_code) || cmp(a.employee_id, b.employee_id);
     });
+    $("stCount").textContent = "共 " + rows.length + " 人";
     $('stBody').innerHTML = rows.map(function (r) {
       var y = Number(r.yellow_month) || 0, q = Number(r.red_quarter) || 0;
       var ps = r.probation_status;
@@ -499,6 +518,7 @@ dialog::backdrop{background:var(--scrim)}
   }
 
   $('logout').addEventListener('click', doLogout);
+  $('stStore').addEventListener('change', renderStatus);
   $('blockedLogout').addEventListener('click', doLogout);
   $('regForm').addEventListener('submit', submitReg);
   $('rDims').addEventListener('change', showScore);

@@ -30,8 +30,7 @@
     if (msg.indexOf('failed to fetch') >= 0 || msg.indexOf('networkerror') >= 0 || msg.indexOf('network') >= 0 || msg.indexOf('load failed') >= 0) {
       return '網路連線失敗，請檢查網路後再試一次。';
     }
-    if (window.console && console.error) console.error('抽查頁錯誤', err);
-    return '系統發生問題，請稍後再試；若持續發生請聯絡客服部。' + (code || raw ? '（技術資訊：' + (code ? code + ' ' : '') + raw.slice(0, 120) + '）' : '');
+    return '系統發生問題，請稍後再試；若持續發生請聯絡客服部。';
   }
 
   function fail(error) { var e = new Error(explain(error)); e.userMessage = e.message; throw e; }
