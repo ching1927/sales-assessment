@@ -177,6 +177,7 @@ dialog::backdrop{background:var(--scrim)}
 
     <h2 class="sec">單據清單（黃單、紅單）</h2>
     <section class="toolbar glass" aria-label="篩選">
+      <select class="ctrl" id="fStore" aria-label="門市篩選"><option value="">全部門市</option></select>
       <select class="ctrl" id="fKind" aria-label="種類篩選"><option value="">全部種類</option><option value="黃">黃單</option><option value="紅">紅單</option></select>
       <select class="ctrl grow" id="fEmp" aria-label="人員篩選"></select>
       <select class="ctrl" id="fStatus" aria-label="狀態篩選"><option value="">全部狀態</option><option value="有效">有效</option><option value="作廢">已作廢</option></select>
@@ -361,9 +362,22 @@ dialog::backdrop{background:var(--scrim)}
   }
 
   // ====== 畫面：單據清單 ======
+  // 單據的門市下拉：只列有單據的門市，重新載入後保留原選擇；店長只有自己門市，不顯示
+  function fillTicketStores() {
+    var sel = $('fStore'), keep = sel.value, seen = {}, codes = [];
+    tickets.forEach(function (t) { if (!seen[t.store_code]) { seen[t.store_code] = 1; codes.push(t.store_code); } });
+    codes.sort(function (a, b) { return SpotApi.storeRank(a) - SpotApi.storeRank(b) || cmp(a, b); });
+    sel.innerHTML = '<option value="">全部門市</option>' + codes.map(function (c) {
+      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>';
+    }).join('');
+    sel.value = seen[keep] ? keep : '';
+    sel.hidden = isMgr() || codes.length < 2;
+  }
   function fillEmpFilter() {
+    fillTicketStores();
+    var st = $('fStore').value;
     var cur = $('fEmp').value, seen = {}, arr = [];
-    tickets.forEach(function (t) { if (!seen[t.employee_id]) { seen[t.employee_id] = 1; arr.push({ id: t.employee_id, label: t.employee_label || t.employee_id }); } });
+    tickets.forEach(function (t) { if (st && t.store_code !== st) return; if (!seen[t.employee_id]) { seen[t.employee_id] = 1; arr.push({ id: t.employee_id, label: t.employee_label || t.employee_id }); } });
     arr.sort(function (a, b) { return cmp(a.id, b.id); });
     $('fEmp').innerHTML = '<option value="">全部人員</option>' + arr.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.label + '（' + a.id + '）') + '</option>'; }).join('');
     if (cur && seen[cur]) $('fEmp').value = cur;
@@ -379,11 +393,11 @@ dialog::backdrop{background:var(--scrim)}
       : '<span class="sub">—</span>';
   }
   function renderTickets() {
-    var k = $('fKind').value, e = $('fEmp').value, s = $('fStatus').value;
+    var st = $('fStore').value, k = $('fKind').value, e = $('fEmp').value, s = $('fStatus').value;
     var showOps = isCS() || isMgr();
     $('thOps').hidden = !showOps;
     var list = tickets.filter(function (t) {
-      return (!k || t.kind === k) && (!e || t.employee_id === e) && (!s || t.status === s);
+      return (!st || t.store_code === st) && (!k || t.kind === k) && (!e || t.employee_id === e) && (!s || t.status === s);
     });
     $('tBody').innerHTML = list.map(function (t) {
       var vd = t.status === '作廢';
@@ -522,6 +536,7 @@ dialog::backdrop{background:var(--scrim)}
   $('blockedLogout').addEventListener('click', doLogout);
   $('regForm').addEventListener('submit', submitReg);
   $('rDims').addEventListener('change', showScore);
+  $('fStore').addEventListener('change', function () { fillEmpFilter(); renderTickets(); });
   $('fKind').addEventListener('change', renderTickets);
   $('fEmp').addEventListener('change', renderTickets);
   $('fStatus').addEventListener('change', renderTickets);
