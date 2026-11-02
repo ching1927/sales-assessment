@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>弱項建議題組樣品（假資料）</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../app.css">
+<style>
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+h2{font-size:18px;margin:var(--sp-6) 0 var(--sp-3)}
+.panel{padding:var(--sp-6);margin-bottom:var(--sp-4)}
+.sub{font-size:12px;color:var(--ink-3)}
+.note{font-size:13px;color:var(--ink-2);line-height:1.7}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:15px;font-family:inherit;color:var(--ink)}
+label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:4px}
+.btn{padding:8px 16px;min-height:38px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--specular),var(--hairline);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.sm{padding:4px 12px;min-height:30px;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-pill);border:1px solid var(--ink-line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;user-select:none}
+.chip input{accent-color:var(--accent)}
+.chip.on{background:var(--ci-yellow);border-color:var(--ci-black);color:var(--ci-black)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;margin:2px 4px 2px 0}
+.tag.dim{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.weak{background:#FDE7C8;color:#9A4B00}
+.tag.gray{background:var(--track);color:var(--ink-2)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--ink-line);vertical-align:top}
+th{font-size:12px;color:var(--ink-2)}
+.scroll{overflow-x:auto}
+.rec{display:grid;gap:var(--sp-3);margin-top:var(--sp-3)}
+.card{border:1px solid var(--ink-line);border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);background:#fff;display:flex;gap:var(--sp-3);align-items:center;justify-content:space-between;flex-wrap:wrap}
+.card b{font-size:15px}
+.hint{background:var(--accent-soft);color:var(--accent-deep);border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);font-size:13px;font-weight:600;line-height:1.6}
+.warn{background:#FDE7C8;color:#9A4B00}
+.row{display:flex;gap:var(--sp-3);flex-wrap:wrap;align-items:end;margin-bottom:var(--sp-3)}
+.bar{height:8px;border-radius:99px;background:var(--track);overflow:hidden;width:140px;display:inline-block;vertical-align:middle;margin-right:8px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar i.w{background:#C2660A}
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="ab-hero"><div class="ab-crumb">樣品　/　弱項建議題組（假資料）</div><h1>考核後依弱項，直接建議考題</h1></section>
+  <p class="note">這頁示範三個地方：① 題庫管理替題組標記「主要考哪些面向」；② 進行考核選了考生後，直接帶入建議題組（取代抽選器）；③ 考核結束的成績頁預告「下次建議考題」。資料全是假的，操作不會存到任何地方。</p>
+
+  <h2>① 題庫管理：替題組標記重點面向（客服部）</h2>
+  <section class="glass panel">
+    <div class="row">
+      <div><label class="lb">題組</label><select class="ctrl" id="qSel"></select></div>
+    </div>
+    <label class="lb">這個題組主要考哪些面向（可選 1～3 個）</label>
+    <p class="sub" style="margin:0 0 8px">「語氣與禮貌」「文字品質」每個題組都會評，不用勾選。</p>
+    <div class="chips" id="qChips"></div>
+    <p class="sub" id="qMsg" style="margin-top:8px"></p>
+    <div class="scroll" style="margin-top:var(--sp-4)"><table>
+      <thead><tr><th>題組</th><th>分類</th><th>重點面向</th></tr></thead><tbody id="qTable"></tbody></table></div>
+  </section>
+
+  <h2>② 進行考核：選考生後，系統直接建議題組</h2>
+  <section class="glass panel">
+    <div class="row">
+      <div><label class="lb">考生</label><select class="ctrl" id="eSel"></select></div>
+      <div><label class="lb">建議題數</label><select class="ctrl" id="nSel"><option>2</option><option selected>3</option><option>4</option></select></div>
+    </div>
+    <div id="weakBox"></div>
+    <div class="rec" id="recBox"></div>
+    <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-4);flex-wrap:wrap">
+      <button class="btn primary" id="goExam" type="button">用這些題組開始考核</button>
+      <button class="btn" id="goRand" type="button">改用抽選器隨機抽</button>
+    </div>
+    <p class="sub" id="eMsg" style="margin-top:8px"></p>
+  </section>
+
+  <h2>③ 考核結束：成績頁預告「下次建議考題」</h2>
+  <section class="glass panel" id="afterBox"></section>
+
+  <p class="note">選題規則：①先取該考生最近 3 次成績單中，在「資訊正確性、預設訊息運用、問題掌握、主動引導、風險意識」這 5 個面向裡得分率最低的 2 個（語氣與禮貌、文字品質每題都評，不拿來挑題，偏低時只提醒考官）；②在題庫挑「標記了這些面向」、且該考生沒考過的題組，優先給最弱面向；③大部分題數給弱項，剩下 1 題照原本輪替規則隨機，避免考生猜到範圍；④沒有歷史（新人第一次）或沒有對應題組，就退回抽選器隨機抽，並提示客服部。</p>
+  <p class="foot">由 貳輪嶼 製作</p>
+</main>
+<script>
+var DIMS = ['資訊正確性', '預設訊息運用', '問題掌握', '主動引導', '風險意識', '語氣與禮貌', '文字品質'];
+// 語氣與禮貌、文字品質是每個題組都要注意的，不用勾選，也不拿來挑題；偏低時只在畫面提醒考官留意
+var TAG_DIMS = ['資訊正確性', '預設訊息運用', '問題掌握', '主動引導', '風險意識'];
+var ALWAYS = ['語氣與禮貌', '文字品質'];
+var BANK = [
+  { id: 1, cat: '基礎', title: '示範題組：客人詢問車況', dims: ['資訊正確性', '問題掌握'] },
+  { id: 2, cat: '基礎', title: '示範題組：客人詢問交車流程', dims: ['預設訊息運用'] },
+  { id: 3, cat: '進階', title: '示範題組：客人詢問價格與分期', dims: ['資訊正確性', '風險意識'] },
+  { id: 4, cat: '進階', title: '示範題組：客人殺價', dims: ['主動引導'] },
+  { id: 5, cat: '進階', title: '示範題組：客人猶豫不決', dims: ['主動引導', '問題掌握'] },
+  { id: 6, cat: '綜合', title: '示範題組：客人一次問多件事', dims: ['問題掌握'] },
+  { id: 7, cat: '綜合', title: '示範題組：客人抱怨', dims: ['風險意識'] },
+  { id: 8, cat: '基礎', title: '示範題組：客人要看車', dims: ['主動引導'] },
+  { id: 9, cat: '進階', title: '示範題組：客人詢問保固', dims: ['風險意識', '資訊正確性'] },
+  { id: 10, cat: '綜合', title: '示範題組：客人要退訂', dims: [] }
+];
+var EMP = [
+  { id: 'E1', name: '範例同仁乙（新人）', taken: [1, 2], hist: [{ '主動引導': 40, '風險意識': 70, '資訊正確性': 100, '預設訊息運用': 85, '問題掌握': 85, '語氣與禮貌': 100, '文字品質': 78 }] },
+  { id: 'E2', name: '範例同仁丙（正式）', taken: [3, 4, 5], hist: [{ '風險意識': 40, '語氣與禮貌': 40, '資訊正確性': 85, '預設訊息運用': 85, '問題掌握': 100, '主動引導': 85, '文字品質': 100 }, { '風險意識': 55, '語氣與禮貌': 70, '資訊正確性': 85, '預設訊息運用': 100, '問題掌握': 85, '主動引導': 85, '文字品質': 85 }] },
+  { id: 'E3', name: '範例同仁戊（新人，第一次考）', taken: [], hist: [] }
+];
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+// ---------- ① 標記 ----------
+function renderQ() {
+  var q = BANK.filter(function (x) { return String(x.id) === $('qSel').value; })[0];
+  $('qChips').innerHTML = TAG_DIMS.map(function (d) {
+    var on = q.dims.indexOf(d) >= 0;
+    return '<label class="chip ' + (on ? 'on' : '') + '"><input type="checkbox" value="' + d + '"' + (on ? ' checked' : '') + '>' + d + '</label>';
+  }).join('');
+  $('qTable').innerHTML = BANK.map(function (x) {
+    return '<tr><td>' + esc(x.title) + '</td><td>' + x.cat + '</td><td>' + (x.dims.length ? x.dims.map(function (d) { return '<span class="tag dim">' + d + '</span>'; }).join('') : '<span class="tag gray">未標記（不會被弱項建議選到）</span>') + '</td></tr>';
+  }).join('');
+}
+$('qSel').innerHTML = BANK.map(function (x) { return '<option value="' + x.id + '">' + esc(x.title) + '</option>'; }).join('');
+$('qSel').addEventListener('change', renderQ);
+$('qChips').addEventListener('change', function (e) {
+  var q = BANK.filter(function (x) { return String(x.id) === $('qSel').value; })[0];
+  var picked = [].slice.call($('qChips').querySelectorAll('input:checked')).map(function (i) { return i.value; });
+  if (picked.length > 3) { e.target.checked = false; $('qMsg').textContent = '最多選 3 個面向。'; return; }
+  q.dims = picked; $('qMsg').textContent = '已標記（樣品：不會真的儲存）。'; renderQ();
+});
+
+// ---------- 弱項與建議 ----------
+function weakOf(emp) {
+  var h = emp.hist.slice(-3);
+  if (!h.length) return [];
+  var avg = TAG_DIMS.map(function (d) { var v = h.map(function (r) { return r[d]; }).filter(function (x) { return x != null; }); return { d: d, p: v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null, n: h.length }; });
+  return avg.filter(function (a) { return a.p !== null; }).sort(function (a, b) { return a.p - b.p; }).slice(0, 2);
+}
+var rec = [], randomMode = false;
+function recommend(emp, n) {
+  var weak = weakOf(emp), out = [], used = {};
+  weak.forEach(function (w) { w.pool = BANK.filter(function (q) { return q.dims.indexOf(w.d) >= 0 && emp.taken.indexOf(q.id) < 0; }); });
+  var weakSlots = Math.max(1, n - 1);
+  for (var i = 0; i < weakSlots && weak.length; i++) {
+    var w = weak[i % weak.length];
+    var c = w.pool.filter(function (q) { return !used[q.id]; })[0] || weak.reduce(function (acc, x) { return acc || x.pool.filter(function (q) { return !used[q.id]; })[0]; }, null);
+    if (c) { used[c.id] = 1; out.push({ q: c, why: w.d, kind: 'weak' }); }
+  }
+  var rest = BANK.filter(function (q) { return !used[q.id] && emp.taken.indexOf(q.id) < 0; });
+  while (out.length < n && rest.length) { var r = rest.shift(); used[r.id] = 1; out.push({ q: r, why: '隨機（照原本輪替）', kind: 'rand' }); }
+  return out;
+}
+function lowAlways(emp) {
+  var h = emp.hist.slice(-3);
+  return ALWAYS.map(function (d) { var v = h.map(function (r) { return r[d]; }).filter(function (x) { return x != null; }); return { d: d, p: v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null }; })
+    .filter(function (a) { return a.p !== null && a.p < 70; });
+}
+function alwaysHint(emp) {
+  var low = lowAlways(emp);
+  return low.length ? '<div class="hint warn" style="margin-top:8px">另外請考官特別留意：' + low.map(function (a) { return '<span class="tag weak">' + a.d + '　' + Math.round(a.p) + '%</span>'; }).join('') + '（每題都會評，不另外出題）</div>' : '';
+}
+function renderE() {
+  var emp = EMP.filter(function (x) { return x.id === $('eSel').value; })[0], n = +$('nSel').value;
+  var weak = weakOf(emp);
+  randomMode = false;
+  if (!weak.length) {
+    $('weakBox').innerHTML = '<div class="hint warn">這位考生還沒有成績單可參考（第一次考核），所以沒有弱項。系統退回「抽選器隨機抽」。</div>';
+    rec = []; $('recBox').innerHTML = ''; $('goExam').disabled = true; return;
+  }
+  $('goExam').disabled = false;
+  $('weakBox').innerHTML = '<div class="hint">依最近 ' + Math.min(3, emp.hist.length) + ' 次成績單，這位考生最弱的面向：' +
+    weak.map(function (w) { return '<span class="tag weak">' + w.d + '　' + Math.round(w.p) + '%</span>'; }).join('') + '</div>' + alwaysHint(emp);
+  rec = recommend(emp, n);
+  var short = rec.filter(function (r) { return r.kind === 'weak'; }).length < Math.max(1, n - 1);
+  $('recBox').innerHTML = rec.map(function (r, i) {
+    return '<div class="card"><div><b>' + esc(r.q.title) + '</b> <span class="tag gray">' + r.q.cat + '</span><div class="sub">' +
+      (r.kind === 'weak' ? '針對弱項：<span class="tag weak">' + r.why + '</span>' : r.why) + '</div></div>' +
+      '<button class="btn sm" data-swap="' + i + '" type="button">換一題</button></div>';
+  }).join('') + (short ? '<div class="hint warn">題庫裡「標記了這些弱項、且這位考生沒考過」的題組不夠，已用隨機題補上。建議請客服部在題庫管理多標記幾題。</div>' : '');
+}
+$('eSel').innerHTML = EMP.map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('');
+$('eSel').addEventListener('change', renderE);
+$('nSel').addEventListener('change', renderE);
+$('recBox').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  var i = +b.dataset.swap, emp = EMP.filter(function (x) { return x.id === $('eSel').value; })[0];
+  var have = rec.map(function (r) { return r.q.id; });
+  var cand = BANK.filter(function (q) { return have.indexOf(q.id) < 0 && emp.taken.indexOf(q.id) < 0 && (rec[i].kind === 'rand' || q.dims.indexOf(rec[i].why) >= 0); })[0] ||
+             BANK.filter(function (q) { return have.indexOf(q.id) < 0 && emp.taken.indexOf(q.id) < 0; })[0];
+  if (!cand) { $('eMsg').textContent = '沒有可換的題組了。'; return; }
+  rec[i] = { q: cand, why: rec[i].why, kind: cand.dims.indexOf(rec[i].why) >= 0 ? 'weak' : 'rand' };
+  $('recBox').querySelectorAll('.card')[i].querySelector('b').textContent = cand.title;
+  renderE_after(emp);
+  $('eMsg').textContent = '已換題。';
+});
+function renderE_after() { /* 樣品：只更新標題文字 */ }
+$('goExam').addEventListener('click', function () { $('eMsg').textContent = '（樣品）正式版會直接建立這份考核並帶入這些題組，接著進入評分。'; });
+$('goRand').addEventListener('click', function () { $('eMsg').textContent = '（樣品）正式版會回到原本的抽選器流程，照分類隨機抽題。'; });
+
+// ---------- ③ 考核結束 ----------
+(function () {
+  var emp = EMP[0], weak = weakOf(emp), r = recommend(emp, 3);
+  $('afterBox').innerHTML = '<div style="display:flex;gap:var(--sp-4);flex-wrap:wrap;align-items:center;justify-content:space-between"><div><b style="font-size:16px">範例同仁乙　本次總分 70.0　及格</b><div class="sub">已送出，成績單已存檔</div></div><span class="tag dim" style="font-size:13px">考核完成</span></div>' +
+    '<div class="hint" style="margin-top:var(--sp-3)">本次最弱面向：' + weak.map(function (w) { return '<span class="tag weak">' + w.d + '　' + Math.round(w.p) + '%</span>'; }).join('') + '　下次考核會優先針對這些面向出題。</div>' +
+    '<div class="sub" style="margin:var(--sp-3) 0 var(--sp-2)">下次建議考題（預告，開考核時還可以換）</div>' +
+    '<div class="rec">' + r.map(function (x) { return '<div class="card"><div><b>' + esc(x.q.title) + '</b> <span class="tag gray">' + x.q.cat + '</span></div><div>' + (x.kind === 'weak' ? '<span class="tag weak">' + x.why + '</span>' : '<span class="sub">隨機</span>') + '</div></div>'; }).join('') + '</div>';
+})();
+renderQ(); renderE();
+</script>
+</body>
+</html>

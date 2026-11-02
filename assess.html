@@ -100,6 +100,14 @@ summary{cursor:pointer;color:var(--accent-deep);font-weight:600;font-size:13px;p
 .stepli{margin:8px 0 0 0;padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.5;list-style:none}
 .stepli b{color:var(--ink-2);font-size:12px}
 
+/* 弱項與建議題組 */
+.sugcard{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;border:1px solid var(--ink-line);border-radius:var(--r-ctrl);padding:12px 14px;margin-bottom:var(--sp-2);background:var(--glass-bg-strong)}
+.sugcard .st{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.sugcard .st b{font-size:15px}
+.sugcard .why{color:var(--ink-2);font-size:13px;margin-top:4px}
+.sugrow{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin:var(--sp-3) 0}
+.sugrow label{font-size:13px;font-weight:600;color:var(--ink-2)}
+
 /* 評分 */
 .tabs{display:flex;gap:var(--sp-2);overflow-x:auto;margin-bottom:var(--sp-3);padding-bottom:4px}
 .tabs button{flex:0 0 auto;min-height:44px;padding:6px 14px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);font-weight:600;font-size:13px;text-align:left}
@@ -273,6 +281,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/scoring.js"></script>
+<script src="js/suggest.js"></script>
 <script src="js/assess-api.js"></script>
 <script>
 (function () {
@@ -312,7 +321,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var finished = null;       // 送出後的資料庫結果
   var abandonTarget = null;  // 要放棄的考核 id
 
-  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false }; }
+  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false, sug: null, sugOff: false }; }
   var S = fresh();
 
   function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
@@ -501,8 +510,42 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('stage').innerHTML = h;
   }
 
+  // 弱項與建議題組面板（題組名稱機密，本頁只有客服部）
+  function sugCard(it, i) {
+    var why = it.kind === 'weak' ? '針對弱項：<span class="wk">' + esc(it.dim) + '</span>' : '隨機（照原本輪替）';
+    return '<div class="sugcard"><div class="st"><span class="tag new">' + esc(it.category) + '</span> <b>' + esc(it.title) + '</b>' +
+      '<div class="why">' + why + '</div>' +
+      (it.repeated ? '<div class="msg warn">這位考生已考過這題（題庫裡沒考過的題組不夠了）。</div>' : '') + '</div>' +
+      '<button type="button" class="btn sm" data-act="sugswap" data-i="' + i + '"' + (busy ? ' disabled' : '') + '>換一題</button></div>';
+  }
+  function renderSuggest() {
+    var e = S.emp, g = S.sug, pf = g.profile || {};
+    var h = '<section class="panel glass"><h2>2 弱項與建議題組</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。系統依最近 ' + esc(pf.n || 0) + ' 張成績單的弱項，建議下列題組；也可以改用抽選器隨機抽。</p>';
+    h += '<div class="msg info">這位考生最弱的面向：' + (pf.weak || []).map(function (w) {
+      return '<span class="wk">' + esc(w.dim) + (w.pct == null ? '' : '　' + esc(Math.round(Number(w.pct))) + '%') + '</span>';
+    }).join('') + '</div>';
+    var low = pf.always_low || [];
+    if (low.length) {
+      h += '<div class="msg warn">另外請考官特別留意：' + low.map(function (w) {
+        return '<span class="wk">' + esc(w.dim) + (w.pct == null ? '' : '　' + esc(Math.round(Number(w.pct))) + '%') + '</span>';
+      }).join('') + '（每題都會評，不另外出題）</div>';
+    }
+    h += '<div class="sugrow"><label for="sugN">建議題數</label><select class="ctrl" id="sugN"' + (busy ? ' disabled' : '') + '>' +
+      [2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (n === g.n ? ' selected' : '') + '>' + n + ' 題</option>'; }).join('') + '</select></div>';
+    h += g.items.map(sugCard).join('');
+    if (!g.items.length) h += '<div class="msg warn">找不到可建議的題組，請改用抽選器隨機抽。</div>';
+    else if (g.items.length < g.n) h += '<div class="msg warn">題庫分類不足（一場考核每個分類最多一個題組），只能建議 ' + g.items.length + ' 題。</div>';
+    if (g.short) h += '<div class="msg warn">題庫裡「標記了這些弱項、且這位考生沒考過」的題組不夠，已用隨機題補上。建議請客服部在題庫管理多標記幾題。</div>';
+    if (g.msg) h += '<div class="msg info" role="status">' + esc(g.msg) + '</div>';
+    h += '<div class="navrow"><button class="btn" type="button" data-act="back2">上一步</button>' +
+      '<span style="display:flex;flex-wrap:wrap;gap:var(--sp-2)"><button class="btn" type="button" data-act="sugoff"' + (busy ? ' disabled' : '') + '>改用抽選器隨機抽</button>' +
+      '<button class="btn primary" type="button" data-act="sugstart"' + (busy || !g.items.length ? ' disabled' : '') + '>用這些題組開始考核</button></span></div></section>';
+    $('stage').innerHTML = h;
+  }
+
   function renderStep2() {
     var e = S.emp;
+    if (!S.drawn && S.sug && !S.sugOff) { renderSuggest(); return; }
     var h = '<section class="panel glass"><h2>2 抽題</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。勾選要考的分類，每個分類各抽 1 個題組。</p>';
     if (!S.drawn) {
       if (!S.catInfo) { h += '<div class="loading" role="status">載入分類中…</div></section>'; $('stage').innerHTML = h; return; }
@@ -641,6 +684,13 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     h += '<section class="panel glass"><h2>各題組分數</h2>' + dimTable(
       f.rows.map(function (r) { return { code: r.code, levels: r.levels || {} }; }),
       f.rows.map(function (r) { return { dim: r.dim_points, score: r.item_score }; }), weakest) + '</section>';
+    if (f.next && f.next.length) {
+      h += '<section class="panel glass"><h2>下次建議考題</h2><p class="hint">依這位考生最新的弱項預告，僅供參考；下次開考核時還可以換題。</p>' +
+        f.next.map(function (it) {
+          return '<div class="sugcard"><div class="st"><span class="tag new">' + esc(it.category) + '</span> <b>' + esc(it.title) + '</b></div>' +
+            (it.kind === 'weak' ? '<span class="wk">' + esc(it.dim) + '</span>' : '<span class="hint" style="margin:0">隨機</span>') + '</div>';
+        }).join('') + '</section>';
+    }
     h += '<div class="navrow"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="reports.html">前往成績單</a></div>';
     $('stage').innerHTML = h;
   }
@@ -920,6 +970,18 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       return d;
     });
   }
+  // 載入弱項摘要與題庫建議池；沒有弱項、找不到建議題組、或載入失敗，都照原流程（失敗時提示）
+  function loadSuggest() {
+    var aid = S.aid, emp = S.emp;
+    return Promise.all([AssessApi.weakProfile(emp.id), AssessApi.suggestPool(emp.id)]).then(function (r) {
+      if (S.aid !== aid) return;
+      var res = Suggest.pick(r[0], r[1], 3);
+      if (res.empty || !res.items.length) return;
+      S.sug = { profile: r[0], pool: r[1], n: 3, items: res.items, short: res.short, msg: '' };
+    }, function (e) {
+      notice('warn', '弱項建議題組暫時載入失敗（' + errText(e) + '），已改用一般抽選流程。');
+    });
+  }
   function loadCats() {
     return AssessApi.categories().then(function (list) { S.catInfo = list; }, function (e) { S.catInfo = []; notice('err', errText(e)); });
   }
@@ -938,7 +1000,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     rowBusy = p.id; rowErr = {}; notice('', ''); render();
     AssessApi.start(p.id, p.hire_date ? null : override).then(function (aid) {
       return openDraft(aid).then(function () {
-        if (S.step === 2) return loadCats();
+        if (S.step === 2) return loadCats().then(loadSuggest);
       }).then(function () {
         rowBusy = null; expandId = null;
         if (hadDraft) notice('info', '已接續先前未完成的考核');
@@ -952,6 +1014,10 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
   $('stage').addEventListener('change', function (e) {
     if (e.target && e.target.id === 'storeSel') { storeSel = e.target.value; saveStoreSel(); expandId = null; rowErr = {}; render(); }
+    if (e.target && e.target.id === 'sugN' && S.sug && !busy) {
+      var g = S.sug, res = Suggest.pick(g.profile, g.pool, +e.target.value);
+      g.n = +e.target.value; g.items = res.items; g.short = res.short; g.msg = ''; render();
+    }
   });
 
   $('stage').addEventListener('click', function (e) {
@@ -973,7 +1039,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     }
     else if (act === 'resume') {
       var rid = b.dataset.id;
-      run(function () { return openDraft(rid).then(function () { if (S.step === 2) return loadCats(); }); });
+      run(function () { return openDraft(rid).then(function () { if (S.step === 2) return loadCats().then(loadSuggest); }); });
       return;
     }
     else if (act === 'dropdraft') { abandonTarget = b.dataset.id; $('dlg').showModal(); return; }
@@ -999,6 +1065,28 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
             if (S.step === 2) return loadCats();
             notice('info', '這張考核已經抽過題，已重新載入並接續。');
           }, function () { throw err; });
+        });
+      });
+      return;
+    }
+    else if (act === 'sugswap') {
+      var g = S.sug, si = +b.dataset.i;
+      if (!g) return;
+      var sn = Suggest.swap(g.profile, g.pool, g.items, si);
+      if (sn) { g.items[si] = sn; g.msg = '已換題。'; } else g.msg = '沒有可換的題組了。';
+    }
+    else if (act === 'sugoff') { S.sugOff = true; if (!S.catInfo) { run(loadCats); return; } }
+    else if (act === 'sugstart') {
+      var sg = S.sug;
+      if (!sg || !sg.items.length) return;
+      var qids = sg.items.map(function (x) { return x.question_id; });
+      run(function () {
+        return AssessApi.pick(S.aid, qids).then(function (rows) {
+          S.items = rows.map(function (r) {
+            return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round };
+          });
+          S.drawn = true; S.sug = null; S.step = 3; S.cur = 0;
+          if (S.items.some(function (x) { return x.repeated; })) notice('info', '有題組這位考生已考過（題庫裡沒考過的題組不夠了）。');
         });
       });
       return;
@@ -1082,9 +1170,15 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         return d;
       });
       busy = false;
-      finished = { db: db, rows: rows, emp: emp, mismatch: mismatch };
+      var fin = finished = { db: db, rows: rows, emp: emp, mismatch: mismatch, next: null };
       S = fresh(); resetSave(); imgMsgs = [];
       render(); window.scrollTo(0, 0);
+      // 下次建議考題預告：失敗或沒有弱項就不顯示，不影響結果頁
+      Promise.all([AssessApi.weakProfile(emp.id), AssessApi.suggestPool(emp.id)]).then(function (x) {
+        var res = Suggest.pick(x[0], x[1], 3);
+        if (res.empty || !res.items.length || finished !== fin) return;
+        fin.next = res.items; render();
+      }).catch(function () {});
     }, function (e) { busy = false; notice('err', errText(e)); render(); });
   }
 

@@ -51,7 +51,7 @@ button{cursor:pointer}
 .foot{text-align:center;color:var(--ink-3);font-size:12px;margin:var(--sp-6) 0 var(--sp-4)}
 
 /* 統計 */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-3);margin-bottom:var(--sp-4)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-3);margin-bottom:var(--sp-4)}
 .stat{padding:var(--sp-3) var(--sp-4);display:flex;flex-direction:column;gap:2px}
 .stat .num{font-size:26px;font-weight:700;line-height:1.2}
 .stat .lbl{font-size:12px;color:var(--ink-2)}
@@ -61,6 +61,14 @@ button{cursor:pointer}
 .toolbar .tool-row{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
 .toolbar .tool-note{flex:1 1 100%;color:var(--ink-3);font-size:12px}
 .only-mobile{display:inline-block}
+/* 重點面向 */
+.dimfield{margin-bottom:var(--sp-3);font-size:13px;color:var(--ink-2);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;min-height:36px;border-radius:var(--r-pill);border:1px solid var(--ink-line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;user-select:none;color:var(--ink)}
+.chip input{accent-color:var(--accent)}
+.chip.on{background:var(--ci-yellow);border-color:var(--ci-black);color:var(--ci-black)}
+.dimhelp{color:var(--ink-3);font-size:12px;font-weight:400;margin-top:6px;line-height:1.5}
+.tag.dim{background:var(--accent-soft);color:var(--accent-deep)}
 /* 版面：桌機右欄固定表單 */
 .layout{display:grid;grid-template-columns:1fr;gap:var(--sp-4);align-items:start}
 .formcol[data-open="false"]{display:none}
@@ -128,6 +136,7 @@ button{cursor:pointer}
 .form-btns{display:flex;gap:var(--sp-2);margin-top:var(--sp-4)}
 .add-step{width:100%}
 @media (max-width:640px){
+  .stats{grid-template-columns:repeat(2,1fr)}
   .top h1{font-size:19px}
   .btn.sm,.toolbar .btn,.form-btns .btn{min-height:44px}
   .q-actions .btn.sm{min-width:56px}
@@ -189,6 +198,7 @@ button{cursor:pointer}
     <div class="stat glass"><span class="num" id="stTotal">0</span><span class="lbl">總題組數</span></div>
     <div class="stat glass"><span class="num" id="stCats">0</span><span class="lbl">分類數</span></div>
     <div class="stat glass"><span class="num" id="stDrawn">0</span><span class="lbl">本輪已抽題組數</span></div>
+    <div class="stat glass"><span class="num" id="stMarked">0 / 0</span><span class="lbl">已標記／總題組數</span></div>
   </section>
 
   <section class="toolbar glass" aria-label="篩選與操作">
@@ -226,6 +236,10 @@ button{cursor:pointer}
           <input class="ctrl" type="text" id="titleInput" maxlength="100">
           <div class="ferr" id="titleErr" role="alert" hidden></div>
         </label>
+        <div class="dimfield" role="group" aria-labelledby="dimLbl"><span id="dimLbl">重點面向（選填，最多 3 個）</span>
+          <div class="chips" id="dimBox"></div>
+          <div class="dimhelp" id="dimHelp">語氣與禮貌、文字品質每題都會評，不用勾選。</div>
+        </div>
         <div class="steps-top"><span>步驟</span><span id="stepCount">1 / 30 步</span></div>
         <div id="stepsBox"></div>
         <button class="btn add-step" id="addStepBtn" type="button">新增步驟</button>
@@ -253,6 +267,7 @@ button{cursor:pointer}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
+<script src="js/suggest.js"></script>
 <script src="js/questions-api.js"></script>
 <script>
 (function () {
@@ -281,6 +296,7 @@ button{cursor:pointer}
 
   /* ===== 資料（從資料庫載入，只放記憶體） ===== */
   var questions = [];
+  var dimsMap = {};   // 題組 id → 重點面向陣列（question_dims）；null＝標記載入失敗
   var catStat = {};   // 分類 → { total, remaining }（assess_categories）
   var names = [];
   var filterAll = false, filterCat = null;
@@ -330,6 +346,7 @@ button{cursor:pointer}
     $('stTotal').textContent = questions.length;
     $('stCats').textContent = names.length;
     $('stDrawn').textContent = questions.filter(function (q) { return q.drawn; }).length;
+    $('stMarked').textContent = dimsMap ? questions.filter(function (q) { return (dimsMap[q.id] || []).length > 0; }).length + ' / ' + questions.length : '— / ' + questions.length;
   }
   function renderFilter() {
     var sel = $('filterSelect');
@@ -375,6 +392,11 @@ button{cursor:pointer}
 
   var CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 
+  function dimTags(q) {
+    if (!dimsMap) return '';
+    var d = dimsMap[q.id] || [];
+    return d.length ? d.map(function (x) { return '<span class="tag dim">' + esc(x) + '</span>'; }).join('') : '<span class="tag soft">未標記</span>';
+  }
   function renderQuestion(q) {
     var open = !!openIds[q.id];
     var h = '<div class="q-item' + (editingId === q.id ? ' editing' : '') + (flashId === q.id ? ' flash' : '') + '" data-id="' + q.id + '">' +
@@ -383,7 +405,7 @@ button{cursor:pointer}
           (q.code ? '<span class="code">' + esc(q.code) + '</span>' : '') +
           '<div class="q-info"><div class="q-title">' + esc(q.title) + '</div>' +
           '<div class="q-meta"><span class="tag soft">' + q.steps.length + ' 個步驟</span>' +
-          (q.drawn ? '<span class="tag drawn">本輪已抽</span>' : '') + '</div></div>' +
+          (q.drawn ? '<span class="tag drawn">本輪已抽</span>' : '') + dimTags(q) + '</div></div>' +
         '</div>' +
         '<div class="q-actions">' +
           '<button type="button" class="btn sm" data-act="edit">編輯</button>' +
@@ -461,11 +483,15 @@ button{cursor:pointer}
   // 回傳 Promise<boolean>：true＝載入成功
   function reloadList() {
     var seq = ++loadSeq;
-    return Promise.all([QuestionsApi.listQuestions(), QuestionsApi.categories()]).then(function (r) {
+    // 面向標記讀不到（例如資料庫腳本還沒執行）不影響題庫管理，只是不顯示標記、不能編輯標記
+    var dimsP = QuestionsApi.loadDims().catch(function () { return null; });
+    return Promise.all([QuestionsApi.listQuestions(), QuestionsApi.categories(), dimsP]).then(function (r) {
       if (seq !== loadSeq) return true;
       dataOk = true;
       document.body.classList.remove('nodata');
       questions = r[0];
+      dimsMap = r[2];
+      syncDimLock();
       catStat = {};
       r[1].forEach(function (c) { catStat[c.category] = { total: Number(c.total) || 0, remaining: Number(c.remaining) || 0 }; });
       $('failBox').hidden = true;
@@ -476,7 +502,7 @@ button{cursor:pointer}
       if (seq !== loadSeq) return false;
       dataOk = false;
       document.body.classList.add('nodata');
-      questions = []; catStat = {}; names = [];
+      questions = []; catStat = {}; names = []; dimsMap = {};
       $('listBox').innerHTML = '';
       $('resetAllBtn').disabled = true;
       showMsg('');
@@ -573,6 +599,34 @@ button{cursor:pointer}
   });
   $('addStepBtn').addEventListener('click', function () { addStep('', '', true); });
 
+  /* ===== 重點面向勾選（5 個，最多 3 個） ===== */
+  $('dimBox').innerHTML = Suggest.TAG_DIMS.map(function (d) {
+    return '<label class="chip"><input type="checkbox" value="' + esc(d) + '">' + esc(d) + '</label>';
+  }).join('');
+  function pickedDims() {
+    return [].slice.call($('dimBox').querySelectorAll('input:checked')).map(function (i) { return i.value; });
+  }
+  function setDimChecks(arr) {
+    [].forEach.call($('dimBox').querySelectorAll('input'), function (i) {
+      i.checked = (arr || []).indexOf(i.value) >= 0;
+      i.parentNode.classList.toggle('on', i.checked);
+    });
+    syncDimLock();
+  }
+  // 標記載入失敗時不能編輯，避免蓋掉看不到的舊標記
+  function syncDimLock() {
+    [].forEach.call($('dimBox').querySelectorAll('input'), function (i) { i.disabled = !dimsMap; });
+    $('dimHelp').textContent = dimsMap ? '語氣與禮貌、文字品質每題都會評，不用勾選。' : '重點面向暫時無法載入，這次先不能編輯，請重新整理頁面後再試。';
+  }
+  $('dimBox').addEventListener('change', function (e) {
+    var t = e.target;
+    if (pickedDims().length > 3) {
+      t.checked = false;
+      $('dimHelp').textContent = '最多選 3 個面向。';
+    } else $('dimHelp').textContent = '語氣與禮貌、文字品質每題都會評，不用勾選。';
+    t.parentNode.classList.toggle('on', t.checked);
+  });
+
   /* ===== 表單 ===== */
   function openForm(focusFirst) {
     $('formCol').setAttribute('data-open', 'true');
@@ -599,12 +653,13 @@ button{cursor:pointer}
     editingId = q.id; setFormMode(true, q); hideErrs(); setFormNote('');
     applyFormCat(q.category);
     $('codeInput').value = q.code || ''; $('titleInput').value = q.title; buildSteps(q.steps);
+    setDimChecks(dimsMap ? dimsMap[q.id] : []);
     renderList(); openForm(true);
   }
   function resetForm() {
     editingId = null; formTouched = false; setFormMode(false); setFormNote('');
     $('codeInput').value = ''; $('titleInput').value = ''; $('newCatInput').value = '';
-    buildSteps(null); hideErrs(); syncFormCat();
+    buildSteps(null); setDimChecks([]); hideErrs(); syncFormCat();
   }
   function markErr(errId, msg, inputEl) { var e = $(errId); e.textContent = msg; e.hidden = false; inputEl.classList.add('bad'); }
 
@@ -631,15 +686,25 @@ button{cursor:pointer}
     }
     if (firstBad) { firstBad.focus(); return; }
     var wasEdit = editingId !== null;
+    var wantDims = pickedDims(), dimsErr = '';
     setBusy(true);
     QuestionsApi.saveQuestion(editingId, cat, code, title, steps).then(function (id) {
+      // 題組已存好；重點面向有變動才另外呼叫 setDims。失敗只提示，不讓整個儲存看起來失敗（避免重複送出）
+      var old = dimsMap ? (dimsMap[id] || []) : null;
+      var changed = old !== null && (old.length !== wantDims.length || wantDims.some(function (d) { return old.indexOf(d) < 0; }));
+      if (!changed) return id;
+      return QuestionsApi.setDims(id, wantDims).then(function () { return id; }, function (e) {
+        dimsErr = errText(e); return id;
+      });
+    }).then(function (id) {
       // 儲存成功：清掉草稿、跳到該分類，再重新載入列表
       filterAll = false; filterCat = cat; flashId = id; openIds[id] = true;
       resetForm(); if (!isDesktop()) closeFormMobile();
       return reloadList().then(function (ok) {
         if (ok) {
           var fl = document.querySelector('.q-item.flash'); if (fl) fl.scrollIntoView({ block: 'nearest' });
-          showMsg(wasEdit ? '已儲存修改。' : '已新增題組。', 'ok');
+          if (dimsErr) showMsg((wasEdit ? '題組修改已儲存' : '題組已新增') + '，但重點面向沒有存成功：' + dimsErr + ' 請編輯該題組重新勾選。', 'bad');
+          else showMsg(wasEdit ? '已儲存修改。' : '已新增題組。', 'ok');
         }
         flashId = null;
       });

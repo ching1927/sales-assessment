@@ -76,6 +76,22 @@
         p_id: id == null ? null : id, p_category: category, p_code: code, p_title: title, p_steps: steps
       })).then(function (r) { return Number(r.data); });
     },
+    // 設定題組的重點面向（空陣列＝清除標記）
+    setDims: function (questionId, dims) {
+      return wrap(sb.rpc('bank_set_dims', { p_question_id: questionId, p_dims: dims }));
+    },
+    // 全部題組的面向標記：{ [question_id]: [面向...] }（分頁讀完）
+    loadDims: function () {
+      var PAGE = 1000, map = {};
+      function next(from) {
+        return wrap(sb.from('question_dims').select('question_id,dims').order('question_id').range(from, from + PAGE - 1)).then(function (r) {
+          var rows = r.data || [];
+          rows.forEach(function (x) { map[Number(x.question_id)] = Array.isArray(x.dims) ? x.dims : []; });
+          return rows.length === PAGE ? next(from + PAGE) : map;
+        });
+      }
+      return next(0);
+    },
     deleteQuestion: function (id) {
       return wrap(sb.rpc('bank_delete_question', { p_id: id }));
     },

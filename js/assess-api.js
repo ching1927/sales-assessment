@@ -145,6 +145,22 @@
     draw: function (assessmentId, cats) {
       return wrap(sb.rpc('assess_draw', { p_assessment_id: assessmentId, p_cats: cats })).then(function (r) { return r.data || []; });
     },
+    // ---- 弱項建議題組（規格：supabase/README_weak_suggest.md）----
+    // 弱項摘要（jsonb 物件）
+    weakProfile: function (employeeId) {
+      return wrap(sb.rpc('assess_weak_profile', { p_employee_id: employeeId })).then(function (r) {
+        var d = Array.isArray(r.data) ? r.data[0] : r.data;
+        return d || { n: 0, rates: [], weak: [], always_low: [] };
+      });
+    },
+    // 整個題庫（含面向標記、該考生考過與否、是否在抽選器 drawn 內）；題組名稱機密，只有客服部能呼叫
+    suggestPool: function (employeeId) {
+      return wrap(sb.rpc('assess_suggest_pool', { p_employee_id: employeeId })).then(function (r) { return r.data || []; });
+    },
+    // 指定題組開考，回傳格式與 draw 一致
+    pick: function (assessmentId, questionIds) {
+      return wrap(sb.rpc('assess_pick', { p_assessment_id: assessmentId, p_question_ids: questionIds })).then(function (r) { return r.data || []; });
+    },
     saveItem: function (itemId, levels, note, noteUrl) {
       return wrap(sb.rpc('assess_save_item', { p_item_id: itemId, p_levels: levels, p_note: note || '', p_note_url: noteUrl || null }));
     },
