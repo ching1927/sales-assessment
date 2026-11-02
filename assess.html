@@ -521,7 +521,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function renderSuggest() {
     var e = S.emp, g = S.sug, pf = g.profile || {};
     var h = '<section class="panel glass"><h2>2 弱項與建議題組</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。系統依最近 ' + esc(pf.n || 0) + ' 張成績單的弱項，建議下列題組；也可以改用抽選器隨機抽。</p>';
-    h += '<div class="msg info">這位考生最弱的面向：' + (pf.weak || []).map(function (w) {
+    h += '<div class="msg info">這位考生最弱的面向：' + Suggest.weakOf(pf).map(function (w) {
       return '<span class="wk">' + esc(w.dim) + (w.pct == null ? '' : '　' + esc(Math.round(Number(w.pct))) + '%') + '</span>';
     }).join('') + '</div>';
     var low = pf.always_low || [];

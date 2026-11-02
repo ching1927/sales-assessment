@@ -5,6 +5,8 @@
  * 用法：
  *   Suggest.TAG_DIMS     // 可勾選、可拿來挑題的 5 個面向
  *   Suggest.ALWAYS_DIMS  // 每題都評、不勾選也不挑題的 2 個面向（語氣與禮貌、文字品質）
+ *   Suggest.WEAK_BELOW   // 85：弱項必須得分率低於這個值（剛好 85 不算）
+ *   Suggest.weakOf(profile) // 保留下來的弱項 [{dim, pct}]（5 個面向、pct < 85、由低到高、至多 2 個）；畫面顯示弱項標籤只用它
  *   Suggest.pick(profile, pool, n[, rng])
  *     profile：assess_weak_profile 回傳的 jsonb（{ n, rates, weak:[{dim,pct}], always_low }）
  *     pool：assess_suggest_pool 的列（{question_id, category, title, dims, taken_before, drawn_this_round}）
@@ -21,14 +23,18 @@
   var ALWAYS_DIMS = ['語氣與禮貌', '文字品質'];
 
   function dimsOf(q) { return Array.isArray(q && q.dims) ? q.dims : []; }
-  function weakDims(profile) {
+  var WEAK_BELOW = 85;
+  // 取弱項的唯一入口：只留 5 個面向、pct 為數字且 < 85、不重複，由低到高，至多 2 個
+  function weakOf(profile) {
     var out = [];
     ((profile && profile.weak) || []).forEach(function (w) {
-      var d = w && w.dim;
-      if (TAG_DIMS.indexOf(d) >= 0 && out.indexOf(d) < 0) out.push(d);
+      var d = w && w.dim, p = w && w.pct == null ? NaN : Number(w && w.pct);
+      if (TAG_DIMS.indexOf(d) >= 0 && isFinite(p) && p < WEAK_BELOW && !out.some(function (x) { return x.dim === d; })) out.push({ dim: d, pct: p });
     });
+    out.sort(function (a, b) { return a.pct - b.pct; });
     return out.slice(0, 2);
   }
+  function weakDims(profile) { return weakOf(profile).map(function (w) { return w.dim; }); }
   function choose(list, rng) {
     if (!list.length) return null;
     var r = typeof rng === 'function' ? rng() : Math.random();
@@ -101,7 +107,7 @@
     return randomOne(pool, used, rng);
   }
 
-  var api = { TAG_DIMS: TAG_DIMS, ALWAYS_DIMS: ALWAYS_DIMS, pick: pick, swap: swap };
+  var api = { TAG_DIMS: TAG_DIMS, ALWAYS_DIMS: ALWAYS_DIMS, WEAK_BELOW: WEAK_BELOW, weakOf: weakOf, pick: pick, swap: swap };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.Suggest = api;
 })(typeof window !== 'undefined' ? window : null);

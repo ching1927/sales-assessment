@@ -169,4 +169,29 @@ eq(Suggest.swap(prof(['主動引導']), [q(1, ['主動引導'], { cat: 'A' }), q
 var swR = Suggest.swap(prof(['主動引導']), [q(1, [], { cat: 'A' }), q(2, [], { cat: 'A' }), q(3, [], { cat: 'B' })], [curA[1], { question_id: 1, category: 'A', title: 't', dims: [], kind: 'rand', dim: null, repeated: false }], 1, first);
 eq(swR.question_id, 2, 'swap：隨機題換入同分類的另一題');
 
+// ---- 弱項必須低於 85% ----
+function profP(arr, low) { return { n: 3, rates: [], weak: arr.map(function (x) { return { dim: x[0], pct: x[1] }; }), always_low: low || [] }; }
+eq(Suggest.WEAK_BELOW, 85, 'WEAK_BELOW 為 85');
+eq(Suggest.weakOf(profP([['風險意識', 60], ['主動引導', 80]])).map(function (w) { return w.dim; }), ['風險意識', '主動引導'], '兩個都 < 85：都保留');
+eq(Suggest.weakOf(profP([['風險意識', 60], ['主動引導', 90]])), [{ dim: '風險意識', pct: 60 }], '只有一個 < 85：只留一個');
+eq(Suggest.weakOf(profP([['風險意識', 85]])), [], '剛好 85 不算弱項');
+eq(Suggest.weakOf(profP([['風險意識', 84.9]])).length, 1, '84.9 算弱項');
+eq(Suggest.weakOf(profP([['風險意識', 90], ['主動引導', 100]])), [], '全部 >= 85：沒有弱項');
+eq(Suggest.weakOf(profP([['風險意識', null], ['主動引導', 70]])).map(function (w) { return w.dim; }), ['主動引導'], 'pct 為 null 的忽略');
+eq(Suggest.weakOf(profP([['主動引導', 80], ['風險意識', 60]])).map(function (w) { return w.dim; }), ['風險意識', '主動引導'], '由低到高');
+eq(Suggest.weakOf(profP([['語氣與禮貌', 10], ['文字品質', 20]])), [], '語氣與文字不算弱項');
+var pe = Suggest.pick(profP([['風險意識', 85], ['主動引導', 95]]), POOL, 3, first);
+eq(pe, { items: [], short: false, fewCats: false, empty: true }, '全部 >= 85 -> empty');
+eq(Suggest.pick(profP([['風險意識', null]]), POOL, 3, first).empty, true, '只有 null -> empty');
+var p1 = Suggest.pick(profP([['風險意識', 50], ['主動引導', 88]]), POOL, 3, first);
+eq(p1.empty, false, '只有一個 < 85：不是 empty');
+eq(p1.items.filter(function (x) { return x.kind === 'weak'; }).every(function (x) { return x.dim === '風險意識'; }), true, '只有一個 < 85：弱項題只針對該面向');
+eq(kinds(p1), ['weak', 'weak', 'rand'], '只有一個 < 85：弱項題數照既有邏輯');
+eq(Suggest.pick(profP([['風險意識', 85]]), POOL, 3, first).empty, true, '85 邊界：pick 視為沒有弱項');
+eq(Suggest.swap(profP([['風險意識', 50]]), POOL, p1.items, 0, first).dim, '風險意識', 'swap 不受影響');
+// always_low 不受影響：不論弱項是否保留，profile.always_low 原樣
+var lowP = profP([['風險意識', 90]], [{ dim: '語氣與禮貌', pct: 55 }]);
+eq(lowP.always_low, [{ dim: '語氣與禮貌', pct: 55 }], 'always_low 保持原樣');
+eq(Suggest.pick(profP([['風險意識', 50]], [{ dim: '文字品質', pct: 60 }]), POOL, 3, first).empty, false, 'always_low 不影響弱項判斷');
+
 console.log('通過 ' + passed + ' 項');
