@@ -45,6 +45,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
 th{font-size:12px;color:var(--ink-2);font-weight:600;background:var(--glass-bg-strong)}
 td.num,th.num{text-align:right}
+td.ctr,th.ctr{text-align:center}
 tbody tr:last-child td{border-bottom:none}
 tr.off td{color:var(--ink-3)}
 th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-shadow:-6px 0 8px -6px rgba(15,23,42,.18)}
@@ -166,7 +167,7 @@ dialog::backdrop{background:var(--scrim)}
       <section class="tablebox glass">
         <div class="scroll" tabindex="0" aria-label="人員歷史列表，可左右捲動">
           <table style="min-width:900px">
-            <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="num">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>改善單</th><th class="stick">操作</th></tr></thead>
+            <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="ctr">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>改善單</th><th class="stick">操作</th></tr></thead>
             <tbody id="hBody"></tbody>
           </table>
         </div>
@@ -451,8 +452,8 @@ dialog::backdrop{background:var(--scrim)}
       var tn = tenureNow(p);
       return '<tr><td>' + esc(p.name) + ' <span class="mono sub">' + esc(p.id) + '</span></td><td>' + esc(sName(p.store)) + '</td>' +
         '<td><span class="tag ' + tenureCls(tn) + '">' + esc(tn) + '</span></td>' +
-        '<td class="num">' + rs.length + '</td>' +
-        '<td>' + (last ? '<span class="mono">' + esc(last.date) + '</span> ' + (last.total == null ? '—' : esc(fmt(last.total)) + ' 分') + ' ' + vtag(last.verdict) : '<span class="sub">尚無考核</span>') + '</td>' +
+        '<td class="ctr">' + rs.length + '</td>' +
+        '<td>' + (last ? '<span class="mono">' + esc(last.date) + '</span> ' + vtag(last.verdict) + ' ' + (last.total == null ? '—' : esc(fmt(last.total)) + ' 分') :'<span class="sub">尚無考核</span>') + '</td>' +
         '<td>' + sparkline(rs.slice(-4).filter(function (r) { return r.total != null; }).map(function (r) { return r.total; })) + '</td>' +
         '<td>' + (tk.length ? '<span class="tag unk">改善中 ' + tk.length + ' 張</span>' + (od ? '<span class="tag out">逾期 ' + od + ' 張</span>' : '') : '<span class="sub">—</span>') + '</td>' +
         '<td class="stick"><button type="button" class="btn sm" data-stu="' + esc(p.id) + '">查看</button></td></tr>';
