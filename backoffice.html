@@ -47,6 +47,7 @@ th{font-size:12px;color:var(--ink-2);font-weight:600;background:var(--glass-bg-s
 td.num,th.num{text-align:right}
 tbody tr:last-child td{border-bottom:none}
 tr.off td{color:var(--ink-3)}
+th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-shadow:-6px 0 8px -6px rgba(15,23,42,.18)}
 .mono{font-family:var(--mono)}
 .sub{font-size:12px;color:var(--ink-3)}
 .tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600;margin:1px 2px 1px 0}
@@ -165,7 +166,7 @@ dialog::backdrop{background:var(--scrim)}
       <section class="tablebox glass">
         <div class="scroll" tabindex="0" aria-label="人員歷史列表，可左右捲動">
           <table style="min-width:900px">
-            <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="num">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>改善單</th><th>操作</th></tr></thead>
+            <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="num">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>改善單</th><th class="stick">操作</th></tr></thead>
             <tbody id="hBody"></tbody>
           </table>
         </div>
@@ -211,8 +212,8 @@ dialog::backdrop{background:var(--scrim)}
       <section class="tablebox glass">
         <div class="scroll" tabindex="0" aria-label="改善單列表，可左右捲動">
           <table style="min-width:980px">
-            <thead><tr><th>考生</th><th>門市</th><th>來源成績單</th><th>改善面向</th><th>期限</th><th>狀態</th><th>操作</th></tr></thead>
-            <tbody id="tBody"></tbody>
+            <thead><tr><th>考生</th><th>門市</th><th>來源成績單</th><th>改善面向</th><th>期限</th><th>狀態</th><th class="stick">操作</th></tr></thead>
+<tbody id="tBody"></tbody>
           </table>
         </div>
         <div class="empty" id="tEmpty" hidden>沒有符合條件的改善單</div>
@@ -454,7 +455,7 @@ dialog::backdrop{background:var(--scrim)}
         '<td>' + (last ? '<span class="mono">' + esc(last.date) + '</span> ' + (last.total == null ? '—' : esc(fmt(last.total)) + ' 分') + ' ' + vtag(last.verdict) : '<span class="sub">尚無考核</span>') + '</td>' +
         '<td>' + sparkline(rs.slice(-4).filter(function (r) { return r.total != null; }).map(function (r) { return r.total; })) + '</td>' +
         '<td>' + (tk.length ? '<span class="tag unk">改善中 ' + tk.length + ' 張</span>' + (od ? '<span class="tag out">逾期 ' + od + ' 張</span>' : '') : '<span class="sub">—</span>') + '</td>' +
-        '<td><button type="button" class="btn sm" data-stu="' + esc(p.id) + '">查看</button></td></tr>';
+        '<td class="stick"><button type="button" class="btn sm" data-stu="' + esc(p.id) + '">查看</button></td></tr>';
     }).join('');
     $('hEmpty').textContent = people.length ? '沒有符合條件的考生' : '目前沒有考核對象，也沒有任何成績單';
     $('hEmpty').hidden = list.length > 0;
@@ -578,7 +579,7 @@ dialog::backdrop{background:var(--scrim)}
       return '<tr class="' + (t.status === 'cancelled' ? 'off' : '') + '"><td>' + esc(tName(t)) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td><td>' + esc(sName(t.store_code)) + '</td><td>' + srcCell(t) + '</td>' +
         '<td style="white-space:normal;min-width:160px">' + dimTags(t.target_dims) + '</td>' +
         '<td><span class="mono">' + esc(t.due_date) + '</span>' + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td>' +
-        '<td><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
+        '<td class="stick"><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
     }).join('');
     $('tEmpty').textContent = tickets.length ? '沒有符合條件的改善單' : '目前沒有改善單';
     $('tEmpty').hidden = list.length > 0;
