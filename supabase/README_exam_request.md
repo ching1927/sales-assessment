@@ -55,7 +55,9 @@ SELECT 權限（RLS）：`exam_requests` 客服部、總公司主管全部、店
 
 ## 五、資料庫實作說明與執行步驟（資料庫工程師補充，規格正文第一至四節未改動）
 
-> ⚠️ 兩支 SQL **尚未在 Supabase 執行**。開發機沒有 Supabase 連線，只在 PGlite（npm 的 `@electric-sql/pglite`，本機模擬的 Postgres）搭的假環境裡實際跑過：先依序執行既有的 roster／assess／bank／notes_visible／backoffice／spotcheck／url_patch，再執行本功能的 schema（連跑兩次確認可重複執行），再跑驗證腳本。pg_net 在假環境用自己寫的假 `net` schema 代替（`net.http_post` 回傳遞增編號、`net._http_response` 表）。
+> ⚠️ 兩支 SQL **尚未在 Supabase 執行**。開發機沒有 Supabase 連線，只在 PGlite（npm 的 `@electric-sql/pglite`，本機模擬的 Postgres）搭的假環境裡實際跑過：先依序執行既有的 roster／assess／bank／accounts／notes_visible／backoffice／spotcheck／url_patch／weak_suggest（含 accounts 的信箱網域、護欄、稽核觸發器），再執行本功能的 schema（連跑兩次確認可重複執行），再跑驗證腳本。pg_net 在假環境用自己寫的假 `net` schema 代替（`net.http_post` 回傳遞增編號、`net._http_response` 表）。
+
+> 驗證腳本不會往 `app_users` 寫入非 @2motor.tw 的信箱（真實資料庫的 `accounts_email_domain_check` 會擋）；收件人過濾改用字面值直接呼叫內部函式 `exam_req_enqueue` 測。假資料建立若失敗，總結列的「實際」欄會寫出第一個失敗的錯誤訊息。
 
 ### 檔案
 
@@ -74,7 +76,7 @@ SELECT 權限（RLS）：`exam_requests` 客服部、總公司主管全部、店
 
 1. SQL Editor → New query → 貼上 `exam_request_schema.sql` 整份 → Run。拿不到鎖會在 5 秒後整份回復，稍後重跑即可。成功時 Messages 會顯示 pg_net 是否已啟用的提示。
 2. 再開新的 query，貼上 `exam_request_verify_fake.sql` 整份 → Run。
-3. 預期結果：最後一張表第一列「總結」寫「N/N 項通過」（目前 N＝384），「通過」欄全是「通過」。任何一列「失敗」就停下回報，不要自己放行（總結列會列出未通過的序號）。
+3. 預期結果：最後一張表第一列「總結」寫「N/N 項通過」（目前 N＝386），「通過」欄全是「通過」。任何一列「失敗」就停下回報，不要自己放行（總結列會列出未通過的序號）。
 4. 填寄信設定（見下）。**驗證腳本不需要先填設定**（它在交易內清掉設定、結束後 rollback，老闆填的值原樣保留）。
 
 ### 之後老闆要在 SQL Editor 填的兩行（寄信網址與密碼）

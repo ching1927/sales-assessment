@@ -421,10 +421,9 @@ begin
     ('vr-cs2@2motor.tw', 'cs_admin',      null),
     ('vr-hq@2motor.tw',  'hq_viewer',     null),
     ('vr-sm1@2motor.tw', 'store_manager', 'ZZ-X1'),
-    ('vr-sm2@2motor.tw', 'store_manager', 'ZZ-X2'),
-    -- 兩個「客服部但信箱不合格」的帳號：用來驗證收件人過濾（網域不是 @2motor.tw）
-    ('vr-ext@example.com', 'cs_admin', null),
-    ('vr-evil@2motor.tw.example.com', 'cs_admin', null);
+    ('vr-sm2@2motor.tw', 'store_manager', 'ZZ-X2');
+  -- 注意：真實資料庫有 accounts_email_domain_check 觸發器，app_users 只收 @2motor.tw 信箱，
+  --   所以「收件人過濾」不寫入不合格帳號，改直接以字面值呼叫內部函式 exam_req_enqueue 測（見區段 11）。
   -- vr-nobody@2motor.tw 刻意不建立帳號（模擬有登入但未開通）
 
   insert into public.questions (category, code, title, steps) values
@@ -617,7 +616,8 @@ $$;
 -- ============================================================
 -- 換成假的 pg_net 小工具（只在這個交易內有效；rollback 後正式版自動還原）
 -- ============================================================
-create temp sequence vr_net_seq start 1000;
+-- 假請求編號從很大的數字開始，避免和真實 pg_net 已有的請求編號撞號
+create temp sequence vr_net_seq start 900000000000;
 create temp table vr_net_calls (id bigint primary key, url text, body jsonb, headers jsonb, timeout_ms int);
 create temp table vr_net_resp (id bigint, status_code int, timed_out boolean, error_msg text, content text);
 create temp table vr_net_cfg (ready boolean);
@@ -1287,8 +1287,19 @@ begin
     (pg_temp.vr_mf('m1','new','to_emails') = v_to_expected)::text);
   perform pg_temp.vr_eq('11 信件','收件人含 vr-cs1 與 vr-cs2','true',
     (pg_temp.vr_mf('m1','new','to_emails') like '%vr-cs1@2motor.tw%' and pg_temp.vr_mf('m1','new','to_emails') like '%vr-cs2@2motor.tw%')::text);
-  perform pg_temp.vr_eq('11 信件','收件人不含非 @2motor.tw 的客服部帳號（example.com、2motor.tw.example.com）','false',
-    (pg_temp.vr_mf('m1','new','to_emails') like '%example.com%')::text);
+  -- 收件人過濾（直接呼叫內部函式，字面值；不寫入 app_users）
+  perform pg_temp.vr_set('f1', pg_temp.vr_q1($q$select public.exam_req_enqueue(
+        array['vr-ext@example.com', 'vr-evil@2motor.tw.example.com', 'x@2motor.twx', 'vr-ghost@2motor.tw', null, ' VR-CS1@2MOTOR.TW ', 'vr-cs1@2motor.tw'],
+        's', 'b', 'filter-test', null)::text$q$));
+  perform pg_temp.vr_set('f2', pg_temp.vr_q1($q$select public.exam_req_enqueue(array['vr-ext@example.com'], 's', 'b', 'filter-test', null)::text$q$));
+  perform pg_temp.vr_set('f3', pg_temp.vr_q1($q$select public.exam_req_enqueue(null, 's', 'b', 'filter-test', null)::text$q$));
+  perform pg_temp.vr_eq('11 信件','過濾：外部網域、2motor.tw 當子網域、不在 app_users、空值、大小寫與空白、重複 → 只剩 vr-cs1','{vr-cs1@2motor.tw}',
+    pg_temp.vr_q1(format($q$select to_emails::text from public.mail_outbox where id = %L::uuid$q$, pg_temp.vr_get('f1'))));
+  perform pg_temp.vr_eq('11 信件','過濾：全部不合格 → skipped、收件人為空、說明原因','skipped/{}/true',
+    pg_temp.vr_q1(format($q$select status || '/' || to_emails::text || '/' || (last_error like '沒有可寄送的收件人%%')::text
+                           from public.mail_outbox where id = %L::uuid$q$, pg_temp.vr_get('f2'))));
+  perform pg_temp.vr_eq('11 信件','過濾：收件人是 null 陣列 → skipped','skipped',
+    pg_temp.vr_q1(format($q$select status from public.mail_outbox where id = %L::uuid$q$, pg_temp.vr_get('f3'))));
   perform pg_temp.vr_eq('11 信件','新回報信不寄給回報人（店長）','false', (pg_temp.vr_mf('m1','new','to_emails') like '%vr-sm1%')::text);
 
   v_body := pg_temp.vr_mf('m1','new','body_html');
@@ -1671,7 +1682,10 @@ begin
           || quote_literal('總結') || ', ' || quote_literal('全部通過') || ', '
           || quote_literal(v_ok::text || '/' || v_total::text || ' 項通過'
                            || case when v_ok = v_total then ''
-                                   else '；未通過：' || (select string_agg(n::text, '、' order by n) from pg_temp.vr where not pass) end)
+                                   else '；第一個失敗（序號 ' || (select min(n)::text from pg_temp.vr where not pass) || '）：'
+                                        || (select left(grp || '｜' || name || '｜實際：' || coalesce(actual, '(null)'), 300)
+                                            from pg_temp.vr where not pass order by n limit 1)
+                                        || '；全部未通過序號：' || (select string_agg(n::text, '、' order by n) from pg_temp.vr where not pass) end)
           || ', '
           || quote_literal(case when v_ok = v_total then '通過' else '失敗' end)
           || '), ' || v_rows
