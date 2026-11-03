@@ -194,4 +194,25 @@ var lowP = profP([['風險意識', 90]], [{ dim: '語氣與禮貌', pct: 55 }]);
 eq(lowP.always_low, [{ dim: '語氣與禮貌', pct: 55 }], 'always_low 保持原樣');
 eq(Suggest.pick(profP([['風險意識', 50]], [{ dim: '文字品質', pct: 60 }]), POOL, 3, first).empty, false, 'always_low 不影響弱項判斷');
 
+// ---- 追加題：opts.allowSameCategory 允許同分類（預設行為不變）----
+var SAME = [q(1, ['主動引導'], { cat: 'A' }), q(2, ['主動引導'], { cat: 'A' }), q(3, ['主動引導'], { cat: 'A' }), q(4, [], { cat: 'A' }), q(5, [], { cat: 'A' })];
+var sd = Suggest.pick(prof(['主動引導']), SAME, 3, first);
+eq(sd.items.length, 1, '預設：全部同分類只出 1 題');
+eq(sd.fewCats, true, '預設：同分類湊不滿 -> fewCats');
+var sa = Suggest.pick(prof(['主動引導']), SAME, 3, first, { allowSameCategory: true });
+eq(sa.items.length, 3, 'allowSameCategory：同分類可湊滿 3 題');
+eq(sa.fewCats, false, 'allowSameCategory：湊滿不算 fewCats');
+eq(uniq(ids(sa)), true, 'allowSameCategory：題組 id 仍不重複');
+eq(kinds(sa), ['weak', 'weak', 'rand'], 'allowSameCategory：弱項與隨機配置照舊');
+eq(Suggest.pick(prof(['主動引導']), SAME, 3, first, { allowSameCategory: false }).items.length, 1, 'allowSameCategory 為 false 等同預設');
+eq(Suggest.pick(prof(['主動引導']), SAME, 4, last, { allowSameCategory: true }).items.length, 4, 'allowSameCategory：4 題');
+eq(Suggest.pick(prof(['主動引導']), SAME, 6, first, { allowSameCategory: true }).items.length, 5, 'allowSameCategory：題庫只有 5 題 -> 最多 5 題');
+var sa2 = Suggest.pick(prof(['主動引導']), SAME, 2, first, { allowSameCategory: true });
+var swA = Suggest.swap(prof(['主動引導']), SAME, sa2.items, 0, first, { allowSameCategory: true });
+eq(swA.question_id !== sa2.items[0].question_id && swA.question_id !== sa2.items[1].question_id, true, 'allowSameCategory swap：換入的不是現有任一題');
+eq(Suggest.swap(prof(['主動引導']), SAME, sa2.items, 0, first), null, '預設 swap：只剩同分類 -> null');
+var allT = SAME.map(function (x) { return q(x.question_id, ['主動引導'], { cat: 'A', taken: true }); });
+eq(Suggest.pick(prof(['主動引導']), allT, 2, first, { allowSameCategory: true }).items.every(function (x) { return x.repeated === true || x.kind === 'rand'; }), true, 'allowSameCategory：全部考過仍可挑（repeated）');
+eq(Suggest.pick(prof(['主動引導']), allT, 2, first, { allowSameCategory: true }).items.length, 2, 'allowSameCategory：全部考過仍湊滿');
+
 console.log('通過 ' + passed + ' 項');

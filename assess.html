@@ -85,7 +85,7 @@ button:disabled{cursor:not-allowed;opacity:.5}
 .dcard .l2{color:var(--ink-2);font-size:13px;margin-top:4px;flex-basis:100%}
 .dcard .ops{display:flex;gap:var(--sp-2);align-items:center}
 
-/* 抽題 */
+/* 自選分類抽題（核心題組抽題失敗時的備用流程） */
 .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2)}
 .cat{padding:12px 8px;min-height:92px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);text-align:center}
 .cat[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
@@ -107,6 +107,7 @@ summary{cursor:pointer;color:var(--accent-deep);font-weight:600;font-size:13px;p
 .sugcard .why{color:var(--ink-2);font-size:13px;margin-top:4px}
 .sugrow{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin:var(--sp-3) 0}
 .sugrow label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.tag.extra{background:var(--ci-yellow);color:var(--ci-black)}
 
 /* 評分 */
 .tabs{display:flex;gap:var(--sp-2);overflow-x:auto;margin-bottom:var(--sp-3);padding-bottom:4px}
@@ -291,7 +292,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var DIMS = Scoring.DIMENSIONS, NA = Scoring.NOT_APPLICABLE;
   var LV_LIST = ['優', '良', '待加強', '不及格', NA];
   var MAX_NA = 2;
-  var STEP_NAMES = ['選考生', '抽題', '評分', '結算'];
+  var STEP_NAMES = ['固定 3 題組', '評分', '弱項追加題', '送出結果'];
   var TAG = { '新人': 'new', '正式': 'reg', '未填到職日': 'unk' };
   var VCLS = { '優秀': 'on', '及格': 'new', '需複訓': 'unk', '不及格': 'out' };
 
@@ -323,7 +324,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var finished = null;       // 送出後的資料庫結果
   var abandonTarget = null;  // 要放棄的考核 id
 
-  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false, sug: null, sugOff: false }; }
+  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false, coreFail: '', manual: false, weakInfo: null, ex: null, extraStart: '' }; }
   var S = fresh();
 
   function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
@@ -370,7 +371,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // 依目前狀態更新「前往結算」「送出成績單」按鈕與原因
   function syncPending() {
     var why = pendingReason();
-    if (!$('fixbar').hidden) { $('fixGo').disabled = !!why || !allDone(); $('fixWhy').textContent = why; }
+    if (!$('fixbar').hidden) { $('fixGo').disabled = !!why || !canAdvance(); $('fixWhy').textContent = why; }
     var sbtn = $('submitBtn');
     if (sbtn) { sbtn.disabled = busy || !!why; $('submitWhy').textContent = why; }
   }
@@ -440,6 +441,21 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function itemResult(item) { return itemDone(item) ? Scoring.scoreItem(item.levels) : null; }
   function allDone() { return S.items.length > 0 && S.items.every(function (i) { return itemDone(i); }); }
   function isManual() { return !!S.emp && S.emp.source === '手動指定'; }
+  // 核心題組（算總分）與追加題（不算總分）
+  function coreItems() { return S.items.filter(function (i) { return !i.isExtra; }); }
+  function extraItems() { return S.items.filter(function (i) { return !!i.isExtra; }); }
+  function coreDone() { var c = coreItems(); return c.length > 0 && c.every(function (i) { return itemDone(i); }); }
+  // 評分畫面底下的主按鈕能不能按：還沒追加時看核心題組（按下去是分析弱項），有追加題時看全部（按下去是前往結算）
+  function canAdvance() { return extraItems().length ? allDone() : coreDone(); }
+  function labelOf(it) { var list = it.isExtra ? extraItems() : coreItems(); return (it.isExtra ? '追加題 ' : '題組 ') + (list.indexOf(it) + 1); }
+  function sfx(it) { return it.isExtra ? '（不算總分）' : ''; }
+  // 步驟列（固定 3 題組／評分／弱項追加題／送出結果）目前在第幾格
+  function barStep() {
+    if (S.step === 4) return 4;
+    if (S.step === 5) return 3;
+    if (S.step === 3) return extraItems().length ? 3 : 2;
+    return 1;
+  }
 
   function normSteps(steps) {
     return (Array.isArray(steps) ? steps : []).map(function (s) {
@@ -455,7 +471,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   // ====== 畫面 ======
   function renderStepbar() {
-    var cur = finished ? 4 : S.step;
+    var cur = finished ? 4 : barStep();
     $('stepbar').innerHTML = STEP_NAMES.map(function (n, i) {
       var k = i + 1, c = (k === cur && !finished) ? 'cur' : (k < cur || finished) ? 'done' : '';
       return '<li class="' + c + '"' + (k === cur ? ' aria-current="step"' : '') + '><span class="n">' + k + (c === 'done' ? '（完成）' : '') + '</span>' + n + '</li>';
@@ -493,7 +509,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     codes.sort(function (a, b) { return storeRank(a) - storeRank(b) || (a < b ? -1 : a > b ? 1 : 0); });
     if (storeSel && !counts[storeSel]) storeSel = '';
     var dis = (busy || rowBusy) ? ' disabled' : '';
-    h += '<section class="panel glass"><h2>1 選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。按「準備考核・去抽題」就會開始這位考生的考核。</p>' +
+    h += '<section class="panel glass"><h2>選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。按「準備考核・去抽題」就會開始這位考生的考核，並自動抽出固定核心題組（預設基礎、進階、綜合各 1 題），直接進入評分。</p>' +
       '<select class="ctrl" id="storeSel" aria-label="門市" style="width:100%;margin-bottom:var(--sp-3)">' +
       '<option value="">全部門市</option>' + codes.map(function (c) {
         return '<option value="' + esc(c) + '"' + (c === storeSel ? ' selected' : '') + '>' + esc(storeName[c] || c) + '（' + counts[c] + '）</option>';
@@ -518,43 +534,63 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('stage').innerHTML = h;
   }
 
-  // 弱項與建議題組面板（題組名稱機密，本頁只有客服部）
-  function sugCard(it, i) {
+  // 固定核心題組抽不出來：顯示錯誤，可退回舊的選分類流程
+  function renderCoreFail() {
+    var e = S.emp;
+    $('stage').innerHTML = '<section class="panel glass"><h2>固定 3 題組抽題失敗</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。系統依核心分類設定自動抽題，但沒有成功。</p>' +
+      '<div class="msg err" role="alert">' + esc(S.coreFail) + '</div>' +
+      '<p class="hint" style="margin-top:12px">可能是題庫裡缺少核心分類的題組。可以改用自選分類，自己勾選要考的分類來抽題；也可以回上一步，之後再從「我的進行中草稿」繼續。</p>' +
+      '<div class="navrow"><button class="btn" type="button" data-act="back2">上一步</button><button class="btn primary" type="button" data-act="manual">改用自選分類</button></div></section>';
+  }
+
+  // 弱項標籤（面向＋得分率）
+  function weakTags(list) {
+    return (list || []).map(function (w) {
+      return '<span class="wk">' + esc(w.dim) + (w.pct == null ? '' : '　' + esc(Math.round(Number(w.pct))) + '%') + '</span>';
+    }).join('');
+  }
+  // 弱項追加題面板（題組名稱機密，本頁只有客服部）
+  function exCard(it, i) {
     var why = it.kind === 'weak' ? '針對弱項：<span class="wk">' + esc(it.dim) + '</span>' : '隨機（照原本輪替）';
-    return '<div class="sugcard"><div class="st"><span class="tag new">' + esc(it.category) + '</span> <b>' + esc(it.title) + '</b>' +
+    return '<div class="sugcard"><div class="st"><span class="tag extra">追加題</span> <span class="tag new">' + esc(it.category) + '</span> <b>' + esc(it.title) + '</b>' +
       '<div class="why">' + why + '</div>' +
       (it.repeated ? '<div class="msg warn">這位考生已考過這題（題庫裡沒考過的題組不夠了）。</div>' : '') + '</div>' +
-      '<button type="button" class="btn sm" data-act="sugswap" data-i="' + i + '"' + (busy ? ' disabled' : '') + '>換一題</button></div>';
+      '<button type="button" class="btn sm" data-act="exswap" data-i="' + i + '"' + (busy ? ' disabled' : '') + '>換一題</button></div>';
   }
-  function renderSuggest() {
-    var e = S.emp, g = S.sug, pf = g.profile || {};
-    var h = '<section class="panel glass"><h2>2 弱項與建議題組</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。系統依最近 ' + esc(pf.n || 0) + ' 張成績單的弱項，建議下列題組；也可以改用抽選器隨機抽。</p>';
-    h += '<div class="msg info">這位考生最弱的面向：' + Suggest.weakOf(pf).map(function (w) {
-      return '<span class="wk">' + esc(w.dim) + (w.pct == null ? '' : '　' + esc(Math.round(Number(w.pct))) + '%') + '</span>';
-    }).join('') + '</div>';
-    var low = pf.always_low || [];
-    if (low.length) {
-      h += '<div class="msg warn">另外請考官特別留意：' + low.map(function (w) {
-        return '<span class="wk">' + esc(w.dim) + (w.pct == null ? '' : '　' + esc(Math.round(Number(w.pct))) + '%') + '</span>';
-      }).join('') + '（每題都會評，不另外出題）</div>';
+  function renderStep5() {
+    var e = S.emp, w = S.weakInfo, g = S.ex, has = w.weak.length > 0;
+    if (w.failed) {
+      $('stage').innerHTML = '<section class="panel glass"><h2>弱項追加題</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。</p>' +
+        '<div class="msg err" role="alert">弱項分析暫時失敗：' + esc(w.failed) + '</div>' +
+        '<div class="navrow"><button class="btn" type="button" data-act="back3">回去修改評分</button><span style="display:flex;flex-wrap:wrap;gap:var(--sp-2)">' +
+        '<button class="btn" type="button" data-act="retryweak"' + (busy ? ' disabled' : '') + '>重試</button>' +
+        '<button class="btn primary" type="button" data-act="skipextra"' + (busy ? ' disabled' : '') + '>略過弱項分析，直接送出</button></span></div></section>';
+      return;
     }
-    h += '<div class="sugrow"><label for="sugN">建議題數</label><select class="ctrl" id="sugN"' + (busy ? ' disabled' : '') + '>' +
-      [2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (n === g.n ? ' selected' : '') + '>' + n + ' 題</option>'; }).join('') + '</select></div>';
-    h += g.items.map(sugCard).join('');
-    if (!g.items.length) h += '<div class="msg warn">找不到可建議的題組，請改用抽選器隨機抽。</div>';
-    else if (g.items.length < g.n) h += '<div class="msg warn">題庫分類不足（一場考核每個分類最多一個題組），只能建議 ' + g.items.length + ' 題。</div>';
-    if (g.short) h += '<div class="msg warn">題庫裡「標記了這些弱項、且這位考生沒考過」的題組不夠，已用隨機題補上。建議請客服部在題庫管理多標記幾題。</div>';
-    if (g.msg) h += '<div class="msg info" role="status">' + esc(g.msg) + '</div>';
-    h += '<div class="navrow"><button class="btn" type="button" data-act="back2">上一步</button>' +
-      '<span style="display:flex;flex-wrap:wrap;gap:var(--sp-2)"><button class="btn" type="button" data-act="sugoff"' + (busy ? ' disabled' : '') + '>改用抽選器隨機抽</button>' +
-      '<button class="btn primary" type="button" data-act="sugstart"' + (busy || !g.items.length ? ' disabled' : '') + '>用這些題組開始考核</button></span></div></section>';
+    var h = '<section class="panel glass"><h2>弱項追加題</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。弱項只依這一場的 ' + coreItems().length + ' 個核心題組判斷；追加題不算入總分與判定，只當弱項分析與輔導參考。</p>';
+    if (has) h += '<div class="msg info">這一場最弱的面向：' + weakTags(w.weak) + '</div>';
+    else h += '<div class="msg ok" role="status">沒有明顯弱項，可直接送出。</div>';
+    if (w.low.length) h += '<div class="msg warn">另外請考官特別留意：' + weakTags(w.low) + '（每題都會評，不另外出題）</div>';
+    if (has) {
+      h += '<div class="sugrow"><label for="exN">追加題數</label><select class="ctrl" id="exN"' + (busy ? ' disabled' : '') + '>' +
+        [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (n === g.n ? ' selected' : '') + '>' + n + ' 題</option>'; }).join('') + '</select></div>';
+      h += g.items.map(exCard).join('');
+      if (g.unavailable) h += '<div class="msg warn">追加題暫時無法使用，可直接送出。</div>';
+      else if (!g.items.length) h += '<div class="msg warn">題庫裡找不到可追加的題組，可以選「不追加，直接送出」。</div>';
+      else if (g.items.length < g.n) h += '<div class="msg warn">題庫裡可追加的題組不足，只能建議 ' + g.items.length + ' 題。</div>';
+      if (g.short) h += '<div class="msg warn">題庫裡「標記了這些弱項、且這位考生沒考過」的題組不夠，已用隨機題補上。建議請客服部在題庫管理多標記幾題。</div>';
+      if (g.msg) h += '<div class="msg info" role="status">' + esc(g.msg) + '</div>';
+    }
+    h += '<div class="navrow"><button class="btn" type="button" data-act="back3">回去修改評分</button><span style="display:flex;flex-wrap:wrap;gap:var(--sp-2)">' +
+      '<button class="btn' + (has ? '' : ' primary') + '" type="button" data-act="skipextra"' + (busy ? ' disabled' : '') + '>' + (has ? '不追加，直接送出' : '直接送出') + '</button>' +
+      (has ? '<button class="btn primary" type="button" data-act="addextra"' + (busy || !g.items.length ? ' disabled' : '') + '>追加弱項題</button>' : '') + '</span></div></section>';
     $('stage').innerHTML = h;
   }
 
   function renderStep2() {
     var e = S.emp;
-    if (!S.drawn && S.sug && !S.sugOff) { renderSuggest(); return; }
-    var h = '<section class="panel glass"><h2>2 抽題</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。勾選要考的分類，每個分類各抽 1 個題組。</p>';
+    if (!S.drawn && S.coreFail && !S.manual) { renderCoreFail(); return; }
+    var h = '<section class="panel glass"><h2>自選分類抽題</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。勾選要考的分類，每個分類各抽 1 個題組。</p>';
     if (!S.drawn) {
       if (!S.catInfo) { h += '<div class="loading" role="status">載入分類中…</div></section>'; $('stage').innerHTML = h; return; }
       h += '<div class="cats">' + S.catInfo.map(function (b) {
@@ -583,7 +619,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function renderStep3() {
     var it = S.items[S.cur];
     var h = '<div class="tabs" role="group" aria-label="題組分頁">' + S.items.map(function (x, i) {
-      return '<button type="button" data-act="tab" data-i="' + i + '" aria-pressed="' + (i === S.cur) + '">題組 ' + (i + 1) + '・' + esc(x.cat) +
+      return '<button type="button" data-act="tab" data-i="' + i + '" aria-pressed="' + (i === S.cur) + '">' + labelOf(x) + '・' + esc(x.cat) +
         '<small style="color:' + (itemDone(x) ? 'var(--success)' : 'var(--warning)') + '">' + (itemDone(x) ? '已評完' : '未評完') + '</small></button>';
     }).join('') + '</div>';
     h += '<div class="split">' +
@@ -592,7 +628,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       it.steps.map(function (s, i) {
         return '<div class="sstep"><b class="no">步驟 ' + (i + 1) + '</b><b>考官操作</b>' + esc(s.op || '—') + '<b>考點</b>' + esc(s.point || '—') + '</div>';
       }).join('') + '</div></aside><div>';
-    h += '<section class="panel glass"><h2>3 評分：' + esc(it.name) + '</h2><span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>';
+    h += '<section class="panel glass"><h2>評分：' + esc(it.name) + '</h2>' + (it.isExtra ? '<span class="tag extra">追加題・不算總分</span> ' : '') + '<span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' +
+      (it.isExtra && S.extraStart ? '<div class="hint" style="margin:8px 0 0">追加開始時間：' + esc(stamp(S.extraStart).slice(11)) + '</div>' : '');
     var nas = naCount(it);
     h += '<p class="hint" style="margin-top:12px">七個面向各選一個等級。「不適用」每個題組最多 ' + MAX_NA + ' 個。</p>';
     DIMS.forEach(function (d) {
@@ -627,33 +664,42 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var it = S.items[S.cur], res = itemResult(it);
     var got = DIMS.filter(function (d) { return it.levels[d.name]; }).length;
     var txt;
-    if (res && res.ok) txt = '題組 ' + (S.cur + 1) + ' 目前分數：<b>' + fmt(res.score) + '</b> 分';
+    if (res && res.ok) txt = labelOf(it) + sfx(it) + ' 目前分數：<b>' + fmt(res.score) + '</b> 分';
     else {
       var sum = 0;
       DIMS.forEach(function (d) { var p = dimPts(it, d.name); if (p !== null) sum += p; });
-      txt = '題組 ' + (S.cur + 1) + ' 已評 ' + got + ' / 7 面向，累計 <b>' + fmt(sum) + '</b> 分（評完才有題組分數）';
+      txt = labelOf(it) + sfx(it) + ' 已評 ' + got + ' / 7 面向，累計 <b>' + fmt(sum) + '</b> 分（評完才有題組分數）';
     }
-    var left = S.items.filter(function (x) { return !itemDone(x); }).length;
-    txt += '<br>' + (left ? '還有 ' + left + ' 個題組沒評完，不能結算' : '所有題組都已評完');
+    var coreLeft = coreItems().filter(function (x) { return !itemDone(x); }).length, exLeft = extraItems().filter(function (x) { return !itemDone(x); }).length;
+    txt += '<br>' + (coreLeft ? '還有 ' + coreLeft + ' 個題組沒評完，不能' + (extraItems().length ? '結算' : '分析弱項')
+      : exLeft ? '還有 ' + exLeft + ' 個追加題沒評完，不能送出'
+      : extraItems().length ? '核心題組與追加題都已評完' : '核心題組都已評完，可以分析弱項');
     $('fixScore').innerHTML = txt;
+    $('fixGo').textContent = extraItems().length ? '前往結算' : '分析弱項';
     syncPending();
   }
 
   function renderStep4() {
-    var res = Scoring.scoreAssessment(S.items.map(function (i) { return i.levels; }), S.emp.tenure);
+    var res = Scoring.scoreAssessment(coreItems().map(function (i) { return i.levels; }), S.emp.tenure);
     if (!res.ok) { $('stage').innerHTML = '<section class="panel glass"><div class="msg err">' + esc(res.error) + '</div><div class="navrow"><button class="btn" type="button" data-act="back3">回評分</button></div></section>'; return; }
     var h = '<div class="msg info" role="status" style="margin-bottom:var(--sp-3)">以下是預覽；按「送出成績單」後，以資料庫計算的結果為準。</div>';
     h += '<div class="verdict v-' + esc(res.verdict) + '" role="status"><div class="vt">判定：' + esc(res.verdict) + '</div>' +
       '<div class="vs">總分 ' + fmt(res.total) + ' 分（合格線 ' + res.passLine + ' 分・' + esc(S.emp.tenure) + '）</div></div>';
-    h += '<section class="panel glass"><h2>4 結算</h2><dl class="kv">' +
+    h += '<section class="panel glass"><h2>結算</h2><dl class="kv">' +
       '<dt>考生</dt><dd>' + esc(S.emp.label) + '（' + esc(S.emp.id) + '）' + esc(storeName[S.emp.store] || S.emp.store) + '</dd>' +
       '<dt>考核時身分</dt><dd>' + esc(S.emp.tenure) + (isManual() ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + (S.emp.source === '考核期' ? '<span class="tag out" style="margin-left:6px">考核期</span>' : '') + '</dd>' +
-      '<dt>總分</dt><dd>' + fmt(res.total) + '（' + S.items.length + ' 個題組的平均）</dd>' +
+      '<dt>總分</dt><dd>' + fmt(res.total) + '（' + coreItems().length + ' 個題組的平均）</dd>' +
       '<dt>最弱面向</dt><dd>' + res.weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') + '</dd></dl></section>';
     h += '<section class="panel glass"><h2>各題組七面向分數</h2>' + dimTable(
-      S.items.map(function (it) { return { code: it.code, levels: it.levels, pts: null, score: null }; }),
+      coreItems().map(function (it) { return { code: it.code, levels: it.levels, pts: null, score: null }; }),
       res.itemScores.map(function (r) { return { dim: r.dimPoints, score: r.score }; }), res.weakest) +
       '<p class="hint" style="margin-top:8px">不適用的面向不計入，其餘面向配分等比放大成 100 分。</p></section>';
+    var exs = extraItems();
+    if (exs.length) {
+      var exVals = exs.map(function (it) { var r = Scoring.scoreItem(it.levels); return { dim: r.ok ? r.dimPoints : null, score: r.ok ? r.score : null }; });
+      h += '<section class="panel glass"><h2>弱項追加題・不算入總分</h2><p class="hint">追加題只記在成績單上當輔導參考，不算入上面的總分、判定與最弱面向。</p>' +
+        dimTable(exs.map(function (it) { return { code: it.code, levels: it.levels }; }), exVals, [], '追加題 ') + '</section>';
+    }
     h += '<div class="navrow"><button class="btn" type="button" data-act="back3">回去修改評分</button>' +
       '<button class="btn primary" type="button" id="submitBtn" data-act="submit"' + (busy || pendingReason() ? ' disabled' : '') + '>送出成績單</button></div>' +
       '<div class="hint" id="submitWhy" style="text-align:right;margin-top:8px;color:var(--warning);font-weight:600" aria-live="polite">' + esc(pendingReason()) + '</div>';
@@ -661,9 +707,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
 
   // 七面向表格：heads = [{code, levels}]，vals = [{dim:{面向:分數|null}, score}]
-  function dimTable(heads, vals, weakest) {
+  function dimTable(heads, vals, weakest, prefix) {
     var h = '<div class="scroll"><table><thead><tr><th>面向（配分）</th>' +
-      heads.map(function (it, i) { return '<th class="num">題組 ' + (i + 1) + '<br>' + esc(it.code) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      heads.map(function (it, i) { return '<th class="num">' + (prefix || '題組 ') + (i + 1) + '<br>' + esc(it.code) + '</th>'; }).join('') + '</tr></thead><tbody>';
     DIMS.forEach(function (d) {
       var isW = weakest.indexOf(d.name) >= 0;
       h += '<tr' + (isW ? ' class="weak"' : '') + '><td>' + esc(d.name) + '（' + d.weight + '）' + (isW ? '【最弱】' : '') + '</td>' +
@@ -679,19 +725,28 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // 送出後：全部以資料庫回傳為準
   function renderDone() {
     var f = finished, db = f.db, total = Number(db.total_score), weakest = db.weakest_dims || [];
+    var coreRows = f.rows.filter(function (r) { return !(r.is_extra || r.isExtra); }), exRows = f.rows.filter(function (r) { return !!(r.is_extra || r.isExtra); });
     var h = '';
     if (f.mismatch) h += '<div class="msg err" role="alert" style="margin-bottom:var(--sp-3)">預覽與資料庫計算不一致，請通知管理人員。以下顯示的是資料庫的計算結果。</div>';
     h += '<div class="msg ok" role="status" style="margin-bottom:var(--sp-3)">已存入成績單</div>';
     h += '<div class="verdict v-' + esc(db.verdict) + '" role="status"><div class="vt">判定：' + esc(db.verdict) + '</div>' +
       '<div class="vs">總分 ' + fmt(total) + ' 分（合格線 ' + esc(db.pass_line) + ' 分・' + esc(db.tenure) + '）</div></div>';
+    if (f.after && f.after.activation) h += '<div class="msg ok" role="status" style="margin-bottom:var(--sp-3)">已加入待開通回覆權限清單，請客服部到 LINE 官方帳號開通後，在「待考回報」頁按「已開通」。</div>';
+    else if (f.after && f.after.period === '考核期') h += '<div class="msg warn" role="status" style="margin-bottom:var(--sp-3)">仍在考核期，可再約補考（考核期間不能回覆顧客）。</div>';
     h += '<section class="panel glass"><dl class="kv">' +
       '<dt>考生</dt><dd>' + esc(f.emp.label) + '（' + esc(f.emp.id) + '）' + esc(storeName[f.emp.store] || f.emp.store) + '</dd>' +
       '<dt>考核時身分</dt><dd>' + esc(db.tenure) + (f.emp.source === '手動指定' ? '<span class="tag unk" style="margin-left:6px">手動指定</span>' : '') + (f.emp.source === '考核期' ? '<span class="tag out" style="margin-left:6px">考核期</span>' : '') + '</dd>' +
       '<dt>總分</dt><dd>' + fmt(total) + '（' + esc(db.item_count) + ' 個題組的平均）</dd>' +
       '<dt>最弱面向</dt><dd>' + weakest.map(function (w) { return '<span class="wk">' + esc(w) + '</span>'; }).join('') + '</dd></dl></section>';
     h += '<section class="panel glass"><h2>各題組分數</h2>' + dimTable(
-      f.rows.map(function (r) { return { code: r.code, levels: r.levels || {} }; }),
-      f.rows.map(function (r) { return { dim: r.dim_points, score: r.item_score }; }), weakest) + '</section>';
+      coreRows.map(function (r) { return { code: r.code, levels: r.levels || {} }; }),
+      coreRows.map(function (r) { return { dim: r.dim_points, score: r.item_score }; }), weakest) + '</section>';
+    if (exRows.length) {
+      h += '<section class="panel glass"><h2>弱項追加題・不算入總分</h2><p class="hint">追加題只記在成績單上當輔導參考，不算入上面的總分、判定與最弱面向。</p>' +
+        (f.weakTags ? '<div class="msg info">追加針對的弱項：' + f.weakTags + '</div>' : '') +
+        dimTable(exRows.map(function (r) { return { code: r.code, levels: r.levels || {} }; }),
+          exRows.map(function (r) { return { dim: r.dim_points, score: r.item_score }; }), [], '追加題 ') + '</section>';
+    }
     if (f.next && f.next.length) {
       h += '<section class="panel glass"><h2>下次建議考題</h2><p class="hint">依這位考生最新的弱項預告，僅供參考；下次開考核時還可以換題。</p>' +
         f.next.map(function (it) {
@@ -710,6 +765,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     else if (S.step === 1) renderStep1();
     else if (S.step === 2) renderStep2();
     else if (S.step === 3) renderStep3();
+    else if (S.step === 5) renderStep5();
     else renderStep4();
     renderBar();
     if (key) {
@@ -969,7 +1025,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
 
   function itemFromDb(r) {
-    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: r.levels || {}, note: r.note || '', noteUrl: r.note_url || '', imgs: r.imgs || [] };
+    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: r.levels || {}, note: r.note || '', noteUrl: r.note_url || '', imgs: r.imgs || [], isExtra: !!r.isExtra };
   }
   function empFromDraft(a) {
     return { id: a.employee_id, label: a.employee_label, store: a.store_code, tenure: a.tenure, source: a.tenure_source };
@@ -978,25 +1034,77 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function openDraft(aid) {
     return AssessApi.loadDraft(aid).then(function (d) {
       S = fresh(); resetSave(); imgMsgs = [];
-      S.aid = d.a.id; S.emp = empFromDraft(d.a);
+      S.aid = d.a.id; S.emp = empFromDraft(d.a); S.extraStart = d.a.extra_started_at || '';
       S.items = d.items.map(itemFromDb);
       if (S.items.length) { S.drawn = true; S.step = 3; S.cur = 0; }
       else { S.step = 2; }
       return d;
     });
   }
-  // 載入弱項摘要與題庫建議池；沒有弱項、找不到建議題組、或載入失敗，都照原流程（失敗時提示）
-  function loadSuggest() {
-    var aid = S.aid, emp = S.emp;
-    return Promise.all([AssessApi.weakProfile(emp.id), AssessApi.suggestPool(emp.id)]).then(function (r) {
+  // 抽題結果（assess_draw／assess_add_extra 共用格式）轉成前端題組物件；isExtra 為追加題
+  function itemFromDraw(r, isExtra) {
+    return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round, isExtra: !!isExtra };
+  }
+  // 固定核心題組：準備考核後自動用 assess_core_categories() 的分類一次抽齊（每分類 1 題）並直接進評分；
+  // 抽不出來（例如題庫缺題）時停在抽題步驟，顯示錯誤並提供「改用自選分類」
+  function autoDrawCore() {
+    var aid = S.aid;
+    S.coreFail = '';
+    return AssessApi.coreCategories().then(function (cats) {
+      if (!cats.length) throw AssessApi.userError('找不到核心分類設定，請聯絡管理人員。');
+      return AssessApi.draw(aid, cats).then(function (rows) {
+        if (S.aid !== aid) return;
+        S.items = rows.map(function (r) { return itemFromDraw(r, false); });
+        S.drawn = true; S.step = 3; S.cur = 0;
+        if (S.items.some(function (x) { return x.repeated; })) notice('info', '有題組這位考生已考過（題庫裡沒考過的題組不夠了）。');
+      }, function (err) {
+        if (!/已抽過|最多一個題組/.test((err && err.userMessage) || '')) throw err;
+        return openDraft(aid);   // 抽題其實成功但回應遺失、重試時被擋：重新載入草稿接續
+      });
+    }).catch(function (err) {
       if (S.aid !== aid) return;
-      var res = Suggest.pick(r[0], r[1], 3);
-      if (res.empty || !res.items.length) return;
-      S.sug = { profile: r[0], pool: r[1], n: 3, items: res.items, short: res.short, msg: '' };
-    }, function (e) {
-      notice('warn', '弱項建議題組暫時載入失敗（' + errText(e) + '），已改用一般抽選流程。');
+      S.coreFail = errText(err) || '抽題失敗。'; S.step = 2; S.drawn = false;
     });
   }
+  // 弱項追加題：選題、換題都允許與核心題組同分類
+  var EX_OPTS = { allowSameCategory: true }, EX_DEFAULT = 2;
+  // 核心題組評完後「分析弱項」：先把評分暫存完，再呼叫 assess_draft_weak；有弱項才載入題庫選建議追加題
+  function analyzeWeak() {
+    if (busy || !coreDone() || pendingReason()) return;
+    var aid = S.aid, emp = S.emp, coreIds = coreItems().map(function (x) { return x.id; });
+    run(function () {
+      return uploadChain.then(flushAll).then(function (ok) {
+        if (S.aid !== aid) return;
+        if (!ok) throw AssessApi.userError('還有評分或備註沒有暫存成功，請看上方暫存提示，處理後再按一次。');
+        return AssessApi.draftWeak(aid).then(function (profile) {
+          if (S.aid !== aid) return;
+          var weak = Suggest.weakOf(profile);
+          S.weakInfo = { profile: profile, weak: weak, low: profile.always_low || [] };
+          S.ex = null;
+          if (!weak.length) { S.step = 5; return; }
+          return Promise.all([AssessApi.suggestPool(emp.id), AssessApi.questionIdsOf(coreIds)]).then(function (r) {
+            if (S.aid !== aid) return;
+            var used = {}; r[1].forEach(function (id) { used[id] = 1; });
+            var pool = r[0].filter(function (q) { return !used[q.question_id]; });   // 已在這場考核內的題組不能再追加
+            var res = Suggest.pick(profile, pool, EX_DEFAULT, null, EX_OPTS);
+            S.ex = { profile: profile, pool: pool, n: EX_DEFAULT, items: res.items, short: res.short, msg: '' };
+            S.step = 5;
+          }, function () {
+            // 題庫或題組 id 讀不到：視為沒有可追加題組，仍可直接送出
+            if (S.aid !== aid) return;
+            S.ex = { profile: profile, pool: [], n: EX_DEFAULT, items: [], short: false, msg: '', unavailable: true };
+            S.step = 5;
+          });
+        }, function (err) {
+          // 弱項分析失敗：不卡住，可重試或略過直接送出
+          if (S.aid !== aid) return;
+          S.weakInfo = { failed: errText(err) || '弱項分析失敗。', weak: [], low: [] };
+          S.ex = null; S.step = 5;
+        });
+      });
+    });
+  }
+
   function loadCats() {
     return AssessApi.categories().then(function (list) { S.catInfo = list; }, function (e) { S.catInfo = []; notice('err', errText(e)); });
   }
@@ -1015,7 +1123,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     rowBusy = p.id; rowErr = {}; notice('', ''); render();
     AssessApi.start(p.id, p.hire_date ? null : override).then(function (aid) {
       return openDraft(aid).then(function () {
-        if (S.step === 2) return loadCats().then(loadSuggest);
+        if (S.step === 2) return autoDrawCore();
       }).then(function () {
         rowBusy = null; expandId = null;
         if (hadDraft) notice('info', '已接續先前未完成的考核');
@@ -1029,8 +1137,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
   $('stage').addEventListener('change', function (e) {
     if (e.target && e.target.id === 'storeSel') { storeSel = e.target.value; saveStoreSel(); expandId = null; rowErr = {}; render(); }
-    if (e.target && e.target.id === 'sugN' && S.sug && !busy) {
-      var g = S.sug, res = Suggest.pick(g.profile, g.pool, +e.target.value);
+    if (e.target && e.target.id === 'exN' && S.ex && !busy) {
+      var g = S.ex, res = Suggest.pick(g.profile, g.pool, +e.target.value, null, EX_OPTS);
       g.n = +e.target.value; g.items = res.items; g.short = res.short; g.msg = ''; render();
     }
   });
@@ -1054,7 +1162,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     }
     else if (act === 'resume') {
       var rid = b.dataset.id;
-      run(function () { return openDraft(rid).then(function () { if (S.step === 2) return loadCats().then(loadSuggest); }); });
+      run(function () { return openDraft(rid).then(function () { if (S.step === 2) return autoDrawCore(); }); });
       return;
     }
     else if (act === 'dropdraft') { abandonTarget = b.dataset.id; $('dlg').showModal(); return; }
@@ -1084,28 +1192,41 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       });
       return;
     }
-    else if (act === 'sugswap') {
-      var g = S.sug, si = +b.dataset.i;
+    else if (act === 'manual') { S.manual = true; if (!S.catInfo) { run(loadCats); return; } }
+    else if (act === 'exswap') {
+      var g = S.ex, si = +b.dataset.i;
       if (!g) return;
-      var sn = Suggest.swap(g.profile, g.pool, g.items, si);
+      var sn = Suggest.swap(g.profile, g.pool, g.items, si, null, EX_OPTS);
       if (sn) { g.items[si] = sn; g.msg = '已換題。'; } else g.msg = '沒有可換的題組了。';
     }
-    else if (act === 'sugoff') { S.sugOff = true; if (!S.catInfo) { run(loadCats); return; } }
-    else if (act === 'sugstart') {
-      var sg = S.sug;
-      if (!sg || !sg.items.length) return;
-      var qids = sg.items.map(function (x) { return x.question_id; });
+    else if (act === 'addextra') {
+      var ex = S.ex;
+      if (!ex || !ex.items.length) return;
+      var qids = ex.items.map(function (x) { return x.question_id; }), xaid = S.aid;
       run(function () {
-        return AssessApi.pick(S.aid, qids).then(function (rows) {
-          S.items = rows.map(function (r) {
-            return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round };
-          });
-          S.drawn = true; S.sug = null; S.step = 3; S.cur = 0;
-          if (S.items.some(function (x) { return x.repeated; })) notice('info', '有題組這位考生已考過（題庫裡沒考過的題組不夠了）。');
+        return AssessApi.addExtra(xaid, qids).then(function (rows) {
+          if (S.aid !== xaid) return;
+          var first = S.items.length;
+          rows.forEach(function (r) { S.items.push(itemFromDraw(r, true)); });
+          S.ex = null; S.step = 3; S.cur = Math.min(first, S.items.length - 1); imgMsgs = [];
+          notice('info', '已追加 ' + rows.length + ' 題追加題，請繼續評分；追加題不算入總分。');
+          return AssessApi.extraStartedAt(xaid).then(function (t) { S.extraStart = t || new Date().toISOString(); }, function () { S.extraStart = new Date().toISOString(); });
+        }, function (err) {
+          // 追加其實成功但回應遺失、重試時被擋（題組已在這場考核內）：重新載入草稿（含追加題）接續
+          if (!/已在這場考核內|已在這場|重複|已追加/.test((err && err.userMessage) || '')) throw err;
+          return AssessApi.loadDraft(xaid).then(function (d) {   // 先確認資料庫裡真的有追加題，才動目前畫面狀態
+            if (!d.items.some(function (x) { return x.isExtra; })) throw err;
+            return openDraft(xaid).then(function () {
+              var fi = -1; S.items.forEach(function (x, i) { if (x.isExtra && fi < 0) fi = i; });
+              S.cur = Math.max(fi, 0); notice('info', '已重新載入追加題，請繼續評分；追加題不算入總分。');
+            });
+          }, function () { throw err; });
         });
       });
       return;
     }
+    else if (act === 'skipextra') { submitReport(); return; }
+    else if (act === 'retryweak') { analyzeWeak(); return; }
     else if (act === 'start3') { S.step = 3; S.cur = 0; }
     else if (act === 'tab') { S.cur = +b.dataset.i; imgMsgs = []; }
     else if (act === 'prevItem') { S.cur = Math.max(0, S.cur - 1); imgMsgs = []; }
@@ -1123,7 +1244,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     if (act === 'start3') window.scrollTo(0, 0);
   });
   $('fixGo').addEventListener('click', function () {
-    if (!allDone() || pendingReason()) return;
+    if (!canAdvance() || pendingReason() || busy) return;
+    if (!extraItems().length) { analyzeWeak(); return; }   // 還沒追加：先分析弱項
     S.step = 4; render(); window.scrollTo(0, 0);
   });
   $('stage').addEventListener('input', function (e) {
@@ -1163,8 +1285,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // ====== 送出成績單：以資料庫結果為準，與預覽比對 ======
   function sameWeak(a, b) { return (a || []).slice().sort().join('|') === (b || []).slice().sort().join('|'); }
   function submitReport() {
-    var pre = Scoring.scoreAssessment(S.items.map(function (i) { return i.levels; }), S.emp.tenure);
+    var pre = Scoring.scoreAssessment(coreItems().map(function (i) { return i.levels; }), S.emp.tenure);
     if (!pre.ok || pendingReason()) return;
+    if (!allDone()) { notice('err', '還有題組或追加題沒評完，不能送出。'); return; }
     var aid = S.aid, emp = S.emp, items = S.items.slice();
     busy = true; notice('', ''); render();
     uploadChain.then(flushAll).then(function (ok) {
@@ -1178,16 +1301,23 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       var db = r.db, mismatch = false;
       if (Math.abs(Number(db.total_score) - pre.total) > 0.001 || db.verdict !== pre.verdict || Number(db.pass_line) !== pre.passLine || !sameWeak(db.weakest_dims, pre.weakest)) mismatch = true;
       var byId = {}; r.rows.forEach(function (x) { byId[x.id] = x; });
-      var rows = items.map(function (it, i) {
-        var d = byId[it.id];
-        if (!d) { mismatch = true; return { code: it.code, levels: it.levels, item_score: null, dim_points: null }; }
-        if (Math.abs(Number(d.item_score) - pre.itemScores[i].score) > 0.001) mismatch = true;
+      var ci = 0;   // 預覽只算核心題組；追加題不比對
+      var rows = items.map(function (it) {
+        var d = byId[it.id], ex = !!it.isExtra, pi = ex ? -1 : ci++;
+        if (!d) { if (!ex) mismatch = true; return { code: it.code, levels: it.levels, item_score: null, dim_points: null, is_extra: ex }; }
+        if (!ex && Math.abs(Number(d.item_score) - pre.itemScores[pi].score) > 0.001) mismatch = true;
         return d;
       });
       busy = false;
-      var fin = finished = { db: db, rows: rows, emp: emp, mismatch: mismatch, next: null };
+      var fin = finished = { db: db, rows: rows, emp: emp, mismatch: mismatch, next: null, after: null,
+        weakTags: (S.weakInfo && items.some(function (x) { return x.isExtra; })) ? weakTags(S.weakInfo.weak) : '' };
       S = fresh(); resetSave(); imgMsgs = [];
       render(); window.scrollTo(0, 0);
+      // 通過（已加入待開通）或仍在考核期的說明：讀資料庫實際結果；讀不到就不顯示
+      Promise.all([AssessApi.activationOf(aid).catch(function () { return null; }), AssessApi.periodStatus(emp.id).catch(function () { return null; })]).then(function (x) {
+        if (finished !== fin) return;
+        fin.after = { activation: x[0], period: x[1] }; render();
+      });
       // 下次建議考題預告：失敗或沒有弱項就不顯示，不影響結果頁
       Promise.all([AssessApi.weakProfile(emp.id), AssessApi.suggestPool(emp.id)]).then(function (x) {
         var res = Suggest.pick(x[0], x[1], 3);

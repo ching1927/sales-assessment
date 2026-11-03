@@ -171,6 +171,21 @@ dialog::backdrop{background:var(--scrim)}
         <div class="empty" id="cEmpty" hidden>沒有符合條件的回報</div></section>
     </section>
 
+    <section id="actWrap" hidden>
+      <h2 class="sec">待開通回覆權限<span class="badge" id="actBadge" hidden>0</span></h2>
+      <div class="msg err" id="actMsg" role="alert" hidden></div>
+      <div class="row">
+        <div id="aStoreWrap"><label class="lb" for="aStore">門市</label><select class="ctrl" id="aStore"><option value="">全部門市</option></select></div>
+        <div><label class="lb" for="aStatus">狀態</label><select class="ctrl" id="aStatus"><option value="">全部狀態</option><option>待開通</option><option>已開通</option></select></div>
+        <span class="sub" id="aCount" aria-live="polite"></span>
+      </div>
+      <section class="glass panel" style="padding:0"><div class="scroll" tabindex="0" aria-label="待開通回覆權限清單，可左右捲動"><table>
+        <thead><tr><th>人員</th><th>門市</th><th>通過日期</th><th>狀態</th><th></th></tr></thead>
+        <tbody id="aBody"></tbody></table></div>
+        <div class="empty" id="aEmpty" hidden>沒有符合條件的紀錄</div></section>
+      <p class="note" style="margin-top:var(--sp-2)">考核通過（新人 70 分；回考核期者 85 分）後，人員會自動出現在這裡。到 LINE 官方帳號開通回覆權限後，按「已開通」留下日期。</p>
+    </section>
+
     <section id="mailWrap" hidden>
       <div class="head2"><h2 class="sec">寄信紀錄</h2><button class="btn sm" id="mailSync" type="button">更新寄信狀態</button></div>
       <div class="msg err" id="mailMsg" role="alert" hidden></div>
@@ -216,7 +231,7 @@ dialog::backdrop{background:var(--scrim)}
 
   // ====== 狀態 ======
   var me = null, storeName = {};
-  var rows = [], mail = [];
+  var rows = [], mail = [], acts = [], actErr = '';
   var cands = [], shown = [], candSeq = 0;
   var notices = [];
   var busy = false, dyn = [];
@@ -398,6 +413,41 @@ dialog::backdrop{background:var(--scrim)}
   }
   function rowById(id) { return rows.filter(function (r) { return r.id === id; })[0]; }
 
+  // ====== 畫面：待開通回覆權限（客服部） ======
+  function fillActStores() {
+    var sel = $('aStore'), keep = sel.value, seen = {}, codes = [];
+    acts.forEach(function (a) { if (!seen[a.store_code]) { seen[a.store_code] = 1; codes.push(a.store_code); } });
+    codes.sort(function (a, b) { return RequestsApi.storeRank(a) - RequestsApi.storeRank(b) || cmp(a, b); });
+    sel.innerHTML = '<option value="">全部門市</option>' + codes.map(function (c) {
+      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>';
+    }).join('');
+    sel.value = seen[keep] ? keep : '';
+    $('aStoreWrap').hidden = codes.length < 2;
+  }
+  function renderAct() {
+    if (!isCS()) return;
+    fillActStores();
+    var fs = $('aStore').value, ft = $('aStatus').value;
+    var waiting = acts.filter(function (a) { return a.status === '待開通'; }).length;
+    $('actBadge').textContent = waiting; $('actBadge').hidden = !waiting;
+    $('actMsg').textContent = actErr; $('actMsg').hidden = !actErr;
+    var list = acts.filter(function (a) { return (!fs || a.store_code === fs) && (!ft || a.status === ft); });
+    list.sort(function (a, b) {   // 待開通排前面，再依通過日期新到舊
+      return (a.status === '待開通' ? 0 : 1) - (b.status === '待開通' ? 0 : 1) || cmp(String(b.passed_on || ''), String(a.passed_on || '')) || cmp(a.id, b.id);
+    });
+    $('aBody').innerHTML = list.map(function (a) {
+      var pending = a.status === '待開通';
+      return '<tr><td><b>' + esc(a.employee_label || a.employee_id) + '</b><div class="sub">' + esc(a.employee_id) + '</div></td><td>' + esc(sName(a.store_code)) + '</td>' +
+        '<td>' + esc(a.passed_on || '—') + '</td>' +
+        '<td>' + (pending ? '<span class="tag wait">待開通</span>' : '<span class="tag done">已開通</span>' + (a.done_on ? '<div class="sub">' + esc(a.done_on) + '</div>' : '')) + '</td>' +
+        '<td>' + (pending ? '<button class="btn sm primary" data-done="' + esc(a.id) + '" type="button">已開通</button>' : '') + '</td></tr>';
+    }).join('');
+    $('aEmpty').textContent = acts.length ? '沒有符合條件的紀錄' : '目前沒有待開通的紀錄';
+    $('aEmpty').hidden = list.length > 0;
+    $('aCount').textContent = '共 ' + list.length + ' 筆';
+  }
+  function actById(id) { return acts.filter(function (a) { return a.id === id; })[0]; }
+
   // ====== 畫面：寄信紀錄與信件預覽（客服部） ======
   function renderMail() {
     $('mailBody').innerHTML = mail.map(function (m) {
@@ -501,6 +551,16 @@ dialog::backdrop{background:var(--scrim)}
       submitAct(D, D.q('#rOk'), '#rErr', function () { return RequestsApi.returnRequest(r.id, txt); }, '已退回，會通知回報人。');
     });
   }
+  function actDone(a) {
+    if (!isCS() || a.status !== '待開通') return;
+    var D = makeDlg('<h2>標記已開通</h2><p>' + esc(a.employee_label || a.employee_id) + '（' + esc(sName(a.store_code)) + '）。請確認已在 LINE 官方帳號開通回覆權限；標記後會記下日期與操作人，這裡無法復原。</p>' +
+      '<div class="msg err" id="dErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="dOk">確認已開通</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      submitAct(D, D.q('#dOk'), '#dErr', function () { return RequestsApi.markActivationDone(a.id); }, '已標記為已開通。');
+    });
+  }
   function doMailSync() {
     if (!isCS() || busy) return;
     var btn = $('mailSync'), err = $('mailMsg');
@@ -515,13 +575,17 @@ dialog::backdrop{background:var(--scrim)}
   function renderAll() {
     applyRole();
     if (isMgr()) { renderNotices(); renderMine(); }
-    else { renderBoard(); if (isCS()) renderMail(); }
+    else { renderBoard(); if (isCS()) { renderMail(); renderAct(); } }
   }
   function reloadAll() {
     var jobs = [RequestsApi.loadRequests(isCS())];
-    if (isCS()) jobs.push(RequestsApi.loadMail());
+    if (isCS()) {
+      jobs.push(RequestsApi.loadMail());
+      // 待開通清單讀不到（例如資料庫腳本還沒執行）只在該區塊提示，不影響頁面其他功能
+      jobs.push(RequestsApi.loadActivations().then(function (l) { actErr = ''; return l; }, function (e) { actErr = '待開通清單載入失敗：' + errText(e); return null; }));
+    }
     return Promise.all(jobs).then(function (r) {
-      rows = r[0]; if (r[1]) mail = r[1];
+      rows = r[0]; if (r[1]) mail = r[1]; if (r[2]) acts = r[2];
       renderAll();
     });
   }
@@ -534,7 +598,8 @@ dialog::backdrop{background:var(--scrim)}
     $('mineWrap').hidden = !isMgr();
     $('boardWrap').hidden = isMgr();
     $('mailWrap').hidden = !isCS();
-    $('roleNote').textContent = isCS() ? '客服部可代為回報、排定考核日期與時間、退回回報（原因必填），並查看寄信紀錄。'
+    $('actWrap').hidden = !isCS();
+    $('roleNote').textContent = isCS() ? '客服部可代為回報、排定考核日期與時間、退回回報（原因必填），標記待開通人員已開通，並查看寄信紀錄。'
       : isMgr() ? '只顯示自己門市的回報；待處理的回報可以撤回，客服部排定或退回時會在這裡通知你。'
       : '總公司主管只能查看，不能回報、排定或退回。';
   }
@@ -552,6 +617,12 @@ dialog::backdrop{background:var(--scrim)}
   $('fStore').addEventListener('change', renderBoard);
   $('fStatus').addEventListener('change', renderBoard);
   $('mailSync').addEventListener('click', doMailSync);
+  $('aStore').addEventListener('change', renderAct);
+  $('aStatus').addEventListener('change', renderAct);
+  $('aBody').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || !b.dataset.done) return;
+    var a = actById(b.dataset.done); if (a) actDone(a);
+  });
   $('mBody').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || !b.dataset.wd) return;
     var r = rowById(b.dataset.wd); if (r) actWithdraw(r);

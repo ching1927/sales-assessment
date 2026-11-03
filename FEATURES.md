@@ -29,7 +29,7 @@
 
 ### 正式版（已執行 SQL、已審查；客服部流程已用測試考生實測通過，店長與主管的真實登入尚未測）
 
-- 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 抽題 → 七面向評分並自動暫存 → 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核
+- 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核
 - 考官備註文字對主管與店長可見｜`supabase/notes_visible_schema.sql`、`supabase/notes_visible_verify_fake.sql`（驗證，結尾自動復原）、`supabase/README_notes_visible.md`、`assess.html`、`reports.html`、`js/assess-api.js`｜備註改存 assessment_items.note（舊 secrets.note 停用並清空）；客服部、主管、同門市店長讀得到（主管與店長限已送出未作廢）；備註框與附圖區提醒考官不要貼腳本或考點
 - 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址
 - 成績單（所有已開通角色）｜`reports.html`｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
@@ -43,7 +43,7 @@
 - 回考核期警示列｜`spotcheck.html`｜待執行時客服部見「標記已執行」與「取消回考核期」（取消原因必填）；已執行時只剩取消；主管與店長只看
 - 單據作廢與輔導回填｜`spotcheck.html`｜客服部可作廢（原因必填）；客服部與該門市店長可回填輔導（日期＋備註必填）；總公司主管無任何操作按鈕
 - 導覽「抽查」｜`roster.html`、`assess.html`、`reports.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`｜所有已開通角色看得到，在「考核後台」之後
-- 考核期標籤｜`roster.html`、`reports.html`、`assess.html`｜名冊 probation_since 有值的人旁顯示「考核期」；成績單與進行考核的「考核時身分」在 tenure_source 為「考核期」時顯示「考核期」標籤
+- 考核期標籤｜`roster.html`、`reports.html`、`assess.html`｜成績單與進行考核的「考核時身分」在 tenure_source 為「考核期」時顯示「考核期」標籤（名冊的標籤已改為第一期規則，見「第一期」一節）
 
 ### 題庫管理（正式版；bank_schema.sql 已在 Supabase 執行，162 項驗證通過；老闆用測試分類實測通過）
 
@@ -94,9 +94,9 @@
 ## 弱項建議題組（網頁已寫好，尚未連真實資料庫；需先執行 supabase/weak_suggest_schema.sql，規格見 supabase/README_weak_suggest.md）
 
 - 題組標記重點面向｜`questions.html`、`js/questions-api.js`｜新增／編輯題組表單勾選 1～3 個面向（只有 5 個：資訊正確性、預設訊息運用、問題掌握、主動引導、風險意識；語氣與禮貌、文字品質不用勾）；儲存題組後呼叫 bank_set_dims（失敗只提示、題組已存）；列表每題組顯示面向標籤或「未標記」，統計多一格「已標記／總題組數」
-- 弱項與建議題組面板｜`assess.html`、`js/suggest.js`、`js/assess-api.js`｜選考生按「準備考核・去抽題」後，有弱項才出現面板（弱項必須得分率低於 85%；最低的面向也有 85% 以上＝沒有明顯弱項，視同沒有弱項；弱項與得分率、語氣／文字偏低提醒、題數 2～4 預設 3、建議題組卡片可換一題、題庫不足提示）；「用這些題組開始考核」呼叫 assess_pick 直接進評分，「改用抽選器隨機抽」回原本選分類；沒有弱項或載入失敗完全照原流程
+- 弱項與建議題組面板（已由「弱項追加題」取代，面板已從考核流程拿掉；下次建議考題預告保留）｜`assess.html`、`js/suggest.js`、`js/assess-api.js`｜原本選考生後依歷史成績建議題組；第一期改成固定 3 題組＋評完後的弱項追加題（見「第一期」一節），`js/suggest.js` 選題函式與 `weakProfile`／`suggestPool`／`pick` 封裝仍保留給追加題與結果頁預告使用
 - 下次建議考題預告｜`assess.html`｜送出成功的結果頁多一區「下次建議考題」（最新弱項 3 題，僅預覽）；沒有弱項或載入失敗就不顯示
-- 選題函式測試｜`js/suggest.js`、`tests/suggest.test.js`｜`node tests/suggest.test.js` 印出「通過 84 項」且結束碼 0（涵蓋無弱項、1／2 個弱項、題數 2／3／4、標記不足補隨機、考過不選、drawn 優先、全部考過才 repeated、swap、同分類最多一題、語氣與文字不進弱項）
+- 選題函式測試｜`js/suggest.js`、`tests/suggest.test.js`｜`node tests/suggest.test.js` 印出「通過 97 項」且結束碼 0（涵蓋無弱項、1／2 個弱項、題數 2／3／4、標記不足補隨機、考過不選、drawn 優先、全部考過才 repeated、swap、預設同分類最多一題、語氣與文字不進弱項；新增 `opts.allowSameCategory` 允許同分類的追加題選題與換題）
 
 ## 待考回報（網頁已寫好，尚未連真實資料庫；需先執行 supabase/exam_request_schema.sql 並設定寄信，規格見 supabase/README_exam_request.md）
 
@@ -110,6 +110,17 @@
 
 - 三張表與權限規則｜`supabase/roster_schema.sql`｜待老闆同意後在 Supabase 執行；驗證步驟見 `supabase/README_roster.md`
 - 假資料｜`supabase/roster_seed_fake.sql`｜測試用，不含任何真實人員
+
+## 第一期：考核期、固定 3 題組、弱項追加題、待開通（網頁已寫好，尚未連真實資料庫；需先執行 supabase/phase1_schema.sql，規格見 supabase/README_phase1.md）
+
+- 固定 3 題組｜`assess.html`、`js/assess-api.js`｜選考生按「準備考核・去抽題」後自動呼叫 assess_core_categories 取得核心分類，再用 assess_draw 一次抽齊（每分類 1 題）並直接進評分，不再顯示「弱項與建議題組」面板；步驟列為「固定 3 題組／評分／弱項追加題／送出結果」；若抽題失敗（例如題庫缺題）顯示錯誤並可按「改用自選分類」回到舊的選分類流程；繼續草稿時已有題就直接進評分、沒題就自動抽核心題組
+- 弱項追加題｜`assess.html`、`js/suggest.js`、`js/assess-api.js`｜核心題組評完才出現「分析弱項」（先暫存評分再呼叫 assess_draft_weak）；有弱項顯示面向與得分率、語氣／文字偏低提醒、建議追加題（Suggest 選題，允許同分類，題數預設 2、可選 1～4，可換一題，題庫不足有提示，已在核心題組內的題不會被選到）與「追加弱項題」「不追加，直接送出」；沒有弱項只顯示「沒有明顯弱項，可直接送出」；按「追加弱項題」呼叫 assess_add_extra 後回評分畫面，追加題標示「追加題・不算總分」並顯示追加開始時間（只顯示時間）；追加題沒評完不能前往結算與送出
+- 送出結果頁（第一期）｜`assess.html`｜總分、判定、題組數只看核心題組；追加題另列「弱項追加題・不算入總分」；送出後讀 reply_activations 與 period_status：有待開通紀錄顯示「已加入待開通回覆權限清單」，仍在考核期顯示「仍在考核期，可再約補考」；回考核期者合格線 85 的顯示照舊
+- 成績單追加題區塊｜`reports.html`、`js/assess-api.js`｜成績單詳情（客服部版與主管／店長版）追加題獨立區塊「弱項追加題・不算入總分」；雷達圖與題組列表只用核心題組；主管與店長版追加題不含題組名稱、步驟、考點
+- 待開通回覆權限清單｜`requests.html`、`js/requests-api.js`｜只有客服部看得到；讀 reply_activations（人員、門市、通過日期、狀態），可依門市與狀態篩選，待開通排前面；「已開通」按鈕（先跳確認視窗）呼叫 activation_mark_done，已開通者顯示開通日期；清單讀取失敗只在該區塊提示；導覽紅點由 exam_req_badge 提供
+- 考核期與新人標籤｜`roster.html`｜身分標籤依 employees_with_tenure 的 period_status 與 tenure_group：考核期者顯示「考核期」，到職 90 天內另顯示「新人」，其餘顯示「已上線」，未填到職日者另加「未填到職日」；既有門市篩選與搜尋不變；標籤判斷只看 period_status（資料庫遷移與 spot_register 回考核期都會同步，不再看 probation_since）
+- 名冊「回覆狀態」欄位｜`roster.html`｜新增／編輯人員表單多「回覆狀態」下拉（考核期／已上線），只有客服部看得到；新增預設考核期（資料庫預設是已上線，所以新增時一定明確帶 period_status），編輯顯示目前值並可手動調整，存檔寫入 period_status，不動 passed_on；`js/api.js` 直接傳入整列，不需改
+- 第一期網頁驗證方式｜以 jsdom 搭配假的 Api 物件逐項驗證（有弱項／無弱項／不追加／追加題未評完不能送出／核心抽題失敗改自選／繼續草稿／放棄／通過與未通過結果頁／成績單追加題區塊／待開通清單／名冊標籤）；`node tests/suggest.test.js`、`tests/scoring.test.js`、`tests/requests-core.test.js` 皆結束碼 0
 
 ## 版面升級（貳輪嶼 CI）
 

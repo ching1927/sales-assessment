@@ -92,6 +92,14 @@
         .select('id,kind,request_id,to_emails,subject,status,last_error,created_at,updated_at')
         .order('created_at', { ascending: false }).order('id').limit(MAIL_LIMIT)).then(function (r) { return r.data || []; });
     },
+    // 待開通回覆權限清單（只有客服部用；RLS：客服部、總公司主管全部，店長自己門市）。不取 done_by（操作人信箱）
+    loadActivations: function () {
+      return pageAll(function (from, to) {
+        return sb.from('reply_activations')
+          .select('id,employee_id,employee_label,store_code,assessment_id,passed_on,status,done_on,created_at')
+          .order('passed_on', { ascending: false }).order('created_at', { ascending: false }).order('id').range(from, to);
+      });
+    },
     // 依情況列出可回報的人（店長只有自己門市；複檢每張可複檢的改善單一列）
     candidates: function (kind) {
       return wrap(sb.rpc('exam_req_candidates', { p_kind: kind })).then(function (r) { return r.data || []; });
@@ -122,6 +130,10 @@
     },
     mailSync: function () {
       return wrap(sb.rpc('mail_outbox_sync'));
+    },
+    // 客服部在 LINE 官方帳號開通後留紀錄（待開通 -> 已開通，資料庫記日期與操作人；已開通者會被拒絕）
+    markActivationDone: function (id) {
+      return wrap(sb.rpc('activation_mark_done', { p_id: id }));
     }
   };
 })();

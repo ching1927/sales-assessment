@@ -51,6 +51,10 @@ tr.off td{color:var(--ink-3)}
 .tag.unk{background:var(--warning-soft);color:var(--warning)}
 .tag.on{background:var(--success-soft);color:var(--success)}
 .tag.out{background:var(--danger-soft);color:var(--danger)}
+.tag.extra{background:var(--ci-yellow);color:var(--ci-black)}
+.extra-sec{margin-top:var(--sp-4);padding:12px 14px;border:1.5px dashed var(--ink-line);border-radius:var(--r-ctrl)}
+.extra-sec h3{font-size:15px;margin:0 0 4px}
+.extra-sec .exnote{font-size:13px;color:var(--ink-2);margin-bottom:4px}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
 .loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
 .blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
@@ -291,9 +295,52 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
     return '<div class="chartwrap radar">' + Radar.svg(rows, '七面向得分率：' + rows.map(function (r) { return r.name + ' ' + (r.pct === null ? '無資料' : fmt(r.pct) + '%'); }).join('、')) + '</div>';
   }
 
+  // 弱項追加題區塊（不算入總分、判定、最弱面向與雷達圖，只當輔導參考）
+  function extraHead() {
+    return '<div class="extra-sec"><h3>弱項追加題・不算入總分</h3><p class="exnote">追加題只記在成績單上當輔導參考，不算入總分、判定、最弱面向與上方雷達圖。</p>';
+  }
+  function extraDimRows(it, full) {
+    var dp = it.dim_points || {};
+    return DIMS.map(function (d) {
+      var lv = (it.levels || {})[d.name], pt = dp[d.name];
+      return full
+        ? '<tr><td>' + esc(d.name) + '</td><td class="num">' + d.weight + '</td><td>' + (lv ? esc(lv) : '未評') + '</td><td class="num">' + (lv === NA ? '不適用' : (pt == null ? '—' : esc(fmt(pt)))) + '</td></tr>'
+        : '<tr><td>' + esc(d.name) + '</td><td class="num">' + (pt == null ? '不適用' : esc(fmt(pt)) + ' / ' + d.weight) + '</td></tr>';
+    }).join('');
+  }
+  // 客服部版：含題組名稱與步驟、考點
+  function extrasCS(extras) {
+    if (!extras.length) return '';
+    var h = extraHead();
+    extras.forEach(function (it, i) {
+      h += '<div class="item"><span class="tag extra">追加題・不算總分</span> <span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
+        '<b style="float:right">追加題分數 ' + (it.item_score == null ? '—' : esc(fmt(it.item_score))) + '</b><h4>追加題 ' + (i + 1) + '：' + esc(it.title) + '</h4>' +
+        '<details><summary class="link" style="cursor:pointer">步驟與考點</summary><ul style="list-style:none">' +
+        (it.steps || []).map(function (s, k) {
+          s = s && typeof s === 'object' ? s : {};
+          return '<li class="stepli"><b>步驟 ' + (k + 1) + ' 考官操作</b><br>' + esc(s.action != null ? s.action : s.op) + '<br><b>考點</b><br>' + esc(s.point) + '</li>';
+        }).join('') + '</ul></details>' +
+        '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' + extraDimRows(it, true) + '</tbody></table></div>' +
+        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + noteUrlLink(it) + '</div>' + imgsHtml(it) + '</div>';
+    });
+    return h + '</div>';
+  }
+  // 主管／店長版：不含題組名稱、步驟、考點
+  function extrasLimited(extras) {
+    if (!extras.length) return '';
+    var h = extraHead();
+    extras.forEach(function (it, i) {
+      h += '<div class="item"><span class="tag extra">追加題 ' + (i + 1) + '・不算總分</span> <span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
+        '<b style="float:right">追加題分數 ' + (it.item_score == null ? '—' : esc(fmt(it.item_score))) + '</b><div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">得分</th></tr></thead><tbody>' + extraDimRows(it, false) + '</tbody></table></div>' +
+        '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + noteUrlLink(it) + '</div>' + imgsHtml(it) + '</div>';
+    });
+    return h + '</div>';
+  }
+
   // 客服部：完整內容（題組名稱、步驟、考點、備註、作廢鈕都只在這個函式裡產生）
   function detailCS(r, items) {
     var weak = r.weakest_dims || [];
+    var core = items.filter(function (x) { return !x.isExtra; }), extras = items.filter(function (x) { return !!x.isExtra; });
     var h = '<div class="dlg"><h2>成績單詳細內容</h2>';
     if (r.status === 'voided') h += '<div class="void-box">已作廢。原因：' + esc(r.void_reason || '') + '</div>';
     if (r.status === 'draft') h += '<div class="msg warn">這是暫存中的草稿，尚未結算送出。</div>';
@@ -303,8 +350,8 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
       '<dt>狀態</dt><dd>' + statusTag(r) + '</dd>' +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '尚未結算' : esc(fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
-      '<dt>最弱面向</dt><dd>' + weakSpans(weak) + '</dd></dl>' + radarBlock(items, weak);
-    items.forEach(function (it, i) {
+      '<dt>最弱面向</dt><dd>' + weakSpans(weak) + '</dd></dl>' + radarBlock(core, weak);
+    core.forEach(function (it, i) {
       var dp = it.dim_points || {};
       h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
         '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(fmt(it.item_score))) + '</b><h4>題組 ' + (i + 1) + '：' + esc(it.title) + '</h4>' +
@@ -321,6 +368,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
         }).join('') + '</tbody></table></div>' +
         '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + noteUrlLink(it) + '</div>' + imgsHtml(it) + '</div>';
     });
+    h += extrasCS(extras);
     h += '<div class="actions">' + (r.status === 'submitted' ? '<button class="btn danger" type="button" data-void="' + esc(r.id) + '">作廢這張成績單</button>' : '') +
       '<button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
@@ -337,13 +385,14 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
   // 總公司主管／店長：只有日期、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數、考官備註與附圖
   // （不產生題組名稱、步驟、考點、作廢鈕；也不查機密表；考官備註來自 assessment_items.note）
   function detailLimited(r, items) {
+    var core = items.filter(function (x) { return !x.isExtra; }), extras = items.filter(function (x) { return !!x.isExtra; });
     var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(stamp(dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
       '<dt>考生身分</dt><dd>' + esc(r.tenure) + '</dd>' +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '—' : esc(fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
-      '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>' + radarBlock(items, r.weakest_dims);
-    items.forEach(function (it) {
+      '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>' + radarBlock(core, r.weakest_dims);
+    core.forEach(function (it) {
       var dp = it.dim_points || {};
       h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
         '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(fmt(it.item_score))) + '</b><div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">得分</th></tr></thead><tbody>' +
@@ -353,6 +402,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
         }).join('') + '</tbody></table></div>' +
         '<div class="remark"><b>考官備註：</b>' + (it.note ? esc(it.note) : '（無）') + noteUrlLink(it) + '</div>' + imgsHtml(it) + '</div>';
     });
+    h += extrasLimited(extras);
     h += '<div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
   }

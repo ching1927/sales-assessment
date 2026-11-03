@@ -52,6 +52,11 @@ begin
   if to_regprocedure('public.assess_save_item(uuid, jsonb, text, text)') is null then
     raise exception '請先執行 url_patch.sql（assess_save_item 需為四參數版本）';
   end if;
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'employees' and column_name = 'period_status')
+     or to_regclass('public.reply_activations') is null then
+    raise exception '請先執行 phase1_schema.sql（新人資格改用 employees.period_status）';
+  end if;
 end
 $$;
 
@@ -422,6 +427,14 @@ begin
     ('vr-hq@2motor.tw',  'hq_viewer',     null),
     ('vr-sm1@2motor.tw', 'store_manager', 'ZZ-X1'),
     ('vr-sm2@2motor.tw', 'store_manager', 'ZZ-X2');
+  -- 第一期（phase1）新人規則：新人回報＝period_status = '考核期' 且 probation_since 為空，不再看到職 90 天。
+  --   所以到職 90 天內的假新人在建立時就設成考核期；9778（到職 10 天但已上線）專門用來測「已上線的新人標籤者不可報新人」。
+  insert into public.employees
+    (id, nickname, store_code, job_title, hire_date, status, include_in_assessment, probation_since)
+  values ('MI-9778', '假員9778', 'ZZ-X1', '業務', v_today - 10, '在職', true, null);
+  update public.employees set period_status = '考核期'
+   where id like 'MI-97%' and id <> 'MI-9778' and probation_since is null and hire_date is not null and hire_date >= v_today - 90;
+
   -- 注意：真實資料庫有 accounts_email_domain_check 觸發器，app_users 只收 @2motor.tw 信箱，
   --   所以「收件人過濾」不寫入不合格帳號，改直接以字面值呼叫內部函式 exam_req_enqueue 測（見區段 11）。
   -- vr-nobody@2motor.tw 刻意不建立帳號（模擬有登入但未開通）
@@ -746,6 +759,7 @@ begin
   perform pg_temp.vr_crerr('3 新增','正式（9701）不能報「新人」','%不是新人%','vr-cs1@2motor.tw','新人','MI-9701', null, 'true');
   perform pg_temp.vr_crerr('3 新增','未填到職日者（9702）視為正式，不能報「新人」','%不是新人%','vr-cs1@2motor.tw','新人','MI-9702', null, 'true');
   perform pg_temp.vr_crerr('3 新增','到職 91 天（9705）不能報「新人」','%不是新人%','vr-cs1@2motor.tw','新人','MI-9705', null, 'true');
+  perform pg_temp.vr_crerr('3 新增','已上線的新人標籤者（9778，到職 10 天）不能報「新人」（新規則）','%不是新人%','vr-cs1@2motor.tw','新人','MI-9778', null, 'true');
   perform pg_temp.vr_crerr('3 新增','考核期者（9708）只能報回考核期，不能報「新人」','%只能以「回考核期」回報%','vr-cs1@2motor.tw','新人','MI-9708', null, 'true');
   perform pg_temp.vr_crerr('3 新增','新人且考核期（9710）也只能報回考核期','%只能以「回考核期」回報%','vr-cs1@2motor.tw','新人','MI-9710', null, 'true');
   perform pg_temp.vr_crerr('3 新增','不在考核期者（9703）不能報「回考核期」','%不在考核期%','vr-cs1@2motor.tw','回考核期','MI-9703');
@@ -1162,8 +1176,12 @@ begin
   perform pg_temp.vr_eq('10 自動完成','別的員工（9753）的回報不受影響','待處理', pg_temp.vr_f('a3','status'));
   perform pg_temp.vr_eq('10 自動完成','全優沒有開改善單（既有觸發器行為不變）','0',
     pg_temp.vr_q1($q$select count(*)::text from public.improvement_tickets where employee_id = 'MI-9751'$q$));
-  perform pg_temp.vr_eq('10 自動完成','完成後不再佔位：同一人可再回報（9751）','true',
-    (pg_temp.vr_cr('vr-sm1@2motor.tw','新人','MI-9751', null, 'true') ~ '^[0-9a-f-]{36}$')::text);
+  -- 第一期新規則：全優通過 → 轉已上線；已上線者不可再以「新人」回報（原本是「同一人可再回報」）
+  perform pg_temp.vr_eq('10 自動完成','全優通過後轉已上線（period_status）','已上線',
+    pg_temp.vr_q1($q$select period_status from public.employees where id = 'MI-9751'$q$));
+  perform pg_temp.vr_eq('10 自動完成','完成後不再佔位（沒有未結案回報），但已上線，不可再以「新人」回報（新規則）','0/true',
+    pg_temp.vr_q1($q$select count(*) filter (where status in ('待處理','已排定'))::text from public.exam_requests where employee_id = 'MI-9751'$q$)
+    || '/' || (pg_temp.vr_cr('vr-sm1@2motor.tw','新人','MI-9751', null, 'true') like '%不是新人%')::text);
 
   -- 作廢不倒回
   v_r := pg_temp.vr_as('authenticated','vr-cs1@2motor.tw',

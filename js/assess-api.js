@@ -106,6 +106,9 @@
       .in('item_id', itemIds).order('created_at')).then(function (r) { return groupImages(r.data); });
   }
 
+  // assess_draw、assess_pick、assess_add_extra 的回傳格式一致：每列 { item_id, category, code, title, steps, repeated, new_round }
+  function drawRows(p) { return wrap(p).then(function (r) { return r.data || []; }); }
+
   window.AssessApi = {
     explain: explain,
     userError: userError,
@@ -150,7 +153,47 @@
         .then(function (r) { return r.data; });
     },
     draw: function (assessmentId, cats) {
-      return wrap(sb.rpc('assess_draw', { p_assessment_id: assessmentId, p_cats: cats })).then(function (r) { return r.data || []; });
+      return drawRows(sb.rpc('assess_draw', { p_assessment_id: assessmentId, p_cats: cats }));
+    },
+    // ---- 第一期：固定 3 題組與弱項追加題（規格：supabase/README_phase1.md）----
+    // 核心分類清單（text[]，預設 基礎、進階、綜合）；網頁用它當 assess_draw 的分類一次抽齊
+    coreCategories: function () {
+      return wrap(sb.rpc('assess_core_categories')).then(function (r) {
+        return (Array.isArray(r.data) ? r.data : []).filter(function (c) { return typeof c === 'string' && c.trim(); });
+      });
+    },
+    // 這一場核心題組的弱項（jsonb 物件 { rates, weak:[{dim,pct}], always_low:[{dim,pct}] }；格式與 assess_weak_profile 的 weak 相容，可直接給 Suggest.weakOf／pick）
+    draftWeak: function (assessmentId) {
+      return wrap(sb.rpc('assess_draft_weak', { p_assessment_id: assessmentId })).then(function (r) {
+        var d = Array.isArray(r.data) ? r.data[0] : r.data;
+        d = d || {};
+        return { rates: d.rates || [], weak: d.weak || [], always_low: d.always_low || [] };
+      });
+    },
+    // 追加弱項題（一次最多 4 題）；回傳格式與 draw 一致
+    addExtra: function (assessmentId, questionIds) {
+      return drawRows(sb.rpc('assess_add_extra', { p_assessment_id: assessmentId, p_question_ids: questionIds }));
+    },
+    // 這場考核已用的題組 id（追加題要避開；客服部才讀得到機密表）
+    questionIdsOf: function (itemIds) {
+      if (!itemIds || !itemIds.length) return Promise.resolve([]);
+      return wrap(sb.from('assessment_item_secrets').select('item_id,question_id').in('item_id', itemIds))
+        .then(function (r) { return (r.data || []).map(function (s) { return s.question_id; }); });
+    },
+    // 追加開始時間（assessments.extra_started_at，ISO 字串或 null）
+    extraStartedAt: function (assessmentId) {
+      return wrap(sb.from('assessments').select('extra_started_at').eq('id', assessmentId).maybeSingle())
+        .then(function (r) { return (r.data && r.data.extra_started_at) || null; });
+    },
+    // 送出後：這張成績單有沒有新增「待開通」（reply_activations），沒有回 null
+    activationOf: function (assessmentId) {
+      return wrap(sb.from('reply_activations').select('id,status,passed_on').eq('assessment_id', assessmentId).maybeSingle())
+        .then(function (r) { return r.data || null; });
+    },
+    // 送出後：考生目前的 period_status（考核期／已上線）
+    periodStatus: function (employeeId) {
+      return wrap(sb.from('employees_with_tenure').select('period_status').eq('id', employeeId).maybeSingle())
+        .then(function (r) { return (r.data && r.data.period_status) || null; });
     },
     // ---- 弱項建議題組（規格：supabase/README_weak_suggest.md）----
     // 弱項摘要（jsonb 物件）
@@ -166,7 +209,7 @@
     },
     // 指定題組開考，回傳格式與 draw 一致
     pick: function (assessmentId, questionIds) {
-      return wrap(sb.rpc('assess_pick', { p_assessment_id: assessmentId, p_question_ids: questionIds })).then(function (r) { return r.data || []; });
+      return drawRows(sb.rpc('assess_pick', { p_assessment_id: assessmentId, p_question_ids: questionIds }));
     },
     saveItem: function (itemId, levels, note, noteUrl) {
       return wrap(sb.rpc('assess_save_item', { p_item_id: itemId, p_levels: levels, p_note: note || '', p_note_url: noteUrl || null }));
@@ -201,7 +244,7 @@
     // 載入一張草稿：考核本身＋題組（備註在 assessment_items.note；機密表只取名稱、步驟）＋圖片
     loadDraft: function (assessmentId) {
       return wrap(sb.from('assessments')
-        .select('id,employee_id,employee_label,store_code,examiner_email,status,tenure,tenure_source,created_at')
+        .select('id,employee_id,employee_label,store_code,examiner_email,status,tenure,tenure_source,created_at,extra_started_at')
         .eq('id', assessmentId).maybeSingle()).then(function (r) {
         var a = r.data;
         if (!a || a.status !== 'draft') throw userError('找不到這張草稿，可能已被放棄或已送出。');
@@ -211,7 +254,7 @@
     // 客服部用：題組（含 levels、分數）＋機密（題組名稱、步驟）＋備註＋圖片
     loadItemsFull: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,note,note_url')
+        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,note,note_url,is_extra')
         .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
         var items = r.data || [];
         var ids = items.map(function (i) { return i.id; });
@@ -225,7 +268,7 @@
           return items.map(function (i) {
             var s = sec[i.id] || {};
             return {
-              id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {},
+              id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {}, isExtra: !!i.is_extra,
               item_score: i.item_score, dim_points: i.dim_points, na_dims: i.na_dims, weakest_dims: i.weakest_dims,
               title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], note: i.note || '', note_url: i.note_url || '',
               imgs: res[1][i.id] || []
@@ -237,8 +280,10 @@
     // 送出後只讀題組分數（不含機密）
     loadItemScores: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims')
-        .eq('assessment_id', assessmentId).order('seq')).then(function (r) { return r.data || []; });
+        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,is_extra')
+        .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
+        return (r.data || []).map(function (i) { i.isExtra = !!i.is_extra; return i; });
+      });
     },
 
     // ---- 成績單 ----
@@ -253,12 +298,12 @@
     // 總公司主管與店長用：只讀 assessment_items（精簡欄位，含考官備註）與圖片；絕不查機密表
     loadItemsLimited: function (assessmentId) {
       return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,note,note_url')
+        .select('id,seq,category,code,levels,item_score,dim_points,note,note_url,is_extra')
         .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
         var items = r.data || [];
         return loadImages(items.map(function (i) { return i.id; })).then(function (imgs) {
           return items.map(function (i) {
-            return { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', note_url: i.note_url || '', imgs: imgs[i.id] || [] };
+            return { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels, isExtra: !!i.is_extra, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', note_url: i.note_url || '', imgs: imgs[i.id] || [] };
           });
         });
       });

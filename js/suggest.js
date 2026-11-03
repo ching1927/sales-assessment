@@ -15,6 +15,8 @@
  *     short＝弱項題湊不滿（標記不足），不足的部分已用隨機題補
  *     fewCats＝湊不滿 n 題（一場考核每個分類最多一個題組，分類或題組不夠），items 少於 n
  *   同一份清單內，同一分類最多一題（assess_pick 沿用 assess_draw 的限制）
+ *   追加題（assess_add_extra 不受每分類一題限制）：pick／swap 另收選填的 opts，opts.allowSameCategory 為 true 時同分類可以出現多題；
+ *     預設（不傳 opts 或為 false）行為不變。pick(profile, pool, n[, rng[, opts]])、swap(profile, pool, currentItems, index[, rng[, opts]])
  *   Suggest.swap(profile, pool, currentItems, index[, rng]) -> 新的一題（格式同 items 的元素）或 null
  *   rng 為選填的亂數函式（回傳 0 到 1 之間，預設 Math.random），測試時可傳固定值。
  */
@@ -42,7 +44,8 @@
     return list[Math.min(Math.max(i, 0), list.length - 1)];
   }
   // used 同時記「已選題組 id」與「已佔用分類」（鍵為 'cat:' 加分類名）
-  function take(used, q) { used[q.question_id] = 1; used['cat:' + q.category] = 1; }
+  // used.__same 為真（opts.allowSameCategory）時只記題組 id，不佔用分類
+  function take(used, q) { used[q.question_id] = 1; if (!used.__same) used['cat:' + q.category] = 1; }
   function free(pool, used) {
     return pool.filter(function (q) { return !used[q.question_id] && !used['cat:' + q.category]; });
   }
@@ -66,12 +69,12 @@
     return free(pool, used).filter(function (q) { return !q.taken_before && dimsOf(q).indexOf(dim) >= 0; });
   }
 
-  function pick(profile, pool, n, rng) {
+  function pick(profile, pool, n, rng, opts) {
     var weak = weakDims(profile);
     n = Math.floor(Number(n));
     pool = Array.isArray(pool) ? pool : [];
     if (!(n > 0) || !weak.length) return { items: [], short: false, fewCats: false, empty: true };
-    var used = {}, items = [], slots = Math.min(n, Math.max(1, n - 1));
+    var used = opts && opts.allowSameCategory ? { __same: 1 } : {}, items = [], slots = Math.min(n, Math.max(1, n - 1));
     for (var i = 0; i < slots; i++) {
       var dim = weak[i % weak.length], c = weakCandidates(pool, used, dim), useDim = dim;
       if (!c.length) {
@@ -93,13 +96,13 @@
     return { items: items, short: short, fewCats: items.length < n, empty: false };
   }
 
-  function swap(profile, pool, currentItems, index, rng) {
+  function swap(profile, pool, currentItems, index, rng, opts) {
     pool = Array.isArray(pool) ? pool : [];
     var cur = currentItems && currentItems[index];
     if (!cur) return null;
-    var used = {};
-    // 題組 id 全部排除（含被換掉的這題本身）；分類只排除「其他題」佔用的，換入的題可與被換掉那題同分類
-    currentItems.forEach(function (it, i) { used[it.question_id] = 1; if (i !== index) used['cat:' + it.category] = 1; });
+    var allow = !!(opts && opts.allowSameCategory), used = allow ? { __same: 1 } : {};
+    // 題組 id 全部排除（含被換掉的這題本身）；分類只排除「其他題」佔用的，換入的題可與被換掉那題同分類（allowSameCategory 時分類不限）
+    currentItems.forEach(function (it, i) { used[it.question_id] = 1; if (!allow && i !== index) used['cat:' + it.category] = 1; });
     if (cur.kind === 'weak' && cur.dim) {
       var q = choose(weakCandidates(pool, used, cur.dim), rng);
       if (q) return toItem(q, 'weak', cur.dim, false);

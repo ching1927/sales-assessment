@@ -51,6 +51,7 @@ tr.off td{color:var(--ink-3)}
 .tag.unk{background:var(--warning-soft);color:var(--warning)}
 .tag.on{background:var(--success-soft);color:var(--success)}
 .tag.out{background:var(--danger-soft);color:var(--danger)}
+.tag.period{background:var(--ci-black);color:var(--ci-yellow)}
 .days{color:var(--ink-3);font-size:12px;margin-left:6px}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
 .sw{position:relative;width:46px;height:28px;border-radius:var(--r-pill);border:none;background:var(--track);transition:background var(--dur-micro) var(--ease);vertical-align:middle}
@@ -137,7 +138,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       </div>
       <div class="empty" id="empty" hidden>沒有符合條件的人員</div>
     </section>
-    <p class="note">新人／正式由系統依到職日自動計算：到職起 90 天內為新人，超過為正式；到職日沒填的顯示「未填到職日」。</p>
+    <p class="note">考核期＝尚未通過考核（新人合格線 70 分），不能回覆顧客；新人由系統依到職日自動計算，到職起 90 天內顯示，只是方便辨認；其餘為已上線。到職日沒填的另顯示「未填到職日」。</p>
   </div>
   <p class="foot">由 貳輪嶼 製作</p>
 </div>
@@ -172,6 +173,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     </label>
     <label class="field">納入考核
       <select class="ctrl" id="fInc"><option value="1">是</option><option value="0">否</option></select>
+    </label>
+    <label class="field" id="fPeriodWrap" hidden>回覆狀態（考核期不能回覆顧客；通過考核會自動轉已上線，特殊情況可手動調整）
+      <select class="ctrl" id="fPeriod"><option value="考核期">考核期</option><option value="已上線">已上線</option></select>
     </label>
     <div class="err" id="fErr" role="alert"></div>
     <div class="actions">
@@ -228,6 +232,17 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     return Math.round((Date.UTC(+today[0], +today[1] - 1, +today[2]) - Date.UTC(+p[0], +p[1] - 1, +p[2])) / 86400000);
   }
 
+  // 身分標籤（規格 README_phase1.md 第一節第 2 點）：考核期者顯示「考核期」；到職 90 天內另顯示「新人」（只是辨認用）；其他顯示「已上線」。
+  // 沒填到職日者另加「未填到職日」。只看 period_status（資料庫遷移與 spot_register 回考核期都會同步），不再看 probation_since。period_status 來自 employees_with_tenure，tenure_group 為資料庫判斷的新人／正式
+  function statusTags(p) {
+    var period = p.period_status === '考核期', fresh = p.tenure_group === '新人', h = [];
+    if (period) h.push('<span class="tag period">考核期</span>');
+    if (fresh) h.push('<span class="tag new">新人</span>');
+    if (!period && !fresh) h.push('<span class="tag reg">已上線</span>');
+    if (!p.hire_date) h.push('<span class="tag unk">未填到職日</span>');
+    return h.join(' ');
+  }
+
   function nameCell(p) {
     var nick = (p.nickname || '').trim(), full = (p.full_name || '').trim();
     var inner = nick && full ? esc(nick) + '<span class="sub2">' + esc(full) + '</span>' : esc(nick || full || p.id);
@@ -264,7 +279,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         '<td>' + esc(storeName[p.store_code] || p.store_code) + '</td>' +
         '<td>' + esc(p.job_title) + '</td>' +
         '<td class="mono">' + (noHire ? '未填' : esc(p.hire_date) + '<span class="days">第 ' + daysSince(p.hire_date) + ' 天</span>') + '</td>' +
-        '<td><span class="tag ' + (TAG[tg] || 'unk') + '">' + esc(tg || '未填到職日') + '</span>' + (p.probation_since ? ' <span class="tag out">考核期</span>' : '') + '</td>' +
+        '<td>' + statusTags(p) + '</td>' +
         '<td><span class="tag ' + (p.status === '在職' ? 'on' : 'out') + '">' + esc(p.status) + '</span></td>' +
         '<td>' + inc + '</td>' +
         (cs ? '<td><button type="button" class="btn sm" data-edit="' + esc(p.id) + '">編輯</button></td>' : '') +
@@ -390,6 +405,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('fHire').value = p ? (p.hire_date || '') : '';
     $('fStatus').value = p ? p.status : '在職';
     $('fInc').value = (p ? p.include_in_assessment : !!DEFAULT_INC[$('fPos').value]) ? '1' : '0';
+    // 回覆狀態：只有客服部看得到；新增預設考核期，編輯顯示目前值（資料庫預設是已上線，所以新增一定要明確帶）
+    $('fPeriodWrap').hidden = !isCS();
+    $('fPeriod').value = p ? (p.period_status === '考核期' ? '考核期' : '已上線') : '考核期';
     dlg.showModal();
   }
   // 新增時，換職級會帶出預設的納入考核（編輯時不自動改，避免蓋掉逐人調整）
@@ -426,6 +444,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       job_title: pos, hire_date: $('fHire').value || null,
       status: $('fStatus').value, include_in_assessment: $('fInc').value === '1'
     };
+    if (isCS()) data.period_status = $('fPeriod').value;
     busy = true; $('fSave').disabled = true; $('fErr').textContent = '';
     var job;
     if (editingId) job = Api.updateEmployee(editingId, data);
