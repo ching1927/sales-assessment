@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>待考回報</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<style>
+/* 公版 tokens 沒有的兩個中性色（與其他頁相同）：純白（按鈕字、對話框底）、對話框遮罩 */
+body{--surface-solid:#fff;--scrim:rgba(15,23,42,0.30)}
+[hidden]{display:none!important}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button:disabled{cursor:not-allowed;opacity:.5}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+/* 以下版面間距沿用「待考回報樣品」（老闆已確認） */
+h2.sec{font-size:18px;margin:var(--sp-6) 0 var(--sp-3)}
+.panel{padding:var(--sp-6);margin-bottom:var(--sp-4)}
+.note{font-size:13px;color:var(--ink-2);line-height:1.7}
+.sub{font-size:12px;color:var(--ink-3)}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:15px;font-family:inherit;color:var(--ink);width:100%}
+textarea.ctrl{min-height:72px;resize:vertical}
+label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3)}
+.btn{padding:8px 16px;min-height:38px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--specular),var(--hairline);cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.sm{padding:4px 12px;min-height:30px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
+th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--ink-line);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+th{font-size:12px;color:var(--ink-2)}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700}
+.tag.wait{background:var(--ci-yellow);color:var(--ci-black)}
+.tag.set{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.done{background:var(--track);color:var(--ink-2)}
+.tag.no{background:var(--danger-soft);color:var(--danger)}
+.tag.type{background:var(--ci-black);color:#fff}
+.alert{border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);background:var(--accent-soft);color:var(--accent-deep);font-weight:600;font-size:14px;line-height:1.6}
+.alert.red{background:var(--danger-soft);color:var(--danger)}
+.badge{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:var(--danger);color:#fff;font-size:12px;font-weight:800;margin-left:6px;vertical-align:middle}
+.mail{border:1px dashed var(--ink-3);border-radius:var(--r-ctrl);padding:var(--sp-4);background:#fff;font-size:14px;line-height:1.8;margin-bottom:var(--sp-3);overflow-wrap:anywhere}
+.mail b.h{display:block;font-size:12px;color:var(--ink-3);font-weight:700;margin-bottom:4px}
+.row{display:flex;gap:var(--sp-3);flex-wrap:wrap;align-items:end;margin-bottom:var(--sp-3)}
+.row>div{min-width:160px}
+.days{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-3)}
+.days .d{display:flex;gap:6px;align-items:center}
+.days input{width:170px}
+.videoRow{margin:var(--sp-6) 0 var(--sp-6)}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600;cursor:pointer}
+.chk.need{color:var(--danger)}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.log{font-size:13px;color:var(--ink-2);margin-top:var(--sp-3);line-height:1.7}
+.log.err{color:var(--danger);font-weight:700}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+.txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
+.intro{font-size:14px;line-height:1.8;color:var(--ink-2);padding:var(--sp-4) var(--sp-6);margin-bottom:var(--sp-4)}
+.intro b{color:var(--ink)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+.head2{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap}
+
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
+dialog::backdrop{background:var(--scrim)}
+.dlg{padding:var(--sp-6)}
+.dlg h2{font-size:19px;margin:0 0 var(--sp-3)}
+.dlg p{font-size:14px;line-height:1.6;color:var(--ink-2)}
+.actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
+.field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
+.field textarea,.field input{display:block;width:100%;margin-top:6px;font-weight:400}
+.field textarea{min-height:100px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);padding:12px 20px;border-radius:var(--r-ctrl);
+  background:var(--ink);color:var(--surface-solid);font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)}
+@media (max-width:640px){
+  .panel{padding:var(--sp-4)}
+  .intro{padding:var(--sp-4)}
+}
+@media (max-width:480px){
+  .dlg{padding:var(--sp-4)}
+  .days input{width:140px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <header class="ab-bar">
+      <div class="ab-in">
+        <a class="ab-brand" href="roster.html" aria-label="貳輪嶼 MOTOR ISLAND"><img src="img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND"></a>
+        <nav class="ab-tabs" aria-label="主要功能">
+        <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
+        <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
+        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
+        <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab on" href="requests.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
+        <a class="ab-tab" href="spotcheck.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>抽查</a>
+        <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
+        <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
+        </nav>
+        <div class="ab-me">
+          <div class="ab-me-txt"><b id="whoEmail"></b><span class="ab-role" id="whoBadge"></span></div>
+          <div class="ab-avatar" id="whoAvatar" aria-hidden="true"></div>
+          <button class="ab-icon" id="logout" type="button" aria-label="登出" title="登出"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+        </div>
+      </div>
+    </header>
+    <section class="ab-hero">
+      <div class="ab-crumb">考核　/　待考回報</div>
+      <h1>待考回報</h1>
+    </section>
+
+    <div class="msg err" id="pageMsg" role="alert" hidden></div>
+
+    <section class="glass intro">
+      <b>規則：</b>店長回報自己門市「準備好要考核」的人，客服部看到後排定線上考核的日期與時間，系統會通知並寄信給回報人。回報情況有三種：<b>新人</b>（需先看完「線上回覆實戰全攻略」影片）、<b>回考核期的人</b>、<b>改善單複檢</b>。同一人同一種情況已有未結案的回報時，不能重複回報。考核是線上進行，請同仁準時上線。
+    </section>
+
+    <div id="mgrNotice" aria-live="polite"></div>
+
+    <section id="formWrap" hidden>
+      <h2 class="sec">回報待考</h2>
+      <form class="glass panel" id="reqForm" novalidate>
+        <div class="grid">
+          <div id="qStoreWrap" hidden><label class="lb" for="qStore">門市</label><select class="ctrl" id="qStore"></select></div>
+          <div><label class="lb" for="qKind">回報情況</label>
+            <select class="ctrl" id="qKind"><option value="新人">新人準備好了，要考核</option><option value="回考核期">回考核期的人，準備好再考</option><option value="複檢">改善單複檢考核</option></select></div>
+          <div><label class="lb" for="qEmp">人員</label><select class="ctrl" id="qEmp"></select></div>
+        </div>
+        <label class="lb">希望考核日期（可多選，最多 3 個，至少 1 個）</label>
+        <div class="days" id="qDays"></div>
+        <button class="btn sm" id="qAddDay" type="button">＋ 再加一個日期</button>
+        <div class="videoRow" id="videoRow"><label class="chk need"><input type="checkbox" id="qVideo"> 該同仁已看完「線上回覆實戰全攻略」影片</label></div>
+        <label class="lb" for="qNote">備註（例如已完成哪些訓練、哪幾天可以來；500 字內）</label>
+        <textarea class="ctrl" id="qNote" placeholder="例：已完成報到與話術訓練，週三、週四下午可以考核"></textarea>
+        <div class="row" style="margin-top:var(--sp-3)"><button class="btn primary" id="qGo" type="submit">送出回報</button></div>
+        <div class="log" id="qLog" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section id="mineWrap" hidden>
+      <h2 class="sec">我的回報</h2>
+      <section class="glass panel" style="padding:0"><div class="scroll" tabindex="0" aria-label="我的回報清單，可左右捲動"><table>
+        <thead><tr><th>送出時間</th><th>情況</th><th>人員</th><th>希望日期</th><th>狀態</th><th>客服部回覆</th><th></th></tr></thead>
+        <tbody id="mBody"></tbody></table></div>
+        <div class="empty" id="mEmpty" hidden>目前沒有回報紀錄</div></section>
+    </section>
+
+    <section id="boardWrap" hidden>
+      <h2 class="sec">待考回報<span class="badge" id="csBadge" hidden>0</span></h2>
+      <div class="row" id="boardTool">
+        <div id="fStoreWrap"><label class="lb" for="fStore">門市</label><select class="ctrl" id="fStore"><option value="">全部門市</option></select></div>
+        <div><label class="lb" for="fStatus">狀態</label><select class="ctrl" id="fStatus"><option value="">全部狀態</option><option>待處理</option><option>已排定</option><option>已完成</option><option>已取消</option></select></div>
+        <span class="sub" id="cCount" aria-live="polite"></span>
+      </div>
+      <section class="glass panel" style="padding:0"><div class="scroll" tabindex="0" aria-label="待考回報清單，可左右捲動"><table>
+        <thead><tr><th>送出時間</th><th>門市／回報人</th><th>情況</th><th>人員</th><th>希望日期</th><th>備註</th><th>狀態</th><th id="thOps"></th></tr></thead>
+        <tbody id="cBody"></tbody></table></div>
+        <div class="empty" id="cEmpty" hidden>沒有符合條件的回報</div></section>
+    </section>
+
+    <section id="mailWrap" hidden>
+      <div class="head2"><h2 class="sec">寄信紀錄</h2><button class="btn sm" id="mailSync" type="button">更新寄信狀態</button></div>
+      <div class="msg err" id="mailMsg" role="alert" hidden></div>
+      <section class="glass panel" style="padding:0"><div class="scroll" tabindex="0" aria-label="寄信紀錄，可左右捲動"><table>
+        <thead><tr><th>時間</th><th>狀態</th><th>收件人數</th><th>主旨</th><th>錯誤</th></tr></thead>
+        <tbody id="mailBody"></tbody></table></div>
+        <div class="empty" id="mailEmpty" hidden>目前沒有寄信紀錄</div></section>
+      <p class="note" id="mailCap" style="margin-top:var(--sp-2)">只列最近 100 筆。</p>
+      <h2 class="sec">信件預覽</h2>
+      <div class="mail" id="mailNew" hidden></div>
+      <div class="mail" id="mailSet" hidden></div>
+      <div class="mail" id="mailRet" hidden></div>
+      <p class="note">預覽依最近的回報套用格式，實際內容以寄出的信為準。信件只放摘要和連結，需要登入才看得到完整內容。寄信失敗時，回報照常成功，這裡會記錄這封信寄成功或失敗，客服部仍可在系統內看到紅點與清單。</p>
+    </section>
+
+    <p class="note" id="roleNote" style="margin-top:var(--sp-4)"></p>
+  </div>
+
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/requests-core.js"></script>
+<script src="js/requests-api.js"></script>
+<script>
+(function () {
+  var C = RequestsCore;
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+  var MAIL_STATUS = {
+    queued: ['wait', '排隊中'], sent: ['set', '已寄出'], failed: ['no', '寄送失敗'], skipped: ['done', '未寄出（尚未設定寄信）']
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+
+  // ====== 狀態 ======
+  var me = null, storeName = {};
+  var rows = [], mail = [];
+  var cands = [], shown = [], candSeq = 0;
+  var notices = [];
+  var busy = false, dyn = [];
+
+  function isCS() { return !!me && me.role === 'cs_admin'; }
+  function isMgr() { return !!me && me.role === 'store_manager'; }
+  function canReport() { return isCS() || isMgr(); }
+  function errText(e) { return (e && e.userMessage) || RequestsApi.explain(e); }
+  function sName(code) { return storeName[code] || code || '—'; }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { RequestsApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text) {
+    $('loading').hidden = true; $('app').hidden = true;
+    $('blockedText').textContent = text; $('blocked').hidden = false;
+  }
+  function showPageMsg(t) { var m = $('pageMsg'); m.textContent = t; m.hidden = !t; }
+  function toast(t) {
+    var el = $('toast'); el.textContent = t; el.hidden = false;
+    clearTimeout(toast.tm); toast.tm = setTimeout(function () { el.hidden = true; }, 3200);
+  }
+  function refreshBadge() {
+    try { if (window.AppBadge && window.AppBadge.refresh) window.AppBadge.refresh(); } catch (e) {}
+  }
+  function stamp(iso) { return C.formatTaipei(iso).slice(5); }            // 'MM-DD HH:mm'
+  function kindLabel(k) { return C.KIND_LABEL[k] || k || '—'; }
+  function stTag(s) {
+    var cls = { '待處理': 'wait', '已排定': 'set', '已完成': 'done', '已取消': 'no' }[s] || 'done';
+    return '<span class="tag ' + cls + '">' + esc(s) + '</span>';
+  }
+  function daysCell(r) {
+    return (r.desired_dates || []).map(function (x) {
+      return '<span class="tag type" style="margin:0 4px 4px 0" title="' + esc(x) + '">' + esc(String(x).slice(5)) + '</span>';
+    }).join('') || '—';
+  }
+  function videoTag(r) {
+    return r.kind === '新人' ? (r.video_done ? '<span class="tag set">已看完影片</span>' : '<span class="tag no">未看完影片</span>') : '';
+  }
+  // 客服部回覆文字（我的回報清單與店長通知共用）
+  function replyText(r) {
+    if (r.status === '已排定') return (r.scheduled_at ? stamp(r.scheduled_at) + ' 線上考核' : '已排定') + (r.reply_note ? '（' + r.reply_note + '）' : '');
+    if (r.status === '已取消') return r.cancel_by === '客服部' ? '客服部退回：' + (r.cancel_reason || '') : '已撤回';
+    if (r.status === '已完成') return '考核已完成';
+    return '';
+  }
+
+  // ====== 畫面：店長的客服部回覆通知 ======
+  function renderNotices() {
+    $('mgrNotice').innerHTML = notices.map(function (r) {
+      var name = esc(r.employee_label || r.employee_id);
+      if (r.status === '已排定') {
+        return '<div class="alert">客服部已排定「' + name + '」' + esc(r.scheduled_at ? stamp(r.scheduled_at) : '') + ' 線上考核，請同仁準時上線。' +
+          (r.reply_note ? '備註：' + esc(r.reply_note) : '') + '</div>';
+      }
+      if (r.status === '已完成') return '<div class="alert">「' + name + '」的考核已完成，成績單已送出。</div>';
+      return '<div class="alert red">' + (r.cancel_by === '客服部'
+        ? '客服部退回「' + name + '」的回報：' + esc(r.cancel_reason || '')
+        : '「' + name + '」的回報已撤回。') + '</div>';
+    }).join('');
+  }
+
+  // ====== 畫面：回報表單 ======
+  function dayInputs() { return [].slice.call($('qDays').querySelectorAll('input')); }
+  function addDay(v) {
+    if (dayInputs().length >= C.MAX_DATES) return;
+    var w = document.createElement('div'); w.className = 'd';
+    w.innerHTML = '<input class="ctrl" type="date" aria-label="希望考核日期" min="' + esc(C.taipeiToday()) + '" value="' + esc(v || '') + '"><button class="btn sm" type="button" data-rmday="1">移除</button>';
+    $('qDays').appendChild(w); $('qAddDay').hidden = dayInputs().length >= C.MAX_DATES;
+  }
+  function resetDays() {
+    $('qDays').innerHTML = ''; $('qAddDay').hidden = false;
+    addDay(C.addDays(C.taipeiToday(), 3));
+  }
+  function setLog(text, isErr) { var l = $('qLog'); l.textContent = text || ''; l.className = isErr ? 'log err' : 'log'; }
+  function syncVideoRow() { $('videoRow').hidden = $('qKind').value !== '新人'; }
+
+  // 人員下拉：客服部多一個門市選擇（只列有人可回報的門市，規則同抽查頁）；店長只有自己門市
+  function fillCands() {
+    var sorted = cands.slice().sort(function (a, b) {
+      return RequestsApi.storeRank(a.store_code) - RequestsApi.storeRank(b.store_code) || cmp(a.employee_id, b.employee_id) || cmp(String(a.ticket_id || ''), String(b.ticket_id || ''));
+    });
+    var pick = '';
+    if (isCS()) {
+      var sel = $('qStore'), keep = sel.value, seen = {}, codes = [];
+      sorted.forEach(function (c) { if (!seen[c.store_code]) { seen[c.store_code] = 0; codes.push(c.store_code); } seen[c.store_code]++; });
+      sel.innerHTML = '<option value="">全部門市（' + sorted.length + ' 人）</option>' + codes.map(function (c) {
+        return '<option value="' + esc(c) + '">' + esc(sName(c)) + '（' + seen[c] + ' 人）</option>';
+      }).join('');
+      sel.value = seen[keep] ? keep : '';
+      pick = sel.value;
+      $('qStoreWrap').hidden = codes.length < 2;
+    }
+    shown = sorted.filter(function (c) { return !pick || c.store_code === pick; });
+    var emp = $('qEmp'), cur = emp.value;
+    emp.disabled = false;
+    if (!shown.length) { emp.innerHTML = '<option value="">目前沒有可回報的人員</option>'; return; }
+    emp.innerHTML = '<option value="">請選擇人員</option>' + shown.map(function (c, i) {
+      var t = c.label || c.employee_id;
+      if (isCS()) t += '（' + sName(c.store_code) + '）';
+      if ($('qKind').value === '複檢' && c.ticket_note) t += '・改善單：' + String(c.ticket_note).slice(0, 30);
+      return '<option value="' + i + '">' + esc(t) + '</option>';
+    }).join('');
+    if (cur !== '' && Array.prototype.some.call(emp.options, function (o) { return o.value === cur; })) emp.value = cur;
+  }
+  function loadCands() {
+    if (!canReport()) return Promise.resolve();
+    var kind = $('qKind').value, seq = ++candSeq;
+    $('qEmp').innerHTML = '<option value="">載入中…</option>'; $('qEmp').disabled = true;
+    return RequestsApi.candidates(kind).then(function (list) {
+      if (seq !== candSeq) return;
+      cands = list; fillCands();
+    }, function (e) {
+      if (seq !== candSeq) return;
+      cands = []; fillCands(); setLog('載入人員名單失敗：' + errText(e), true);
+    });
+  }
+  function submitForm(ev) {
+    ev.preventDefault();
+    if (!canReport() || busy) return;
+    var kind = $('qKind').value, idx = $('qEmp').value;
+    var p = idx === '' ? null : shown[+idx];
+    var dates = dayInputs().map(function (i) { return i.value; }).filter(Boolean);
+    var v = C.validateRequest({
+      kind: kind, employeeId: p && p.employee_id, ticketId: p && p.ticket_id, dates: dates,
+      video: $('qVideo').checked, note: $('qNote').value, today: C.taipeiToday()
+    });
+    if (!v.ok) { setLog(v.error, true); return; }
+    var label = (p && p.label) || (p && p.employee_id);
+    busy = true; $('qGo').disabled = true; setLog('');
+    RequestsApi.create(kind, p.employee_id, v.dates, v.video, v.note, v.ticketId).then(function () {
+      setLog('已送出回報（' + label + '），客服部會收到系統通知與信件。', false);
+      $('qNote').value = ''; $('qVideo').checked = false; resetDays();
+      toast('回報已送出。');
+      refreshBadge();
+      return Promise.all([reloadAll(), loadCands()]).catch(function (e) { showPageMsg('已送出，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
+    }, function (e) { setLog(errText(e), true); })
+      .then(function () { busy = false; $('qGo').disabled = false; });
+  }
+
+  // ====== 畫面：店長的「我的回報」 ======
+  function renderMine() {
+    $('mBody').innerHTML = rows.map(function (r) {
+      return '<tr><td>' + esc(stamp(r.created_at)) + '</td><td><span class="tag type">' + esc(kindLabel(r.kind)) + '</span></td><td>' + esc(r.employee_label || r.employee_id) + '</td><td>' + daysCell(r) + '</td><td>' + stTag(r.status) + '</td>' +
+        '<td class="txt">' + esc(replyText(r) || '—') + '</td><td>' + (r.status === '待處理' ? '<button class="btn sm danger" data-wd="' + esc(r.id) + '" type="button">撤回</button>' : '') + '</td></tr>';
+    }).join('');
+    $('mEmpty').hidden = rows.length > 0;
+  }
+
+  // ====== 畫面：客服部與主管的待考回報清單 ======
+  function fillBoardStores() {
+    var sel = $('fStore'), keep = sel.value, seen = {}, codes = [];
+    rows.forEach(function (r) { if (!seen[r.store_code]) { seen[r.store_code] = 1; codes.push(r.store_code); } });
+    codes.sort(function (a, b) { return RequestsApi.storeRank(a) - RequestsApi.storeRank(b) || cmp(a, b); });
+    sel.innerHTML = '<option value="">全部門市</option>' + codes.map(function (c) {
+      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>';
+    }).join('');
+    sel.value = seen[keep] ? keep : '';
+    $('fStoreWrap').hidden = isMgr() || codes.length < 2;
+  }
+  function renderBoard() {
+    fillBoardStores();
+    var fs = $('fStore').value, ft = $('fStatus').value, cs = isCS();
+    var waiting = rows.filter(function (r) { return r.status === '待處理'; }).length;
+    $('csBadge').textContent = waiting; $('csBadge').hidden = !waiting;
+    $('thOps').hidden = !cs;
+    var list = rows.filter(function (r) { return (!fs || r.store_code === fs) && (!ft || r.status === ft); });
+    $('cBody').innerHTML = list.map(function (r) {
+      var ops = '';
+      if (cs && r.status === '待處理') ops = '<button class="btn sm" data-set="' + esc(r.id) + '" type="button">排定日期</button> <button class="btn sm danger" data-back="' + esc(r.id) + '" type="button">退回</button>';
+      else if (cs && r.status === '已排定') ops = '<a class="btn sm primary" href="assess.html">開始考核</a> <button class="btn sm" data-set="' + esc(r.id) + '" type="button">重新排定</button> <button class="btn sm danger" data-back="' + esc(r.id) + '" type="button">退回</button>';
+      var who = esc(r.requested_role || '') + (cs && r.requested_by ? '<div class="sub">' + esc(r.requested_by) + '</div>' : '');
+      var reply = r.status === '待處理' ? '' : replyText(r);
+      return '<tr><td>' + esc(stamp(r.created_at)) + '</td><td>' + esc(sName(r.store_code)) + '<div class="sub">' + who + '</div></td><td><span class="tag type">' + esc(kindLabel(r.kind)) + '</span></td>' +
+        '<td><b>' + esc(r.employee_label || r.employee_id) + '</b><div style="margin-top:4px">' + videoTag(r) + '</div></td><td>' + daysCell(r) + '</td><td class="txt">' + esc(r.note || '—') + '</td>' +
+        '<td>' + stTag(r.status) + (reply ? '<div class="sub txt">' + esc(reply) + '</div>' : '') + '</td>' + (cs ? '<td>' + ops + '</td>' : '<td hidden></td>') + '</tr>';
+    }).join('');
+    $('cEmpty').textContent = rows.length ? '沒有符合條件的回報' : '目前沒有回報';
+    $('cEmpty').hidden = list.length > 0;
+    $('cCount').textContent = '共 ' + list.length + ' 筆';
+  }
+  function rowById(id) { return rows.filter(function (r) { return r.id === id; })[0]; }
+
+  // ====== 畫面：寄信紀錄與信件預覽（客服部） ======
+  function renderMail() {
+    $('mailBody').innerHTML = mail.map(function (m) {
+      var st = MAIL_STATUS[m.status] || ['done', m.status || '—'];
+      return '<tr><td>' + esc(stamp(m.created_at)) + '</td><td><span class="tag ' + st[0] + '">' + esc(st[1]) + '</span></td><td>' + esc((m.to_emails || []).length) + ' 人</td>' +
+        '<td class="txt">' + esc(m.subject || '—') + '</td><td class="txt">' + esc(m.last_error || '—') + '</td></tr>';
+    }).join('');
+    $('mailEmpty').hidden = mail.length > 0;
+    $('mailCap').hidden = mail.length < 100;
+    // 信件預覽：主旨與欄位照 supabase/exam_request_schema.sql 的 exam_req_mail_content（新回報、排定、退回）；實際內容以寄出的信為準
+    var link = new URL('requests.html', location.href).href.split('#')[0];
+    function cut(s) { var a = Array.from(String(s || '')); return a.length > 80 ? a.slice(0, 80).join('') + '…' : a.join(''); }
+    function trow(k, v) { return '<br><span class="sub">' + esc(k) + '</span>　' + esc(v); }
+    function mailBox(el, to, r, subject, intro, extraRows, extra) {
+      el.hidden = !r;
+      if (!r) return;
+      el.innerHTML = '<b class="h">寄給：' + esc(to) + '　｜　主旨：' + esc(subject(r)) + '</b>' + esc(intro) +
+        trow('門市', sName(r.store_code)) + trow('人員', r.employee_label || r.employee_id) + trow('情況', r.kind) + extraRows(r) + (extra || '') +
+        '<br><u>' + esc(link) + '</u>（登入系統查看）';
+    }
+    function subj(tag) { return function (r) { return '【' + tag + '】' + sName(r.store_code) + ' ' + (r.employee_label || r.employee_id) + '（' + r.kind + '）'; }; }
+    function datesOf(r) { return (r.desired_dates || []).join('、'); }
+    var last = rows[0];
+    var sch = rows.filter(function (r) { return r.status === '已排定'; })[0];
+    var ret = rows.filter(function (r) { return r.status === '已取消' && r.cancel_by === '客服部'; })[0];
+    mailBox($('mailNew'), '所有客服部帳號', last, subj('待考回報'), '有一筆新的待考回報，請到系統處理。', function (r) {
+      return trow('希望考核日期', datesOf(r)) + (r.kind === '新人' ? trow('影片', '已看完線上回覆實戰全攻略影片') : '') + (String(r.note || '').trim() ? trow('備註', cut(r.note)) : '');
+    });
+    mailBox($('mailSet'), '回報人', sch, subj('考核已排定'), '客服部已排定考核時間。', function (r) {
+      return trow('排定時間', C.formatTaipei(r.scheduled_at)) + (String(r.reply_note || '').trim() ? trow('備註', cut(r.reply_note)) : '');
+    }, '<br><b>考核在線上進行，請同仁準時上線。</b>');
+    mailBox($('mailRet'), '回報人', ret, subj('待考回報已退回'), '客服部已退回這筆待考回報。', function (r) {
+      return trow('希望考核日期', datesOf(r)) + trow('退回原因', cut(r.cancel_reason));
+    });
+  }
+
+  // ====== 對話框與寫入動作（寫法同抽查頁） ======
+  function makeDlg(html) {
+    var d = document.createElement('dialog'); d.innerHTML = '<form class="dlg" novalidate>' + html + '</form>';
+    document.body.appendChild(d); dyn.push(d);
+    function rm() { if (d.open) d.close(); d.remove(); dyn = dyn.filter(function (x) { return x !== d; }); }
+    d.addEventListener('cancel', function () { setTimeout(rm, 0); });
+    d.querySelector('[data-no]').addEventListener('click', rm);
+    d.showModal();
+    return { el: d, rm: rm, q: function (sel) { return d.querySelector(sel); } };
+  }
+  // 送出一個寫入：成功才關對話框並重讀；失敗把函式回傳的訊息顯示在對話框內
+  function submitAct(D, btn, errSel, job, okMsg) {
+    var err = D.q(errSel);
+    if (busy) return;
+    busy = true; btn.disabled = true; err.hidden = true;
+    job().then(function () {
+      D.rm(); toast(okMsg); refreshBadge();
+      var jobs = [reloadAll()];
+      if (canReport()) jobs.push(loadCands());
+      return Promise.all(jobs).catch(function (e) { showPageMsg('已儲存，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
+    }, function (e) { err.textContent = errText(e); err.hidden = false; })
+      .then(function () { busy = false; btn.disabled = false; });
+  }
+  function who(r) { return esc(r.employee_label || r.employee_id) + '（' + esc(kindLabel(r.kind)) + '，' + esc(sName(r.store_code)) + '）'; }
+
+  function actWithdraw(r) {
+    if (!isMgr() || r.status !== '待處理') return;
+    var D = makeDlg('<h2>撤回回報</h2><p>' + who(r) + '。撤回後客服部就不會處理這筆；需要時可以重新回報。</p>' +
+      '<div class="msg err" id="wErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn primary" type="submit" id="wOk">確認撤回</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      submitAct(D, D.q('#wOk'), '#wErr', function () { return RequestsApi.withdraw(r.id); }, '已撤回。');
+    });
+  }
+  function actSchedule(r) {
+    if (!isCS() || (r.status !== '待處理' && r.status !== '已排定')) return;
+    var hope = (r.desired_dates || []).map(function (x) { return String(x).slice(5); }).join('、') || '未填';
+    var D = makeDlg('<h2>' + (r.status === '已排定' ? '重新排定考核' : '排定考核') + '</h2><p>' + who(r) + '<br>店長希望的日期：' + esc(hope) + '</p>' +
+      '<label class="field">考核日期與時間（台北時間）<input class="ctrl" type="datetime-local" id="sAt"></label>' +
+      '<label class="field">回覆備註（選填，會寄給回報人）<textarea class="ctrl" id="sNote"></textarea></label>' +
+      '<div class="msg err" id="sErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="sOk">確認排定</button></div>');
+    if (r.status === '已排定' && r.scheduled_at) D.q('#sAt').value = C.isoToTaipeiLocal(r.scheduled_at);
+    D.q('#sNote').value = r.status === '已排定' ? (r.reply_note || '') : '';
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var v = D.q('#sAt').value, note = D.q('#sNote').value.trim(), err = D.q('#sErr');
+      var m = C.scheduleAtError(v, Date.now());
+      if (m) { err.textContent = m; err.hidden = false; return; }
+      var iso = C.taipeiLocalToIso(v);
+      submitAct(D, D.q('#sOk'), '#sErr', function () { return RequestsApi.schedule(r.id, iso, note); }, '已排定，會通知回報人。');
+    });
+  }
+  function actReturn(r) {
+    if (!isCS() || (r.status !== '待處理' && r.status !== '已排定')) return;
+    var D = makeDlg('<h2>退回回報</h2><p>' + who(r) + '。退回後會通知回報人，原因會顯示給對方。</p>' +
+      '<label class="field">退回原因（必填）<textarea class="ctrl" id="rReason"></textarea></label>' +
+      '<div class="msg err" id="rErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn primary" type="submit" id="rOk">確認退回</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var txt = D.q('#rReason').value.trim(), err = D.q('#rErr');
+      if (!txt) { err.textContent = '請填寫退回原因。'; err.hidden = false; return; }
+      submitAct(D, D.q('#rOk'), '#rErr', function () { return RequestsApi.returnRequest(r.id, txt); }, '已退回，會通知回報人。');
+    });
+  }
+  function doMailSync() {
+    if (!isCS() || busy) return;
+    var btn = $('mailSync'), err = $('mailMsg');
+    busy = true; btn.disabled = true; err.hidden = true;
+    RequestsApi.mailSync().then(function () { return RequestsApi.loadMail(); }).then(function (list) {
+      mail = list; renderMail(); toast('寄信狀態已更新。');
+    }, function (e) { err.textContent = errText(e); err.hidden = false; })
+      .then(function () { busy = false; btn.disabled = false; });
+  }
+
+  // ====== 載入 ======
+  function renderAll() {
+    applyRole();
+    if (isMgr()) { renderNotices(); renderMine(); }
+    else { renderBoard(); if (isCS()) renderMail(); }
+  }
+  function reloadAll() {
+    var jobs = [RequestsApi.loadRequests(isCS())];
+    if (isCS()) jobs.push(RequestsApi.loadMail());
+    return Promise.all(jobs).then(function (r) {
+      rows = r[0]; if (r[1]) mail = r[1];
+      renderAll();
+    });
+  }
+
+  function applyRole() {
+    var lab = ROLE_LABEL[me.role] + (isMgr() ? '・' + sName(me.store_code) : '');
+    $('whoBadge').textContent = lab;
+    $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
+    $('formWrap').hidden = !canReport();
+    $('mineWrap').hidden = !isMgr();
+    $('boardWrap').hidden = isMgr();
+    $('mailWrap').hidden = !isCS();
+    $('roleNote').textContent = isCS() ? '客服部可代為回報、排定考核日期與時間、退回回報（原因必填），並查看寄信紀錄。'
+      : isMgr() ? '只顯示自己門市的回報；待處理的回報可以撤回，客服部排定或退回時會在這裡通知你。'
+      : '總公司主管只能查看，不能回報、排定或退回。';
+  }
+
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  $('reqForm').addEventListener('submit', submitForm);
+  $('qKind').addEventListener('change', function () { syncVideoRow(); loadCands(); });
+  $('qStore').addEventListener('change', fillCands);
+  $('qAddDay').addEventListener('click', function () { addDay(''); });
+  $('qDays').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || !b.dataset.rmday) return;
+    if (dayInputs().length > 1) { b.parentNode.remove(); $('qAddDay').hidden = false; }
+  });
+  $('fStore').addEventListener('change', renderBoard);
+  $('fStatus').addEventListener('change', renderBoard);
+  $('mailSync').addEventListener('click', doMailSync);
+  $('mBody').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || !b.dataset.wd) return;
+    var r = rowById(b.dataset.wd); if (r) actWithdraw(r);
+  });
+  $('cBody').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var r;
+    if (b.dataset.set) { r = rowById(b.dataset.set); if (r) actSchedule(r); }
+    else if (b.dataset.back) { r = rowById(b.dataset.back); if (r) actReturn(r); }
+  });
+  RequestsApi.onSignedOut(function () { goLogin(''); });
+
+  // ====== 啟動：登入、網域、開通三道檢查 ======
+  RequestsApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    var email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      RequestsApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    $('whoEmail').textContent = email;
+    return RequestsApi.loadMe(email).then(function (row) {
+      if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      me = row;
+      return RequestsApi.loadStores().then(function (st) {
+        storeName = {};
+        st.forEach(function (s) { storeName[s.code] = s.name; });
+        resetDays(); syncVideoRow();
+        return reloadAll();
+      }).then(function () {
+        // 店長：先記下「還沒看過的客服部回覆」顯示在頁面上，再通知資料庫標記為已看
+        if (isMgr()) {
+          notices = rows.filter(function (r) { return r.mgr_seen === false && (r.status === '已排定' || r.status === '已取消' || r.status === '已完成'); });
+          renderNotices();
+          RequestsApi.markSeen().then(refreshBadge, function () {});
+        }
+        $('loading').hidden = true; $('app').hidden = false;
+        return loadCands();
+      });
+    });
+  }).catch(function (e) {
+    showBlocked(errText(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+<script src="js/appbar.js"></script>
+</body>
+</html>

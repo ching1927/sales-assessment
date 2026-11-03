@@ -134,6 +134,13 @@
     candidates: function () {
       return wrap(sb.rpc('assess_candidates')).then(function (r) { return r.data || []; });
     },
+    // 已有未結案回報（待處理、已排定）的人：選考生清單用來標記「已回報待考」；失敗由呼叫端略過，不擋考核
+    openRequests: function () {
+      return pageAll(function (from, to) {
+        return sb.from('exam_requests').select('employee_id,kind,status,scheduled_at')
+          .in('status', ['待處理', '已排定']).order('created_at', { ascending: false }).order('id').range(from, to);
+      });
+    },
     categories: function () {
       return wrap(sb.rpc('assess_categories')).then(function (r) { return r.data || []; });
     },

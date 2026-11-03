@@ -98,6 +98,14 @@
 - 下次建議考題預告｜`assess.html`｜送出成功的結果頁多一區「下次建議考題」（最新弱項 3 題，僅預覽）；沒有弱項或載入失敗就不顯示
 - 選題函式測試｜`js/suggest.js`、`tests/suggest.test.js`｜`node tests/suggest.test.js` 印出「通過 84 項」且結束碼 0（涵蓋無弱項、1／2 個弱項、題數 2／3／4、標記不足補隨機、考過不選、drawn 優先、全部考過才 repeated、swap、同分類最多一題、語氣與文字不進弱項）
 
+## 待考回報（網頁已寫好，尚未連真實資料庫；需先執行 supabase/exam_request_schema.sql 並設定寄信，規格見 supabase/README_exam_request.md）
+
+- 待考回報頁｜`requests.html`、`js/requests-api.js`｜所有已開通角色可進；店長看到回報表單（情況、人員依情況載入、希望日期 1～3 個不早於今天、新人才顯示影片勾選整句紅字、備註 500 字）、「我的回報」清單、開頁時顯示未看過的客服部回覆（已排定／退回）並呼叫 exam_req_mark_seen、待處理可撤回；客服部看到待考回報清單（門市與狀態篩選、排定日期時間、重新排定、退回原因必填、已排定者「開始考核」連到 assess.html）、寄信紀錄（「更新寄信狀態」）、信件預覽，並可代為回報（表單多一個門市選擇）；總公司主管唯讀（沒有表單與任何按鈕）；寫入全走 RPC（exam_req_create／withdraw／schedule／return／mark_seen、mail_outbox_sync），不直接寫資料表
+- 待考回報前端驗證與純函式｜`js/requests-core.js`、`tests/requests-core.test.js`｜`node tests/requests-core.test.js` 印出「通過 94 項」且結束碼 0（日期 1～3 個／不重複／不早於台北今天、新人影片規則、備註 500 字、台北時間 datetime-local 與 ISO 互轉、排定時間不早於現在往前 1 小時、已回報標記與排序）
+- 導覽「待考回報」｜`roster.html`、`assess.html`、`reports.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`、`requests.html`｜所有已開通角色看得到，在「考核後台」之後、「抽查」之前
+- 導覽紅點｜`js/appbar.js`、`app.css`｜登入後呼叫 exam_req_badge()，大於 0 時在「待考回報」分頁文字旁顯示紅色數字（超過 99 顯示 99+）；只從 localStorage 讀目前 session 的 access_token（sb-專案代號-auth-token），建不存 session、不換 token、不監聽登入的 client 以 Authorization 標頭呼叫，絕不 refresh、不寫 storage；讀不到 token、JSON 壞掉、token 過期或任何失敗都安靜忽略；登入頁不載入；requests.html 做完動作會呼叫 window.AppBadge.refresh() 重抓
+- 選考生標記「已回報待考」｜`assess.html`、`js/assess-api.js`｜進行考核步驟 1 的清單，已有待處理／已排定回報的人排最前面並顯示黃底「已回報待考」（已排定者附排定時間）；讀取 exam_requests 失敗就照原樣，不擋考核
+
 ## 階段 1 資料庫設計稿（尚未執行）
 
 - 三張表與權限規則｜`supabase/roster_schema.sql`｜待老闆同意後在 Supabase 執行；驗證步驟見 `supabase/README_roster.md`
