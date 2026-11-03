@@ -808,6 +808,13 @@ dialog::backdrop{background:var(--scrim)}
         renderAll();
         showTab(location.hash.slice(1), false);
         $('loading').hidden = true; $('app').hidden = false;
+        // 從人員名冊點姓名過來（?emp=員編）：直接打開那位同仁的歷史成績
+        var want = new URLSearchParams(location.search).get('emp');
+        if (want) {
+          showTab('history', false);
+          if (Object.prototype.hasOwnProperty.call(peopleById, want)) openStu(want);
+          else showPageMsg('這位同仁目前沒有考核資料（未納入考核，或還沒有任何成績單）。');
+        }
       });
     });
   }).catch(function (e) {

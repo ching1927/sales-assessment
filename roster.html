@@ -43,6 +43,8 @@ tbody tr:last-child td{border-bottom:none}
 tr.off td{color:var(--ink-3)}
 .mono{font-family:var(--mono)}
 .sub2{color:var(--ink-3);font-size:12px;margin-left:6px}
+.namelink{color:inherit;font-weight:600;text-decoration:none}
+.namelink:hover{color:var(--accent-deep);text-decoration:underline}
 .tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:600}
 .tag.new{background:var(--info-soft);color:var(--accent-deep)}
 .tag.reg{background:var(--track);color:var(--ink-2)}
@@ -228,8 +230,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   function nameCell(p) {
     var nick = (p.nickname || '').trim(), full = (p.full_name || '').trim();
-    if (nick && full) return esc(nick) + '<span class="sub2">' + esc(full) + '</span>';
-    return esc(nick || full);
+    var inner = nick && full ? esc(nick) + '<span class="sub2">' + esc(full) + '</span>' : esc(nick || full || p.id);
+    // 點姓名／暱稱直接到考核後台看這位同仁的歷史成績（後台依角色過濾：店長只看得到自己門市）
+    return '<a class="namelink" href="backoffice.html?emp=' + encodeURIComponent(p.id) + '#history" title="查看考核歷史">' + inner + '</a>';
   }
 
   function fillSelect(sel, items, firstAll) {
