@@ -59,6 +59,7 @@
 ### 考核後台（正式版；SQL 已在 Supabase 執行，161 項驗證通過；網頁尚未用真實登入實測）
 
 - 考核後台頁｜`backoffice.html`、`js/backoffice-api.js`｜所有已開通角色可進；三個分頁「人員歷史」「弱項分析」「改善單」，網址 #history、#insights、#tickets；資料皆讀資料庫（不查機密表）；改善單動作呼叫 improve_update_plan／improve_close／improve_cancel（客服部）、improve_mark_coached（店長自己門市或客服部）；主管只讀；已取消單只有客服部看得到；主管與店長視角的改善單紀錄不顯示他人信箱（頁首仍顯示自己的信箱）
+- 歷次成績單下載 PDF｜`backoffice.html`、`js/report-pdf.js`、`js/report-pdf-core.js`、`js/backoffice-api.js`、`tests/report-pdf-core.test.js`｜考核後台打開考生 →「歷次成績單」每列最右「下載 PDF」，產生 A4 兩頁（題組多自動三頁）成績單，檔名 成績單_姓名_日期.pdf；版面同 `樣品/成績單PDF樣品.html`（總分判定、雷達圖與面向得分率、與上一次比較、每題得分、全部歷次走勢）；加考題標「加考」不計入；客服部 PDF 顯示題名，主管與店長只顯示題組編號與分類（前端完全不查 assessment_item_secrets，資料庫也只放行客服部）；html2canvas 1.4.1／jsPDF 2.5.1 第一次按下載才動態載入；驗證：`node tests/report-pdf-core.test.js` 印出「通過 175 項」且結束碼 0
 - 導覽「考核後台」｜`roster.html`、`assess.html`、`reports.html`、`accounts.html`｜所有已開通角色看得到；順序：人員名冊、進行考核（客服部）、成績單、考核後台、題庫管理（客服部）、帳號管理（客服部）
 - 自動開單與自動取消｜資料庫觸發器（backoffice_schema.sql）｜成績單送出且判定需複訓或不及格時自動開單（期限 14 天）；成績單作廢時 open／coached 的單自動取消；**上線後要用真實流程送一張不及格成績單驗證**
 

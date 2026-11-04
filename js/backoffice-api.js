@@ -118,6 +118,38 @@
     },
     cancelTicket: function (ticketId, reason) {
       return wrap(sb.rpc('improve_cancel', { p_ticket_id: ticketId, p_reason: reason }));
+    },
+
+    // ---- 成績單 PDF 用（只讀；權限由資料庫 RLS 把關）----
+    // 某位考生的全部考核列（RLS 已過濾：客服部含草稿與作廢，主管與店長只有已送出；前端再用 ReportPdfCore 排除未送出、作廢）
+    loadEmployeeAssessments: function (employeeId) {
+      return pageAll(function (from, to) {
+        return sb.from('assessments')
+          .select('id,employee_id,store_code,status,tenure,total_score,verdict,pass_line,hire_date_snapshot,created_at,submitted_at,voided_at')
+          .eq('employee_id', employeeId).order('created_at').order('id').range(from, to);
+      });
+    },
+    // 指定考核的題組（等級、得分、分類、題號、是否加考）；回傳 { 考核id: [題組] }。
+    // withTitle 只有客服部才傳 true：才會去讀 assessment_item_secrets 取題名。其他角色絕不查機密表（資料庫也只放行客服部）。
+    loadReportItems: function (assessmentIds, withTitle) {
+      if (!assessmentIds.length) return Promise.resolve({});
+      return wrap(sb.from('assessment_items').select('id,assessment_id,seq,category,code,levels,item_score,is_extra')
+        .in('assessment_id', assessmentIds).order('assessment_id').order('seq')).then(function (r) {
+        var rows = r.data || [], ids = rows.map(function (i) { return i.id; });
+        var titles = (withTitle && ids.length)
+          ? wrap(sb.from('assessment_item_secrets').select('item_id,title').in('item_id', ids)).then(function (t) { return t.data || []; })
+          : Promise.resolve([]);
+        return titles.then(function (ts) {
+          var tmap = {}, out = {};
+          ts.forEach(function (t) { tmap[t.item_id] = t.title || ''; });
+          rows.forEach(function (i) {
+            var it = { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {}, item_score: i.item_score, isExtra: !!i.is_extra };
+            if (withTitle) it.title = tmap[i.id] || '';
+            (out[i.assessment_id] = out[i.assessment_id] || []).push(it);
+          });
+          return out;
+        });
+      });
     }
   };
 })();

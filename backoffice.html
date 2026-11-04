@@ -499,10 +499,10 @@ dialog::backdrop{background:var(--scrim)}
     if (rates.every(function (r) { return r.pct === null; })) h += '<h3>七面向平均得分率</h3><p>目前沒有可分析的面向資料。</p>'; else
     h += '<h3>七面向平均得分率</h3><div class="chartwrap radar">' + Radar.svg(rates, p.name + ' 七面向平均得分率：' + ratesLabel(rates)) + '</div>' +
       '<details class="vals"><summary>展開數值表</summary><div class="scroll">' + barValsTable(rates) + '</div></details>';
-    h += '<h3>歷次成績單</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="num">題組數</th><th class="num">總分</th><th>判定</th><th>考核時身分</th><th>最弱面向</th></tr></thead><tbody>' +
+    h += '<h3>歷次成績單</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="num">題組數</th><th class="num">總分</th><th>判定</th><th>考核時身分</th><th>最弱面向</th><th>PDF</th></tr></thead><tbody>' +
       rs.slice().reverse().map(function (r) {
-        return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + esc(r.items == null ? '—' : r.items) + '</td><td class="num">' + (r.total == null ? '—' : esc(fmt(r.total))) + '</td><td>' + vtag(r.verdict) + '</td><td>' + esc(r.tenure || '—') + '</td><td>' + esc(r.weakest.length ? r.weakest.join('、') : '—') + '</td></tr>';
-      }).join('') + '</tbody></table></div>';
+        return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + esc(r.items == null ? '—' : r.items) + '</td><td class="num">' + (r.total == null ? '—' : esc(fmt(r.total))) + '</td><td>' + vtag(r.verdict) + '</td><td>' + esc(r.tenure || '—') + '</td><td>' + esc(r.weakest.length ? r.weakest.join('、') : '—') + '</td><td><button type="button" class="btn sm primary" data-pdf="' + esc(r.id) + '">下載 PDF</button></td></tr>';
+      }).join('') + '</tbody></table></div><div class="msg err" id="pdfMsg" role="alert" hidden></div>';
     return h + stuTickets(tk) + '<div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
   }
   function stuTickets(tk) {
@@ -774,6 +774,14 @@ dialog::backdrop{background:var(--scrim)}
     var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk);
   });
   $('dlgA').addEventListener('close', function () { openSid = null; $('dlgA').innerHTML = ''; });
+  // 歷次成績單「下載 PDF」：題名只有客服部查（withTitle），主管與店長的 PDF 不含題名；真正的權限在資料庫
+  $('dlgA').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pdf]'); if (!b) return;
+    var p = peopleById[openSid], r = repById[b.dataset.pdf];
+    if (!p || !r) return;
+    if (!window.ReportPdf) { var m = $('pdfMsg'); m.textContent = 'PDF 功能沒有載入，請重新整理頁面後再試。'; m.hidden = false; return; }
+    window.ReportPdf.run({ btn: b, msgEl: $('pdfMsg'), person: { name: p.name, id: p.id, hire: p.hire }, assessmentId: r.id, withTitle: isCS(), storeName: sName });
+  });
   $('dlgB').addEventListener('close', function () { openTid = null; $('dlgB').innerHTML = ''; });
   $('dlgB').addEventListener('click', function (e) {
     if (e.target.closest('[data-closeB]')) { $('dlgB').close(); return; }
@@ -825,5 +833,7 @@ dialog::backdrop{background:var(--scrim)}
 })();
 </script>
 <script src="js/appbar.js"></script>
+<script src="js/report-pdf-core.js"></script>
+<script src="js/report-pdf.js"></script>
 </body>
 </html>
