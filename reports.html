@@ -438,7 +438,11 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
     var b = e.target.closest('[data-open]');
     if (b) openDetail(b.dataset.open);
   });
+  // 點視窗外的空白處也能關閉（按下與放開都要在空白處，避免在內容裡拖曳選字時誤關）
+  var downOnBackdrop = false;
+  dlg.addEventListener('mousedown', function (e) { downOnBackdrop = (e.target === dlg); });
   dlg.addEventListener('click', function (e) {
+    if (e.target === dlg && downOnBackdrop) { downOnBackdrop = false; closeDetail(); return; }
     if (e.target.closest('[data-close]')) { closeDetail(); return; }
     var z = e.target.closest('[data-zoom]');
     if (z) { openLightbox(z.dataset.zoom, z.dataset.alt || ''); return; }
