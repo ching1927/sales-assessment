@@ -456,9 +456,9 @@ begin
                           || ',auth=' || bool_and(has_table_privilege('authenticated', c.oid, 'select'))::text || ' x' || count(*)
                      from pg_class c where c.relnamespace = 'public'::regnamespace
                       and c.relname in ('employees_with_tenure','assessment_summaries','analytics_dim_rates')$q$));
-  perform pg_temp.vr_eq('1 結構', 'assessment_summaries 欄位清單沒變（19 欄、最後一欄 item_count）', '19/item_count',
+  perform pg_temp.vr_eq('1 結構', 'assessment_summaries 原 19 欄不變（第 19 欄是 item_count；之後的健檢追加欄位不算）', '19/item_count',
     pg_temp.vr_q1($q$select count(*)::text || '/' || (array_agg(column_name::text order by ordinal_position))[count(*)]
-                     from information_schema.columns where table_schema='public' and table_name='assessment_summaries'$q$));
+                     from information_schema.columns where table_schema='public' and table_name='assessment_summaries' and ordinal_position <= 19$q$));
   perform pg_temp.vr_eq('1 結構', 'analytics_dim_rates 欄位清單沒變（8 欄）', '8',
     pg_temp.vr_q1($q$select count(*)::text from information_schema.columns where table_schema='public' and table_name='analytics_dim_rates'$q$));
   perform pg_temp.vr_eq('1 結構', 'app_settings 有 exam_core_categories 與遷移記號', 'true/true',
