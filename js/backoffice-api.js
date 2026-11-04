@@ -86,7 +86,7 @@
     loadSummaries: function () {
       return pageAll(function (from, to) {
         return sb.from('assessment_summaries')
-          .select('id,employee_id,employee_label,store_code,store_name,created_at,submitted_at,tenure,total_score,verdict,weakest_dims,item_count')
+          .select('id,employee_id,employee_label,store_code,store_name,created_at,submitted_at,tenure,total_score,verdict,weakest_dims,item_count,kind,checkup_year,checkup_quarter')
           .eq('status', 'submitted').order('submitted_at', { ascending: false }).order('id').range(from, to);
       });
     },
@@ -122,12 +122,24 @@
 
     // ---- 成績單 PDF 用（只讀；權限由資料庫 RLS 把關）----
     // 某位考生的全部考核列（RLS 已過濾：客服部含草稿與作廢，主管與店長只有已送出；前端再用 ReportPdfCore 排除未送出、作廢）
-    loadEmployeeAssessments: function (employeeId) {
+    // kind 預設 'exam'（一般考核：成績單 PDF 的「上一次」「走勢」不混入健檢）；建議單傳 'checkup'
+    loadEmployeeAssessments: function (employeeId, kind) {
       return pageAll(function (from, to) {
         return sb.from('assessments')
-          .select('id,employee_id,store_code,status,tenure,total_score,verdict,pass_line,hire_date_snapshot,created_at,submitted_at,voided_at')
-          .eq('employee_id', employeeId).order('created_at').order('id').range(from, to);
+          .select('id,employee_id,store_code,status,tenure,total_score,verdict,pass_line,hire_date_snapshot,created_at,submitted_at,voided_at,kind,checkup_year,checkup_quarter')
+          .eq('employee_id', employeeId).eq('kind', kind || 'exam').order('created_at').order('id').range(from, to);
       });
+    },
+    // 建議單用（只讀）：單張考核列（含 kind、健檢年度與季次）；RLS 擋住或不存在都回 null
+    loadAssessmentById: function (id) {
+      return wrap(sb.from('assessments')
+        .select('id,employee_id,store_code,status,tenure,total_score,verdict,pass_line,hire_date_snapshot,created_at,submitted_at,voided_at,kind,checkup_year,checkup_quarter')
+        .eq('id', id).maybeSingle()).then(function (r) { return r.data || null; });
+    },
+    // 建議單用（只讀）：單一員工基本資料（店長只讀得到自己門市）；讀不到回 null
+    loadEmployee: function (id) {
+      return wrap(sb.from('employees').select('id,nickname,full_name,store_code,hire_date').eq('id', id).maybeSingle())
+        .then(function (r) { return r.data || null; });
     },
     // 指定考核的題組（等級、得分、分類、題號、是否加考）；回傳 { 考核id: [題組] }。
     // withTitle 只有客服部才傳 true：才會去讀 assessment_item_secrets 取題名。其他角色絕不查機密表（資料庫也只放行客服部）。

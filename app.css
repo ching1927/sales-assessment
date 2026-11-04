@@ -66,3 +66,5 @@ body .formcol{top:calc(var(--ab-h) + var(--sp-4))}
 .ab-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-pill);background:var(--danger);color:#fff;font-size:11px;font-weight:800;line-height:1}
 .ab-badge[hidden]{display:none}
 .tag.req{background:var(--ci-yellow);color:var(--ci-black)}
+/* 年度健檢成績單標示（成績單列表、考核後台歷次成績單） */
+.tag.chk{background:var(--ci-yellow);color:var(--ci-black)}

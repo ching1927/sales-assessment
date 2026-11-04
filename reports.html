@@ -235,11 +235,12 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
         '<td class="mono">' + esc(stamp(dateOf(r))) + '</td>' +
         '<td>' + esc(r.employee_label) + ' <span class="mono" style="font-size:12px;color:var(--ink-3)">' + esc(r.employee_id) + '</span></td>' +
         '<td>' + esc(r.store_name || storeName[r.store_code] || r.store_code) + '</td>' +
-        '<td>' + esc(r.tenure) + (cs && r.tenure_source === '手動指定' ? ' <span class="tag unk">手動指定</span>' : '') + (cs && r.tenure_source === '考核期' ? ' <span class="tag out">考核期</span>' : '') + '</td>' +
+        '<td>' + (r.kind === 'checkup' ? '<span class="tag chk">健檢' + (r.checkup_year ? ' ' + esc(r.checkup_year) + (r.checkup_quarter ? ' Q' + esc(r.checkup_quarter) : '') : '') + '</span>' : esc(r.tenure)) + (cs && r.tenure_source === '手動指定' ? ' <span class="tag unk">手動指定</span>' : '') + (cs && r.tenure_source === '考核期' ? ' <span class="tag out">考核期</span>' : '') + '</td>' +
         '<td class="num">' + (r.total_score == null ? '—' : esc(fmt(r.total_score))) + '</td>' +
         '<td>' + verdictTag(r) + '</td>' +
         '<td>' + statusTag(r) + '</td>' +
-        '<td><button type="button" class="btn sm" data-open="' + esc(r.id) + '">查看</button></td></tr>';
+        '<td><button type="button" class="btn sm" data-open="' + esc(r.id) + '">查看</button>' +
+          (r.kind === 'checkup' && r.status === 'submitted' ? ' <a class="btn sm" href="advice.html?assessment=' + encodeURIComponent(r.id) + '" style="text-decoration:none;display:inline-block">建議單</a>' : '') + '</td></tr>';
     }).join('');
     $('empty').hidden = list.length > 0;
     $('count').textContent = '共 ' + list.length + ' 張';
@@ -346,7 +347,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
     if (r.status === 'draft') h += '<div class="msg warn">這是暫存中的草稿，尚未結算送出。</div>';
     h += '<dl class="kv"><dt>日期</dt><dd>' + esc(stamp(dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
-      '<dt>考核時身分</dt><dd>' + esc(r.tenure) + (r.tenure_source === '手動指定' ? ' <span class="tag unk">手動指定</span>' : '') + (r.tenure_source === '考核期' ? ' <span class="tag out">考核期</span>' : '') + '</dd>' +
+      '<dt>考核時身分</dt><dd>' + esc(r.tenure) + (r.kind === 'checkup' ? ' <span class="tag chk">年度健檢</span>' : '') + (r.tenure_source === '手動指定' ? ' <span class="tag unk">手動指定</span>' : '') + (r.tenure_source === '考核期' ? ' <span class="tag out">考核期</span>' : '') + '</dd>' +
       '<dt>狀態</dt><dd>' + statusTag(r) + '</dd>' +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '尚未結算' : esc(fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
@@ -388,7 +389,7 @@ dialog.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-
     var core = items.filter(function (x) { return !x.isExtra; }), extras = items.filter(function (x) { return !!x.isExtra; });
     var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(stamp(dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
-      '<dt>考生身分</dt><dd>' + esc(r.tenure) + '</dd>' +
+      '<dt>考生身分</dt><dd>' + esc(r.tenure) + (r.kind === 'checkup' ? ' <span class="tag chk">年度健檢</span>' : '') + '</dd>' +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '—' : esc(fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
       '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>' + radarBlock(core, r.weakest_dims);

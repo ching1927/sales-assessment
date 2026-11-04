@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>健檢建議單</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<style>
+body{--surface-solid:#fff}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button:disabled{cursor:not-allowed;opacity:.5}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+.btn{padding:9px 16px;min-height:40px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);
+  font-weight:600;box-shadow:var(--specular),var(--hairline);transition:transform var(--dur-micro) var(--ease);text-decoration:none;display:inline-block;color:var(--ink);cursor:pointer}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:var(--surface-solid);border-color:var(--accent)}
+#logout{color:var(--ink-2)}
+.toolbar{padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.toolbar .grow{flex:1 1 180px;min-width:140px;font-size:14px;color:var(--ink-2)}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.msg.ok{background:var(--success-soft);color:var(--success);font-weight:600}
+.msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
+.msg[hidden]{display:none}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+.prevwrap{position:relative;overflow-x:auto;background:#CBD2DC;padding:20px;border-radius:var(--r-ctrl)}
+.previn{position:relative;width:794px;margin:0 auto}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <header class="ab-bar">
+      <div class="ab-in">
+        <a class="ab-brand" href="roster.html" aria-label="貳輪嶼 MOTOR ISLAND"><img src="img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND"></a>
+        <nav class="ab-tabs" aria-label="主要功能">
+        <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
+        <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
+        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
+        <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab" href="requests.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
+        <a class="ab-tab" href="spotcheck.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>抽查</a>
+        <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
+        <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
+        </nav>
+        <div class="ab-me">
+          <div class="ab-me-txt"><b id="whoEmail"></b><span class="ab-role" id="whoBadge"></span></div>
+          <div class="ab-avatar" id="whoAvatar" aria-hidden="true"></div>
+          <button class="ab-icon" id="logout" type="button" aria-label="登出" title="登出"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+        </div>
+      </div>
+    </header>
+    <section class="ab-hero">
+      <div class="ab-crumb">健檢　/　建議單</div>
+      <h1>健檢建議單</h1>
+    </section>
+
+    <div class="msg err" id="pageMsg" role="alert" hidden></div>
+
+    <section class="toolbar glass" id="toolbar" aria-label="建議單操作" hidden>
+      <span class="grow" id="pgInfo"></span>
+      <a class="btn" id="backLink" href="checkup.html">回健檢名單</a>
+      <button class="btn primary" id="dlBtn" type="button">下載 PDF</button>
+    </section>
+    <div class="msg" id="pdfMsg" role="status" hidden></div>
+
+    <section class="prevwrap" id="prevWrap" aria-label="建議單預覽（A4 一頁）" hidden><div class="previn" id="prevIn"></div></section>
+  </div>
+
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/radar.js"></script>
+<script src="js/backoffice-api.js"></script>
+<script src="js/report-pdf-core.js"></script>
+<script src="js/advice-core.js"></script>
+<script src="js/advice-api.js"></script>
+<script src="js/advice-pdf.js"></script>
+<script>
+(function () {
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+  var $ = function (id) { return document.getElementById(id); };
+  var me = null, model = null, overflow = false;
+
+  function sName(code) { return code || '—'; }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { BackofficeApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text) {
+    $('loading').hidden = true; $('app').hidden = true;
+    $('blockedText').textContent = text; $('blocked').hidden = false;
+  }
+  function showPageMsg(t) { var m = $('pageMsg'); m.textContent = t; m.hidden = !t; }
+
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  BackofficeApi.onSignedOut(function () { goLogin(''); });
+  $('dlBtn').addEventListener('click', function () {
+    if (!model || !window.AdvicePdf) { showPageMsg('PDF 功能沒有載入，請重新整理頁面後再試。'); return; }
+    AdvicePdf.download({ model: model, btn: $('dlBtn'), msgEl: $('pdfMsg'), isOverflow: function () { return overflow; } });
+  });
+
+  function applyRole() {
+    var lab = ROLE_LABEL[me.role] + (me.role === 'store_manager' ? '・' + sName(me.store_code) : '');
+    $('whoBadge').textContent = lab;
+    var cs = me.role === 'cs_admin';
+    $('toAssess').hidden = !cs; $('toAccounts').hidden = !cs; $('toQuestions').hidden = !cs;
+  }
+
+  // ====== 啟動：登入、網域、開通三道檢查，再讀建議單（讀不到一律顯示白話訊息，權限由資料庫把關）======
+  BackofficeApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    var email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      BackofficeApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    $('whoEmail').textContent = email;
+    return BackofficeApi.loadMe(email).then(function (row) {
+      if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      me = row;
+      applyRole();
+      $('loading').hidden = true; $('app').hidden = false;
+      var id = new URLSearchParams(location.search).get('assessment');
+      return AdviceApi.load(id).then(function (r) {
+        model = r.model;
+        $('prevWrap').hidden = false; $('toolbar').hidden = false;
+        return AdvicePdf.render($('prevIn'), model).then(function (lay) {
+          overflow = !!lay.overflow;
+          $('pgInfo').textContent = model.person.name + '　' + model.label + ' 健檢　共 1 頁（A4）' + (overflow ? '　⚠ 內容超出一頁' : '');
+          if (overflow) showPageMsg('建議單內容超出一頁，暫時無法下載 PDF，請聯絡客服部。');
+        });
+      }, function (e) {
+        showPageMsg(AdviceApi.explain(e));
+        $('toolbar').hidden = false; $('dlBtn').hidden = true; $('pgInfo').textContent = '';
+      });
+    });
+  }).catch(function (e) {
+    showBlocked(AdviceApi.explain(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+<script src="js/appbar.js"></script>
+</body>
+</html>
