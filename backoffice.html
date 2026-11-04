@@ -887,7 +887,9 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
         fillStoreSel($('tStore'), storeOpts, true);
         $('iScope').innerHTML = '<option value="">全公司</option>' + heatStores.map(function (c) { return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>'; }).join('');
         renderAll();
-        RecentReports.init({ api: AssessApi, me: me, stores: stores });
+        // 近期考核初始化失敗時只影響該分頁，不拖垮其他分頁
+        try { RecentReports.init({ api: AssessApi, me: me, stores: stores }); }
+        catch (e) { showPageMsg('近期考核載入失敗：' + errText(e) + ' 其他分頁不受影響，請重新整理頁面。'); }
         showTab(location.hash.slice(1), false);
         $('loading').hidden = true; $('app').hidden = false;
         // 從人員名冊點姓名過來（?emp=員編）：直接打開那位同仁的歷史成績
