@@ -101,8 +101,8 @@ dialog::backdrop{background:var(--scrim)}
 .field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
 .field textarea,.field input[type=date],.field select{display:block;width:100%;margin-top:6px;font-weight:400}
 .field textarea{min-height:100px}
-.chk{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);font-size:14px;color:var(--ink)}
-.chk input{width:22px;height:22px;flex:0 0 auto}
+label.chk{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);font-size:14px;color:var(--ink)}
+label.chk input{width:22px;height:22px;flex:0 0 auto}
 .chks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);padding:12px 20px;border-radius:var(--r-ctrl);
   background:var(--ink);color:var(--surface-solid);font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)}
@@ -485,9 +485,27 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--track)" stroke-width="1"/>' +
         '<text x="' + (L - 8) + '" y="' + (Y(v) + 4) + '" font-size="12" text-anchor="end" fill="var(--ink-2)">' + v + '</text>';
     });
+    // 合格線文字：依序試 右上／左上／右下／左下（70 線先試下方），挑不與資料點、分數與判定文字重疊的位置
+    function lineLabelPos(v, below1st) {
+      var tw = 92, y0 = Y(v);
+      var cand = [{ r: 1, b: 0 }, { r: 0, b: 0 }, { r: 1, b: 1 }, { r: 0, b: 1 }];
+      if (below1st) cand = [{ r: 1, b: 1 }, { r: 0, b: 1 }, { r: 1, b: 0 }, { r: 0, b: 0 }];
+      var best = null;
+      cand.forEach(function (c) {
+        var x1 = c.r ? W - R - 2 - tw : L + 4, x2 = x1 + tw;
+        var y1 = c.b ? y0 + 3 : y0 - 17, y2 = y1 + 14, hit = 0;
+        list.forEach(function (r, k) {
+          var px = xs[k], py = Y(r.total);
+          if (x2 > px - 24 && x1 < px + 24 && y2 > py - 34 && y1 < py + 9) hit++;
+        });
+        if (best === null || hit < best.hit) best = { hit: hit, x: c.r ? W - R - 2 : L + 4, anchor: c.r ? 'end' : 'start', y: c.b ? y0 + 14 : y0 - 5 };
+      });
+      return best;
+    }
     [[70, '新人合格線 70'], [85, '正式合格線 85']].forEach(function (l) {
+      var p = lineLabelPos(l[0], l[0] === 70);
       s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(l[0]) + '" y2="' + Y(l[0]) + '" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="6 4"/>' +
-        '<text x="' + (W - R - 2) + '" y="' + (Y(l[0]) + (l[0] === 70 ? 14 : -5)) + '" font-size="11" text-anchor="end" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + l[1] + '</text>';
+        '<text x="' + p.x + '" y="' + p.y + '" font-size="11" text-anchor="' + p.anchor + '" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + l[1] + '</text>';
     });
     if (n > 1) s += '<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" points="' + list.map(function (r, k) { return xs[k].toFixed(1) + ',' + Y(r.total).toFixed(1); }).join(' ') + '"/>';
     var mc = { '優秀': 'var(--success)', '及格': 'var(--accent)', '需複訓': 'var(--warning)', '不及格': 'var(--danger)' };

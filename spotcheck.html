@@ -32,6 +32,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line);vertical-align:middle}
 th{font-size:12px;color:var(--ink-2);font-weight:600;background:var(--glass-bg-strong)}
 tbody tr:last-child td{border-bottom:none}
+th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-shadow:-6px 0 8px -6px rgba(15,23,42,.18)}
 td.wrap{white-space:normal;min-width:200px;overflow-wrap:anywhere}
 tr.void td{color:var(--ink-3)}
 tr.void td.nostrike{text-decoration:none}
@@ -186,7 +187,7 @@ dialog::backdrop{background:var(--scrim)}
     <section class="tablebox glass">
       <div class="scroll" tabindex="0" aria-label="單據清單，可左右捲動">
         <table style="min-width:1000px">
-          <thead><tr><th>日期</th><th>種類</th><th>人員</th><th>門市</th><th>原因</th><th>聊天室</th><th>狀態</th><th>輔導</th><th id="thOps">操作</th></tr></thead>
+          <thead><tr><th>日期</th><th>種類</th><th>人員</th><th>門市</th><th>原因</th><th>聊天室</th><th>狀態</th><th>輔導</th><th id="thOps" class="stick">操作</th></tr></thead>
           <tbody id="tBody"></tbody>
         </table>
       </div>
@@ -417,7 +418,7 @@ dialog::backdrop{background:var(--scrim)}
         '<td class="nostrike">' + chatCell(t) + '</td>' +
         '<td>' + (vd ? '<span class="tag gray">已作廢</span>' : '<span class="tag ok">有效</span>') + '</td>' +
         '<td class="wrap nostrike" style="min-width:150px">' + coach + '</td>' +
-        (showOps ? '<td>' + ops + '</td>' : '') + '</tr>';
+        (showOps ? '<td class="stick">' + ops + '</td>' : '') + '</tr>';
     }).join('');
     $('tEmpty').textContent = tickets.length ? '沒有符合條件的單據' : '目前沒有單據';
     $('tEmpty').hidden = list.length > 0;
