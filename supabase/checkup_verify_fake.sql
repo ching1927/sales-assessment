@@ -592,6 +592,20 @@ begin
     $q$delete from public.checkups$q$, '%permission denied%');
   perform pg_temp.vr_deny('1 授權', 'anon 不能讀 checkups', 'anon', null, $q$select count(*) from public.checkups$q$, '%permission denied%');
   perform pg_temp.vr_deny('1 授權', 'anon 不能讀 checkup_store_quarter', 'anon', null, $q$select count(*) from public.checkup_store_quarter$q$, '%permission denied%');
+  -- 兩張新表：網頁角色（客服部、主管、店長、無角色、anon）直接 select 一律被擋；任何寫入權限也都沒有
+  perform pg_temp.vr_deny('1 授權', '店長直接 select checkups 被擋（scheduled_by／note／assessment_id 不外洩）', 'authenticated', 'vr-sm@2motor.tw', $q$select scheduled_by, note, assessment_id from public.checkups$q$, '%permission denied%');
+  perform pg_temp.vr_deny('1 授權', '主管直接 select checkups 被擋', 'authenticated', 'vr-hq@2motor.tw', $q$select scheduled_by from public.checkups$q$, '%permission denied%');
+  perform pg_temp.vr_deny('1 授權', '客服部直接 select checkups 被擋（一律走函式）', 'authenticated', 'vr-cs@2motor.tw', $q$select count(*) from public.checkups$q$, '%permission denied%');
+  perform pg_temp.vr_deny('1 授權', '店長直接 select checkup_store_quarter 被擋（updated_by 不外洩）', 'authenticated', 'vr-sm@2motor.tw', $q$select store_code, updated_by from public.checkup_store_quarter$q$, '%permission denied%');
+  perform pg_temp.vr_deny('1 授權', '主管直接 select checkup_store_quarter 被擋', 'authenticated', 'vr-hq@2motor.tw', $q$select updated_by from public.checkup_store_quarter$q$, '%permission denied%');
+  perform pg_temp.vr_deny('1 授權', '客服部直接 select checkup_store_quarter 被擋', 'authenticated', 'vr-cs@2motor.tw', $q$select count(*) from public.checkup_store_quarter$q$, '%permission denied%');
+  perform pg_temp.vr_eq('1 授權', '兩張新表：authenticated／anon 的 select、insert、update、delete、truncate、references、trigger 權限全部沒有', 'false',
+    pg_temp.vr_q1($q$select coalesce(bool_or(has_table_privilege(r, t, p)), false)::text
+      from unnest(array['authenticated','anon']) r, unnest(array['public.checkups','public.checkup_store_quarter']) t,
+           unnest(array['select','insert','update','delete','truncate','references','trigger']) p$q$));
+  perform pg_temp.vr_deny('1 授權', '店長不能直接 insert checkup_store_quarter', 'authenticated', 'vr-sm@2motor.tw', $q$insert into public.checkup_store_quarter (store_code, quarter) values ('ZZ-C5', 1)$q$, '%permission denied%');
+  perform pg_temp.vr_deny('1 授權', '主管不能直接 update checkups', 'authenticated', 'vr-hq@2motor.tw', $q$update public.checkups set note = 'x'$q$, '%permission denied%');
+  perform pg_temp.vr_deny('1 授權', 'authenticated 不能呼叫內部函式 checkup_seed_assert', 'authenticated', 'vr-cs@2motor.tw', $q$select public.checkup_seed_assert(array['x'])$q$, '%permission denied%');
   -- check 約束
   perform pg_temp.vr_eq('1 約束', '健檢成績單身分只能是正式（新人被擋）', 'true',
     (pg_temp.vr_owner($q$insert into public.assessments (employee_id, employee_label, store_code, examiner_email, status, tenure, tenure_source, kind, checkup_year, checkup_quarter)
@@ -633,6 +647,12 @@ begin
     pg_temp.vr_q1($q$select string_agg(store_code || quarter, ',' order by store_code) from public.checkup_store_quarter where store_code in ('中和','新莊','樹林','桃園中壢','新竹','花蓮','旗艦','南台中','太平','台南','高雄')$q$));
   perform pg_temp.vr_eq('2 季次種子', '總公司不在季次表內', '0',
     pg_temp.vr_q1($q$select count(*)::text from public.checkup_store_quarter where store_code in ('總公司', 'HQ')$q$));
+  -- 種子前置檢查：門市對不到時整份回復（用同一支 checkup_seed_assert，schema 開頭就是呼叫它）
+  perform pg_temp.vr_eq('2 季次種子', '11 家門市名稱都對得到 stores（schema 能執行的前提）', 'OK',
+    pg_temp.vr_owner($q$select public.checkup_seed_assert(array['中和','新莊','樹林','桃園中壢','新竹','花蓮','旗艦','南台中','太平','台南','高雄'])$q$));
+  perform pg_temp.vr_eq('2 季次種子', '少一家門市（以不存在的名稱代替）：丟中文例外，列出對不到的名稱並提示確認門市資料', 'true',
+    (pg_temp.vr_owner($q$select public.checkup_seed_assert(array['中和','ZZ不存在店甲','高雄','ZZ不存在店乙'])$q$)
+      like 'ERROR: 健檢季次種子：以下門市在 stores 表找不到：ZZ不存在店乙、ZZ不存在店甲。請先到人員名冊／門市資料確認門市名稱後再執行%')::text);
 exception when others then
   perform pg_temp.vr_rec('區段 2','季次種子測試意外中斷','無例外', sqlerrm, false);
 end
@@ -1151,27 +1171,6 @@ begin
     pg_temp.vr_as('authenticated', 'vr-sm@2motor.tw', $q$select count(*)::text from public.assessment_summaries where kind = 'checkup' and status = 'draft'$q$, true));
 exception when others then
   perform pg_temp.vr_rec('區段 9','一般考核回歸測試意外中斷','無例外', sqlerrm, false);
-end
-$$;
-
--- ============================================================
--- 區段 10：資料表 RLS 讀取
--- ============================================================
-do $$
-begin
-  perform set_config('request.jwt.claims', '', true);
-  perform pg_temp.vr_eq('10 RLS', 'checkups：客服部、主管看得到全部假資料；店長只看自己門市；別店店長與無角色看不到', 'true/true/ZZ-C1/0/0',
-    pg_temp.vr_cs($q$select (count(*) >= 4)::text from public.checkups where employee_id like 'MI-97%'$q$) || '/' ||
-    pg_temp.vr_as('authenticated', 'vr-hq@2motor.tw', $q$select (count(*) >= 4)::text from public.checkups where employee_id like 'MI-97%'$q$, true) || '/' ||
-    pg_temp.vr_as('authenticated', 'vr-sm@2motor.tw', $q$select string_agg(distinct store_code, ',') from public.checkups where employee_id like 'MI-97%'$q$, true) || '/' ||
-    pg_temp.vr_as('authenticated', 'vr-sm2@2motor.tw', $q$select count(*)::text from public.checkups where store_code = 'ZZ-C1'$q$, true) || '/' ||
-    pg_temp.vr_as('authenticated', 'vr-none@2motor.tw', $q$select count(*)::text from public.checkups$q$, true));
-  perform pg_temp.vr_eq('10 RLS', 'checkup_store_quarter：主管全看、店長只看自己門市、無角色看不到', 'true/ZZ-C1/0',
-    pg_temp.vr_as('authenticated', 'vr-hq@2motor.tw', $q$select (count(*) >= 15)::text from public.checkup_store_quarter$q$, true) || '/' ||
-    pg_temp.vr_as('authenticated', 'vr-sm@2motor.tw', $q$select string_agg(store_code, ',') from public.checkup_store_quarter$q$, true) || '/' ||
-    pg_temp.vr_as('authenticated', 'vr-none@2motor.tw', $q$select count(*)::text from public.checkup_store_quarter$q$, true));
-exception when others then
-  perform pg_temp.vr_rec('區段 10','RLS 測試意外中斷','無例外', sqlerrm, false);
 end
 $$;
 

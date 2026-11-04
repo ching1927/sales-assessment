@@ -18,11 +18,11 @@
 --         checkup_store_quarter_pkey、checkups_pkey、checkups_employee_year_key（unique(employee_id, year)）、
 --         checkups_assessment_uni（唯一部分索引）、checkups_store_idx、checkups_year_quarter_idx
 --   資料表：checkup_store_quarter（門市季次表）、checkups（排定表）
---   RLS policy：checkup_store_quarter_select、checkups_select
+--   RLS policy（第二層保險；網頁角色另已收回整張表的 select）：checkup_store_quarter_select、checkups_select
 --   對外函式（授權 authenticated，函式內自己驗角色）：
 --     checkup_quarters_list()、checkup_quarter_set(text, int)、checkup_roster(int, int)、
 --     checkup_schedule(text, int, int, timestamptz, text)、checkup_unschedule(uuid)、checkup_begin(text, int, int)
---   內部函式（任何網頁角色都不能直接呼叫）：checkup_first_day(int, int)、checkup_eligible(text, int, int)
+--   內部函式（任何網頁角色都不能直接呼叫）：checkup_first_day(int, int)、checkup_eligible(text, int, int)、checkup_seed_assert(text[])
 --   被改寫的既有物件（簽名、回傳型別都不變；kind='exam' 的行為與改寫前逐行相同，差異說明見 README_checkup.md）：
 --     函式：assess_start(text, text)、assess_submit(uuid)、assess_weak_profile(text)、improve_close(uuid, uuid, text)、
 --           phase1_migrate_period_status()
@@ -181,11 +181,33 @@ create policy checkup_store_quarter_select on public.checkup_store_quarter
     public.roster_my_role() in ('cs_admin', 'hq_viewer')
     or (public.roster_my_role() = 'store_manager' and store_code = public.roster_my_store())
   );
+-- 網頁角色對這張表完全沒有直接權限（含 select）：updated_by 是客服部信箱，只能透過 checkup_quarters_list() 讀（函式為 security definer，非客服部拿到的 updated_by 一律 null）
 revoke all on table public.checkup_store_quarter from public, anon, authenticated;
-grant select on public.checkup_store_quarter to authenticated;
+
+-- 種子前置檢查（內部函式）：列出的門市名稱只要有任何一個在 stores 找不到，就丟中文例外讓整份回復，避免靜默少門市。
+create or replace function public.checkup_seed_assert(p_names text[])
+returns void
+language plpgsql
+stable
+set search_path = public, pg_temp
+as $fn$
+declare
+  v_missing text;
+begin
+  select string_agg(n.name, '、' order by n.name) into v_missing
+  from unnest(p_names) as n(name)
+  where not exists (select 1 from public.stores s where s.code = n.name);
+  if v_missing is not null then
+    raise exception '健檢季次種子：以下門市在 stores 表找不到：%。請先到人員名冊／門市資料確認門市名稱後再執行（整份已回復，什麼都沒改）', v_missing;
+  end if;
+end;
+$fn$;
+
+select public.checkup_seed_assert(array['中和','新莊','樹林','桃園中壢','新竹','花蓮','旗艦','南台中','太平','台南','高雄']);
+revoke execute on function public.checkup_seed_assert(text[]) from public, anon, authenticated;
 
 -- 預設季次種子（老闆指定）：Q1 中和、新莊、樹林；Q2 桃園中壢、新竹、花蓮；Q3 旗艦、南台中、太平；Q4 台南、高雄。
--- 門市代碼＝門市名稱（import_roster 與 js/api.js STORE_ORDER 一致）；stores 沒有的門市不會種入（下面會提醒）。
+-- 門市代碼＝門市名稱（import_roster 與 js/api.js STORE_ORDER 一致）；stores 找不到任何一家就整份回復並列出名稱（不會靜默少門市）。
 -- on conflict do nothing：重跑不會蓋掉客服部之後改過的季次。
 insert into public.checkup_store_quarter (store_code, quarter, updated_by)
 select s.code, v.q, '(系統預設)'
@@ -195,20 +217,6 @@ from (values ('中和', 1), ('新莊', 1), ('樹林', 1),
              ('台南', 4), ('高雄', 4)) as v(code, q)
 join public.stores s on s.code = v.code
 on conflict (store_code) do nothing;
-
-do $$
-declare
-  v_missing text;
-begin
-  select string_agg(v.code, '、') into v_missing
-  from (values ('中和'), ('新莊'), ('樹林'), ('桃園中壢'), ('新竹'), ('花蓮'),
-               ('旗艦'), ('南台中'), ('太平'), ('台南'), ('高雄')) as v(code)
-  where not exists (select 1 from public.checkup_store_quarter q where q.store_code = v.code);
-  if v_missing is not null then
-    raise warning '健檢季次種子：以下門市在 stores 表找不到，沒有種入季次（請確認門市代碼）：%', v_missing;
-  end if;
-end
-$$;
 
 -- ---------- 3. 排定表 ----------
 -- 一列＝這位人員這一年已被排定健檢。狀態由資料推得：
@@ -239,8 +247,9 @@ create policy checkups_select on public.checkups
     public.roster_my_role() in ('cs_admin', 'hq_viewer')
     or (public.roster_my_role() = 'store_manager' and store_code = public.roster_my_store())
   );
+-- 網頁角色對這張表完全沒有直接權限（含 select）：scheduled_by（客服部信箱）、note（內部備註）、assessment_id（草稿成績單 id）
+-- 只能透過 checkup_roster() 讀（函式已處理角色與草稿可見度）。上面的 RLS policy 保留作為第二層保險。
 revoke all on table public.checkups from public, anon, authenticated;
-grant select on public.checkups to authenticated;
 
 -- ---------- 4. 內部小函式 ----------
 -- 該年該季第一天（Q1＝1/1、Q2＝4/1、Q3＝7/1、Q4＝10/1）

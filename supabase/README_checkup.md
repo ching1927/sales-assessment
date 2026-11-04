@@ -20,9 +20,9 @@
 
 | 物件 | 說明 |
 |---|---|
-| `checkup_store_quarter`（表） | 門市季次：`store_code pk`（參照 stores）、`quarter 1..4`、`updated_at`、`updated_by`；種子 11 家；RLS：客服部／主管全讀、店長讀自己門市；只能透過函式寫 |
+| `checkup_store_quarter`（表） | 門市季次：`store_code pk`（參照 stores）、`quarter 1..4`、`updated_at`、`updated_by`；種子 11 家；網頁角色**完全沒有直接權限（含 select）**，讀寫都只能透過函式（RLS policy 留作第二層保險） |
 | `assessments` 新欄位 | `kind`（`'exam'`／`'checkup'`，預設 `'exam'`，既有資料全是 exam）、`checkup_year`、`checkup_quarter`；約束：checkup 必須有年度與季次（季次 1..4）、exam 兩者必須為空、checkup 身分必須「正式」；唯一部分索引：同員工同年度最多一張**未作廢**的 checkup（含草稿） |
-| `checkups`（表，排定表） | `id, employee_id, year, quarter, store_code(快照), scheduled_at, scheduled_by, note, assessment_id(可空), created_at`；`unique(employee_id, year)`；RLS 同上；`assessment_id` 參照 assessments（成績單被放棄/刪除時自動變空） |
+| `checkups`（表，排定表） | `id, employee_id, year, quarter, store_code(快照), scheduled_at, scheduled_by, note, assessment_id(可空), created_at`；`unique(employee_id, year)`；權限同上（網頁角色無直接權限）；`assessment_id` 參照 assessments（成績單被放棄/刪除時自動變空） |
 | 狀態（由資料推得） | 沒有排定列＝**待排定**；有列且成績單未送出（沒有／草稿／已作廢）＝**已排定**；成績單已送出且未作廢＝**已完成** |
 | 6 個對外函式 | `checkup_quarters_list`、`checkup_quarter_set`、`checkup_roster`、`checkup_schedule`、`checkup_unschedule`、`checkup_begin`（第三節） |
 | 2 個內部函式 | `checkup_first_day`、`checkup_eligible`（網頁角色不能呼叫） |
@@ -43,11 +43,11 @@
 
 **順序**
 
-0. 先到 Supabase 備份（Dashboard → Database → Backups），並先跑第五節「遷移前檢查」。前提：考題抽選器 schema、roster、assess、bank、accounts、notes_visible、backoffice、spotcheck、url_patch、weak_suggest、exam_request、**phase1** 都已執行（缺哪個，schema 開頭會用中文訊息擋下並整份回復，也會檢查 `assess_start`／`assess_submit`／`assess_weak_profile` 目前是第一期那一版）。
+0. 先到 Supabase 備份（Dashboard → Database → Backups），並先跑第五節「遷移前檢查」（**第 1 條門市名稱對應不是 11 列就停手**；第 6 條請把結果存下來）。**注意：本腳本會覆蓋 `assess_start`、`assess_submit`、`assess_weak_profile`、`improve_close`、`improvement_auto_open`、`exam_req_auto_complete`、`phase1_migrate_period_status` 七個既有函式**（只多標【健檢】的幾行，diff 見第七節）；執行前請用第五節遷移前第 6 條查詢列出現況並存檔，作為還原比對依據。門市名稱對不到時，schema 會丟中文例外並整份回復。前提：考題抽選器 schema、roster、assess、bank、accounts、notes_visible、backoffice、spotcheck、url_patch、weak_suggest、exam_request、**phase1** 都已執行（缺哪個，schema 開頭會用中文訊息擋下並整份回復，也會檢查 `assess_start`／`assess_submit`／`assess_weak_profile` 目前是第一期那一版）。
 1. SQL Editor → New query → 貼上 `checkup_schema.sql` 整份 → Run。拿不到鎖會在 5 秒後整份回復，稍後重跑即可（避開有人正在送出成績單的時段）。
 2. 執行第五節「遷移後人工檢查」。
 3. 再開新的 query，貼上 `checkup_verify_fake.sql` 整份 → Run（請挑沒人抽題的時段）。**第一次跑請在客服部改季次之前**（區段 2 檢查真實季次種子）。
-4. 預期：最後一張表第一列「總結」寫「**240/240 項通過**」，「通過」欄全是「通過」。有失敗時總結列會附「第一個失敗」的序號、測項與實際錯誤訊息；任何一列「失敗」就停下回報，不要自己放行。
+4. 預期：最後一張表第一列「總結」寫「**250/250 項通過**」，「通過」欄全是「通過」。有失敗時總結列會附「第一個失敗」的序號、測項與實際錯誤訊息；任何一列「失敗」就停下回報，不要自己放行。
 
 **假環境怎麼跑（開發者用）**：PGlite 以非超級使用者角色（模擬 Supabase 的 postgres）依序載入考題抽選器 schema、roster、assess、bank、accounts、notes_visible、backoffice、spotcheck、url_patch、weak_suggest、exam_request，預塞一批像真的資料（含 12 家真實門市名稱），再執行 `phase1_schema.sql`、`checkup_schema.sql`，最後跑各 verify。
 
@@ -173,7 +173,7 @@
 
 ### 3.8 資料表與檢視（供讀取；寫入一律走函式）
 
-- `checkups`、`checkup_store_quarter`：`authenticated` 只有 select，且受 RLS（客服部、主管全部；店長只看自己門市）；直接 insert／update／delete 一律 `permission denied`。**建議前端一律用 3.1～3.3 的函式讀**（已處理角色與草稿可見度）。
+- `checkups`、`checkup_store_quarter`：**網頁角色（含客服部）對這兩張表沒有任何直接權限**，直接 select／insert／update／delete 一律 `permission denied`（`scheduled_by`、`note`、草稿 `assessment_id`、`updated_by` 因此不會外洩）。**前端一律用 3.1～3.3 的函式讀**；本合約沒有任何地方需要直接讀這兩張表。
 - `assessment_summaries`：尾端追加 `kind`、`checkup_year`、`checkup_quarter`（原 19 欄順序、名稱不變）。成績單列表、人員歷史、走勢、PDF 的資料來源都是它，**健檢成績單會出現在裡面**，前端需用 `kind` 標示或視需要過濾（見稽核表）。
 - `analytics_dim_rates`：**欄位不變**（8 欄）。健檢成績單的題組分數**會**出現在裡面；要區分請用 `assessment_id` 對 `assessment_summaries.kind`。
 
@@ -202,6 +202,7 @@
 | 17 | 檢視 `improvement_ticket_view` | 左連 assessments 取來源成績單摘要 | 改善單的來源一定是一般考核（第 2 項），不會出現健檢 | 不改 |
 | 18 | 檢視 `employees_with_tenure`、函式 `assess_candidates` | 不讀 assessments（只讀 employees） | 無 | 不改（本期沒動 employees） |
 | 19 | RLS：`assessments_select`、`assessment_items_select`、`assessment_item_images_select` | 客服部全看；主管看已送出；店長看本店已送出 | 健檢同規則：主管與店長看得到已送出的健檢成績單，草稿只有客服部 | 不改（驗證 9 實測） |
+| 19b | Storage：`storage.objects` 的 `assess_notes_select`／`assess_notes_insert`／`assess_notes_delete` policies（備註附圖 bucket `assess-notes`） | 以成績單／題組路徑判斷草稿與持有人，不分 kind | 健檢草稿的備註圖片同樣可上傳、刪除，無負面影響 | 不改 |
 | 20 | 前端 `js/assess-api.js`：`myDrafts`、`loadDraft`、`loadSummaries` | 直接 select assessments／assessment_summaries | `myDrafts` 會列出健檢草稿；`loadSummaries` 會多出健檢列 | **前端任務**：選 `kind` 欄位並標示 |
 | 21 | 前端 `js/backoffice-api.js`：`loadSummaries`、`loadEmployeeAssessments`、`loadDimRates`、`loadReportItems`（歷次成績單、走勢、PDF、弱項分析） | 直接讀 assessment_summaries／assessments／analytics_dim_rates | 歷次成績單、走勢圖、PDF 會含健檢列（純顯示，正確）；與上一次比較、走勢要不要混入健檢請前端決定 | **前端任務**：選 `kind` 欄位、標示、必要時過濾 |
 | 22 | 前端改善單「複檢結案」選成績單的下拉（`backoffice.html` 呼叫 `improve_close`） | 列出該考生已送出成績單供選為複檢 | 若列出健檢，選了會被函式擋下 | **前端任務**：下拉只列 `kind='exam'` |
@@ -210,14 +211,14 @@
 
 - **A. 弱項建議是否納入健檢成績單**（`assess_weak_profile`，也影響結果頁「下次建議考題」預告）：目前先排除。
 - **B. 考核後台「弱項分析」熱度表是否含健檢**（`analytics_dim_rates`）：目前資料層不排除（健檢分數會算進熱度）；前端可用 `kind` 區分或排除。
-- **C. 抽題的「考過的題」是否把健檢考過的題算進去**（`assess_pick`／`assess_draw`／`assess_add_extra`／`assess_suggest_pool`）：目前算進去（避免同一人重複考到同一題）。這三項都**不影響任何資格判定**，所以沒有停下，等老闆決定。
+- **C. 抽題的「考過的題」是否把健檢考過的題算進去**（`assess_pick`／`assess_draw`／`assess_add_extra`／`assess_suggest_pool`）：目前算進去（避免同一人重複考到同一題）。**補充**：`assess_draw`／`assess_pick`／`assess_add_extra` 與 `assess_abandon` 會寫入／回收共用的 `drawn` 與 `category_last`，所以健檢抽題會影響後續一般考核的題池輪替（健檢抽過的題在題池用完前不會再被抽到）。這三項都**不影響任何資格判定**，所以沒有停下，等老闆決定。
 
 ## 五、人工檢查查詢（在 SQL Editor 執行，每次只會顯示最後一個結果，請一段一段跑）
 
 ### 遷移前（執行 `checkup_schema.sql` 之前）
 
 ```sql
--- 1. 11 家季次門市在 stores 都找得到（代碼＝名稱）。預期：11 列（少了哪家，schema 會警告並不種入那家）
+-- 1. 門市種子名稱對應檢查：11 家季次門市在 stores 都找得到（代碼＝名稱）。預期：剛好 11 列；不是 11 列就停手，先確認門市名稱（schema 也會丟例外並整份回復，不會靜默少門市）
 select code, name from public.stores
 where code in ('中和','新莊','樹林','桃園中壢','新竹','花蓮','旗艦','南台中','太平','台南','高雄') order by code;
 
@@ -233,6 +234,12 @@ from pg_proc p where p.oid = 'public.assess_submit(uuid)'::regprocedure;
 
 -- 5. 職稱超過 20 字（本期不更新 employees，但第一期遺留的 NOT VALID 約束仍建議確認）。預期：0 列
 select id, job_title from public.employees where char_length(job_title) > 20;
+
+-- 6. 執行前先存檔：本腳本會覆蓋的函式現況（請把結果存下來／截圖；執行後用同一查詢比對，預期只有這 7 個的指紋變了）
+select proname, md5(prosrc) as 原始碼指紋 from pg_proc
+where pronamespace = 'public'::regnamespace
+  and proname in ('assess_start','assess_submit','assess_weak_profile','improve_close','improvement_auto_open','exam_req_auto_complete','phase1_migrate_period_status')
+order by proname;
 ```
 
 ### 遷移後（執行 `checkup_schema.sql` 之後、驗證腳本之前）
@@ -293,9 +300,10 @@ select
 7. **`probation_since` 有值但已是已上線**的異常資料仍會入名單（規格只看 `period_status`）；健檢送出仍不動它（驗證 7、7B）。
 8. **既有驗證腳本異動**：`phase1_verify_fake.sql` 第 459 行的檢查「assessment_summaries 欄位清單沒變（19 欄…）」改成只看前 19 欄（因為本期依規格在尾端追加欄位，原檢查會誤報）；其餘既有驗證腳本沒改，詳見下方測試結果。
 9. **`spotcheck_verify_fake.sql` 既有的偶發失敗**：在假環境中，連本期腳本都不載入（只有第一期的環境）反覆跑 6 次也有 2 次出現「8 取消／8 重算」那 14 項失敗（其餘 4 次 314/314），與本期無關，疑似該腳本對時間或排序有偶發相依；載入本期腳本後重跑 6 次中有 1 次同樣出現。真實資料庫請遇到失敗時重跑一次確認。
-10. 並發（兩個連線同時排定同一人、同時開始同一人的健檢）無法在單一連線的驗證腳本實測；靜態確認：`checkup_schedule` 鎖員工列、`checkup_begin` 鎖排定列與成績單列、`unique(employee_id, year)` 與 `assessments_one_checkup_per_year` 兜底。
-11. 本期沒有通知信、催辦、逾期（規格指定）；`FEATURES.md`、`進度紀錄.md` 由任務 5 統一補。
-12. 驗證腳本會對 `employees` 新增假列（rollback 後消失），不更新任何真實員工列，所以不會觸發職稱 20 字的 NOT VALID 約束問題；腳本開頭有 5 秒 `lock_timeout`。
+10. **鎖順序相反、可能死鎖**：`checkup_unschedule`／`checkup_begin` 先鎖 `checkups` 再鎖 `assessments`；`assess_abandon` 先鎖 `assessments`，刪除後外鍵 `on delete set null` 再更新 `checkups`，順序相反。兩位客服同時對同一人操作（例如一人取消排定、一人放棄草稿）時可能死鎖，Postgres 會自動中止其中一個，重試即可。
+11. 並發（兩個連線同時排定同一人、同時開始同一人的健檢）無法在單一連線的驗證腳本實測；靜態確認：`checkup_schedule` 鎖員工列、`checkup_begin` 鎖排定列與成績單列、`unique(employee_id, year)` 與 `assessments_one_checkup_per_year` 兜底。
+12. 本期沒有通知信、催辦、逾期（規格指定）；`FEATURES.md`、`進度紀錄.md` 由任務 5 統一補。
+13. 驗證腳本會對 `employees` 新增假列（rollback 後消失），不更新任何真實員工列，所以不會觸發職稱 20 字的 NOT VALID 約束問題；腳本開頭有 5 秒 `lock_timeout`。
 
 ## 七、與既有函式的差異（被改寫的物件，原版逐字複製，只差下列幾行）
 
@@ -423,7 +431,7 @@ select
 
 ## 八、測試結果（假環境）
 
-- `checkup_verify_fake.sql`：**240/240 項通過**（預塞資料的環境；schema 連跑 2～3 次再驗結果相同；驗證前後預塞資料的逐表指紋完全相同）。涵蓋：結構與約束、授權（各角色與 anon）、季次種子（11 家、3/3/3/2、逐家對應）、季次表與改季次、名單規則（passed_on 早於季初才入名單、剛好季初不入、考核期／離職／不納入不入、下一年度輪到、首次健檢標記、三種狀態、店長只看本店）、排定／取消排定／已完成不可取消、開始健檢只限已排定與草稿規則、健檢送出（100.0 優秀、84.9 需複訓、85.0 及格、不動 employees、不建待開通、不開改善單、待考回報不被完成、抽查回考核期不動、保險 7B）、每人每年一張與作廢後可再建、一般考核回歸（考核期新人 70 線通過、不及格開改善單、回考核期 85.0 通過與 84.9 不通過，期望值與第一期驗證相同）、複檢結案排除健檢、弱項建議排除健檢、檢視欄位順序與 kind、RLS 讀取。
+- `checkup_verify_fake.sql`：**250/250 項通過**（預塞資料的環境；schema 連跑 2～3 次再驗結果相同；驗證前後預塞資料的逐表指紋完全相同）。涵蓋：結構與約束、授權（各角色與 anon）、季次種子（11 家、3/3/3/2、逐家對應）、季次表與改季次、名單規則（passed_on 早於季初才入名單、剛好季初不入、考核期／離職／不納入不入、下一年度輪到、首次健檢標記、三種狀態、店長只看本店）、排定／取消排定／已完成不可取消、開始健檢只限已排定與草稿規則、健檢送出（100.0 優秀、84.9 需複訓、85.0 及格、不動 employees、不建待開通、不開改善單、待考回報不被完成、抽查回考核期不動、保險 7B）、每人每年一張與作廢後可再建、一般考核回歸（考核期新人 70 線通過、不及格開改善單、回考核期 85.0 通過與 84.9 不通過，期望值與第一期驗證相同）、複檢結案排除健檢、弱項建議排除健檢、檢視欄位順序與 kind、兩張新表網頁角色（客服部／主管／店長／anon）直接 select 與寫入全被擋、種子門市對不到時丟例外。
 - 既有驗證在「全部既有 schema＋phase1＋本期 schema」的環境重跑：assess 249/249、backoffice 161/161、spotcheck 314/314、weak_suggest 177/177、bank 162/162、accounts 113/113、notes_visible 134/134、url_patch 84/84、phase1 378/378（第 459 行檢查已調整）、exam_request 388/388，**全過**。
 - 本期 schema 執行前後，其餘所有 public 函式的原始碼指紋比對：**除本期新增與修改的函式外完全相同**。
 - 反向測試：故意弄壞 20 種寫法（觸發器不排除健檢、待考回報誤完成、複檢可用健檢、弱項建議含健檢、名單 `<=`、排定資格 `<=`、已完成可取消、已開始可取消、送出守門拿掉、草稿索引不分 kind、開始健檢不檢查排定、每年一張索引失效、檢視沒有 kind、首次健檢判斷錯誤、店長看到別店、主管看到草稿、健檢身分約束拿掉、作廢算已完成、主管可改季次、updated_by 洩漏給非客服部），驗證腳本**全部抓得到**。
