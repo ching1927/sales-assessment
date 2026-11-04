@@ -237,7 +237,7 @@
     // 我的進行中草稿
     myDrafts: function (email) {
       return wrap(sb.from('assessments')
-        .select('id,employee_id,employee_label,store_code,tenure,tenure_source,created_at')
+        .select('id,employee_id,employee_label,store_code,tenure,tenure_source,created_at,kind,checkup_year,checkup_quarter')
         .eq('status', 'draft').eq('examiner_email', email.toLowerCase()).order('created_at', { ascending: false }))
         .then(function (r) { return r.data || []; });
     },
@@ -291,7 +291,7 @@
     loadSummaries: function () {
       return pageAll(function (from, to) {
         return sb.from('assessment_summaries')
-          .select('id,employee_id,employee_label,store_code,store_name,created_at,submitted_at,examiner_email,tenure,tenure_source,total_score,verdict,pass_line,weakest_dims,status,voided_at,void_reason,item_count')
+          .select('id,employee_id,employee_label,store_code,store_name,created_at,submitted_at,examiner_email,tenure,tenure_source,total_score,verdict,pass_line,weakest_dims,status,voided_at,void_reason,item_count,kind,checkup_year,checkup_quarter')
           .order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
@@ -307,6 +307,13 @@
           });
         });
       });
+    },
+
+    // ---- 第二期：健檢（規格：supabase/README_checkup.md 第 3.6、3.7 節）----
+    // 開始（或接續）健檢：只有客服部、只能對已排定的人；回傳成績單草稿 id（已有自己的草稿會回同一張）。
+    // 之後的抽題、評分、送出一律沿用上面的 draw／saveItem／submit，不呼叫 assess_start。
+    checkupBegin: function (employeeId, year, quarter) {
+      return wrap(sb.rpc('checkup_begin', { p_employee: employeeId, p_year: year, p_quarter: quarter })).then(function (r) { return r.data; });
     },
 
     // ---- Storage（bucket assess-notes）----

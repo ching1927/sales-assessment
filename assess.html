@@ -236,11 +236,12 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       </div>
     </header>
     <section class="ab-hero">
-      <div class="ab-crumb">考核　/　進行考核</div>
-      <h1>進行考核</h1>
+      <div class="ab-crumb" id="heroCrumb">考核　/　進行考核</div>
+      <h1 id="heroTitle">進行考核</h1>
     </section>
 
     <div id="main">
+      <div class="msg info" id="ckInfo" role="status" hidden style="margin:0 0 var(--sp-3)"></div>
       <div class="steps">
         <ol id="stepbar" aria-label="考核步驟"></ol>
       </div>
@@ -285,6 +286,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 <script src="js/scoring.js"></script>
 <script src="js/suggest.js"></script>
 <script src="js/requests-core.js"></script>
+<script src="js/assess-checkup-core.js"></script>
 <script src="js/assess-api.js"></script>
 <script>
 (function () {
@@ -293,6 +295,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var LV_LIST = ['優', '良', '待加強', '不及格', NA];
   var MAX_NA = 2;
   var STEP_NAMES = ['固定 3 題組', '評分', '弱項追加題', '送出結果'];
+  var CK_STEP_NAMES = ['固定 3 題組', '評分', '結算', '送出結果'];   // 健檢沒有弱項追加題
+  // 健檢模式：網址 mode=checkup（assess.html?mode=checkup&emp=…&year=…&quarter=…）；一般考核時 CK 為 null，其餘程式照舊
+  var CKP = AssessCheckupCore.parseParams(location.search);
+  var CK = CKP.isCheckup ? CKP : null;
+  var ckPanel = null;   // 健檢進場時的狀態面板：{ kind: 'loading' | 'err' | 'abandoned', text }
   var TAG = { '新人': 'new', '正式': 'reg', '未填到職日': 'unk' };
   var VCLS = { '優秀': 'on', '及格': 'new', '需複訓': 'unk', '不及格': 'out' };
 
@@ -451,6 +458,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function sfx(it) { return it.isExtra ? '（不算總分）' : ''; }
   // 步驟列（固定 3 題組／評分／弱項追加題／送出結果）目前在第幾格
   function barStep() {
+    if (CK) return S.step === 4 ? 3 : S.step === 3 ? 2 : 1;   // 健檢：固定 3 題組／評分／結算／送出結果
     if (S.step === 4) return 4;
     if (S.step === 5) return 3;
     if (S.step === 3) return extraItems().length ? 3 : 2;
@@ -472,7 +480,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // ====== 畫面 ======
   function renderStepbar() {
     var cur = finished ? 4 : barStep();
-    $('stepbar').innerHTML = STEP_NAMES.map(function (n, i) {
+    $('stepbar').innerHTML = (CK ? CK_STEP_NAMES : STEP_NAMES).map(function (n, i) {
       var k = i + 1, c = (k === cur && !finished) ? 'cur' : (k < cur || finished) ? 'done' : '';
       return '<li class="' + c + '"' + (k === cur ? ' aria-current="step"' : '') + '><span class="n">' + k + (c === 'done' ? '（完成）' : '') + '</span>' + n + '</li>';
     }).join('');
@@ -493,12 +501,16 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     if (drafts.length) {
       h += '<section class="panel glass"><h2>我的進行中草稿</h2><p class="hint">這些考核還沒送出，可以繼續或放棄。</p>';
       drafts.forEach(function (d) {
+        var isCk = d.kind === 'checkup';   // 健檢草稿：標示「健檢」，「繼續」改連到健檢模式網址（不走一般考核流程）
         h += '<div class="dcard"><div class="l1"><span>' + esc(d.employee_label) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(d.employee_id) + '</span>' +
+          (isCk ? '<span class="tag extra">健檢 ' + esc(d.checkup_year) + ' 年第 ' + esc(d.checkup_quarter) + ' 季</span>' : '') +
           '<span class="tag ' + (TAG[d.tenure] || 'unk') + '">' + esc(d.tenure) + '</span>' +
           (d.tenure_source === '手動指定' ? '<span class="tag unk">手動指定</span>' : '') +
           (d.tenure_source === '考核期' ? '<span class="tag out">考核期</span>' : '') + '</div>' +
           '<div class="l2">' + esc(storeName[d.store_code] || d.store_code) + '・開始於 ' + esc(stamp(d.created_at)) + '</div>' +
-          '<div class="ops"><button type="button" class="btn sm primary" data-act="resume" data-id="' + esc(d.id) + '">繼續</button>' +
+          '<div class="ops">' + (isCk
+            ? '<a class="btn sm primary" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(AssessCheckupCore.checkupUrl(d.employee_id, d.checkup_year, d.checkup_quarter)) + '">繼續健檢</a>'
+            : '<button type="button" class="btn sm primary" data-act="resume" data-id="' + esc(d.id) + '">繼續</button>') +
           '<button type="button" class="link warn" data-act="dropdraft" data-id="' + esc(d.id) + '">放棄</button></div></div>';
       });
       h += '</section>';
@@ -539,7 +551,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var e = S.emp;
     $('stage').innerHTML = '<section class="panel glass"><h2>固定 3 題組抽題失敗</h2><p class="hint">考生：' + esc(e.label) + '（' + esc(e.id) + '）。系統依核心分類設定自動抽題，但沒有成功。</p>' +
       '<div class="msg err" role="alert">' + esc(S.coreFail) + '</div>' +
-      '<p class="hint" style="margin-top:12px">可能是題庫裡缺少核心分類的題組。可以改用自選分類，自己勾選要考的分類來抽題；也可以回上一步，之後再從「我的進行中草稿」繼續。</p>' +
+      '<p class="hint" style="margin-top:12px">可能是題庫裡缺少核心分類的題組。可以改用自選分類，自己勾選要考的分類來抽題；也可以回上一步，之後再從' + (CK ? '健檢名單按「繼續健檢」' : '「我的進行中草稿」') + '繼續。</p>' +
       '<div class="navrow"><button class="btn" type="button" data-act="back2">上一步</button><button class="btn primary" type="button" data-act="manual">改用自選分類</button></div></section>';
   }
 
@@ -671,18 +683,19 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       txt = labelOf(it) + sfx(it) + ' 已評 ' + got + ' / 7 面向，累計 <b>' + fmt(sum) + '</b> 分（評完才有題組分數）';
     }
     var coreLeft = coreItems().filter(function (x) { return !itemDone(x); }).length, exLeft = extraItems().filter(function (x) { return !itemDone(x); }).length;
-    txt += '<br>' + (coreLeft ? '還有 ' + coreLeft + ' 個題組沒評完，不能' + (extraItems().length ? '結算' : '分析弱項')
+    if (CK) txt += '<br>' + (coreLeft ? '還有 ' + coreLeft + ' 個題組沒評完，不能結算' : '題組都已評完，可以前往結算');   // 健檢沒有弱項分析
+    else txt += '<br>' + (coreLeft ? '還有 ' + coreLeft + ' 個題組沒評完，不能' + (extraItems().length ? '結算' : '分析弱項')
       : exLeft ? '還有 ' + exLeft + ' 個追加題沒評完，不能送出'
       : extraItems().length ? '核心題組與追加題都已評完' : '核心題組都已評完，可以分析弱項');
     $('fixScore').innerHTML = txt;
-    $('fixGo').textContent = extraItems().length ? '前往結算' : '分析弱項';
+    $('fixGo').textContent = (CK || extraItems().length) ? '前往結算' : '分析弱項';
     syncPending();
   }
 
   function renderStep4() {
     var res = Scoring.scoreAssessment(coreItems().map(function (i) { return i.levels; }), S.emp.tenure);
     if (!res.ok) { $('stage').innerHTML = '<section class="panel glass"><div class="msg err">' + esc(res.error) + '</div><div class="navrow"><button class="btn" type="button" data-act="back3">回評分</button></div></section>'; return; }
-    var h = '<div class="msg info" role="status" style="margin-bottom:var(--sp-3)">以下是預覽；按「送出成績單」後，以資料庫計算的結果為準。</div>';
+    var h = '<div class="msg info" role="status" style="margin-bottom:var(--sp-3)">以下是預覽；按「送出成績單」後，以資料庫計算的結果為準。' + (CK ? '健檢結果只記錄在建議單。' : '') + '</div>';
     h += '<div class="verdict v-' + esc(res.verdict) + '" role="status"><div class="vt">判定：' + esc(res.verdict) + '</div>' +
       '<div class="vs">總分 ' + fmt(res.total) + ' 分（合格線 ' + res.passLine + ' 分・' + esc(S.emp.tenure) + '）</div></div>';
     h += '<section class="panel glass"><h2>結算</h2><dl class="kv">' +
@@ -731,7 +744,12 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     h += '<div class="msg ok" role="status" style="margin-bottom:var(--sp-3)">已存入成績單</div>';
     h += '<div class="verdict v-' + esc(db.verdict) + '" role="status"><div class="vt">判定：' + esc(db.verdict) + '</div>' +
       '<div class="vs">總分 ' + fmt(total) + ' 分（合格線 ' + esc(db.pass_line) + ' 分・' + esc(db.tenure) + '）</div></div>';
-    if (f.after && f.after.activation) h += '<div class="msg ok" role="status" style="margin-bottom:var(--sp-3)">已加入待開通回覆權限清單，請客服部到 LINE 官方帳號開通後，在「待考回報」頁按「已開通」。</div>';
+    if (CK) {
+      var okCk = AssessCheckupCore.passed(total, db.pass_line);
+      h += '<div class="msg ' + (okCk ? 'ok' : 'warn') + '" role="status" style="margin-bottom:var(--sp-3)">' +
+        (okCk ? '健檢通過（總分達及格線 ' : '健檢未通過（總分未達及格線 ') + esc(db.pass_line == null ? AssessCheckupCore.PASS_LINE : db.pass_line) + ' 分）。健檢結果只記錄在建議單。</div>';
+    }
+    if (f.after && f.after.activation) h +='<div class="msg ok" role="status" style="margin-bottom:var(--sp-3)">已加入待開通回覆權限清單，請客服部到 LINE 官方帳號開通後，在「待考回報」頁按「已開通」。</div>';
     else if (f.after && f.after.period === '考核期') h += '<div class="msg warn" role="status" style="margin-bottom:var(--sp-3)">仍在考核期，可再約補考（考核期間不能回覆顧客）。</div>';
     h += '<section class="panel glass"><dl class="kv">' +
       '<dt>考生</dt><dd>' + esc(f.emp.label) + '（' + esc(f.emp.id) + '）' + esc(storeName[f.emp.store] || f.emp.store) + '</dd>' +
@@ -754,14 +772,34 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
             (it.kind === 'weak' ? '<span class="wk">' + esc(it.dim) + '</span>' : '<span class="hint" style="margin:0">隨機</span>') + '</div>';
         }).join('') + '</section>';
     }
-    h += '<div class="navrow"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="reports.html">前往成績單</a></div>';
+    if (CK) {
+      h += '<div class="navrow"><a class="btn" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(AssessCheckupCore.LIST_URL) + '">回健檢名單</a>' +
+        '<a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(AssessCheckupCore.adviceUrl(f.aid)) + '">查看建議單</a></div>';
+    } else {
+      h += '<div class="navrow"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="reports.html">前往成績單</a></div>';
+    }
     $('stage').innerHTML = h;
+  }
+
+  // 健檢進場面板：開始中、開始失敗（可重試）、已放棄（可重新開始）
+  function renderCkPanel() {
+    var p = ckPanel, back = '<a class="btn" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(AssessCheckupCore.LIST_URL) + '">回健檢名單</a>';
+    if (p.kind === 'loading') { $('stage').innerHTML = '<div class="loading" role="status">正在準備健檢（' + esc(CK.emp) + '）…</div>'; return; }
+    if (p.kind === 'abandoned') {
+      $('stage').innerHTML = '<section class="panel glass"><h2>已放棄這次健檢</h2><p class="hint">這位同仁的排定仍然保留，可以重新開始健檢，或回健檢名單。</p>' +
+        '<div class="navrow">' + back + '<button class="btn primary" type="button" data-act="ckretry">重新開始健檢</button></div></section>';
+      return;
+    }
+    $('stage').innerHTML = '<section class="panel glass"><h2>無法開始健檢</h2><p class="hint">員工編號：' + esc(CK.emp) + '。</p>' +
+      '<div class="msg err" role="alert">' + esc(p.text) + '</div>' +
+      '<div class="navrow">' + back + '<button class="btn primary" type="button" data-act="ckretry">重試</button></div></section>';
   }
 
   function render() {
     var a = document.activeElement, key = a && a.getAttribute && a.getAttribute('data-act') ? keyOf(a) : null;
     renderStepbar();
-    if (finished) renderDone();
+    if (CK && ckPanel && !finished) renderCkPanel();
+    else if (finished) renderDone();
     else if (S.step === 1) renderStep1();
     else if (S.step === 2) renderStep2();
     else if (S.step === 3) renderStep3();
@@ -1119,7 +1157,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // 在該列按下「準備考核・去抽題」：assess_start → 載入草稿 → 進入抽題（已有草稿則接續）
   function startFor(p, override) {
     if (busy || rowBusy) return;
-    var hadDraft = drafts.some(function (d) { return d.employee_id === p.id; });
+    var hadDraft = drafts.some(function (d) { return d.employee_id === p.id && d.kind !== 'checkup'; });   // 健檢草稿不算「先前未完成的考核」
     rowBusy = p.id; rowErr = {}; notice('', ''); render();
     AssessApi.start(p.id, p.hire_date ? null : override).then(function (aid) {
       return openDraft(aid).then(function () {
@@ -1133,6 +1171,26 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       rowBusy = null; rowErr = {}; rowErr[p.id] = errText(err);
       if (S.aid) { S = fresh(); }   // openDraft 若半途失敗，回到選考生
       render();
+    });
+  }
+  // 健檢開始：checkup_begin（已有自己的草稿會回同一張）→ 載入草稿 → 抽固定核心題組並進評分；失敗停在可重試的面板
+  function ckStart() {
+    if (!CK || (ckPanel && ckPanel.kind === 'loading')) return;
+    S = fresh(); resetSave(); imgMsgs = []; notice('', '');
+    ckPanel = { kind: 'loading' }; render();
+    var resumed = false;
+    return AssessApi.checkupBegin(CK.emp, CK.year, CK.quarter).then(function (aid) {
+      if (!aid) throw AssessApi.userError('沒有取得健檢草稿，請重試。');
+      return openDraft(aid).then(function () {
+        resumed = S.step === 3;
+        if (S.step === 2) return autoDrawCore();
+      });
+    }).then(function () {
+      ckPanel = null;
+      if (resumed) notice('info', '已接續先前未完成的健檢');
+      render(); window.scrollTo(0, 0);
+    }, function (err) {
+      S = fresh(); ckPanel = { kind: 'err', text: errText(err) || '無法開始健檢，請重試。' }; render();
     });
   }
   $('stage').addEventListener('change', function (e) {
@@ -1166,7 +1224,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       return;
     }
     else if (act === 'dropdraft') { abandonTarget = b.dataset.id; $('dlg').showModal(); return; }
-    else if (act === 'back2') { toStep1(); return; }
+    else if (act === 'back2') { if (CK) { location.href = AssessCheckupCore.LIST_URL; return; } toStep1(); return; }
+    else if (act === 'ckretry') { ckStart(); return; }
     else if (act === 'cat') {
       if (S.drawn) return;
       var i = S.cats.indexOf(b.dataset.cat); if (i >= 0) S.cats.splice(i, 1); else S.cats.push(b.dataset.cat);
@@ -1245,7 +1304,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   });
   $('fixGo').addEventListener('click', function () {
     if (!canAdvance() || pendingReason() || busy) return;
-    if (!extraItems().length) { analyzeWeak(); return; }   // 還沒追加：先分析弱項
+    if (!CK && !extraItems().length) { analyzeWeak(); return; }   // 還沒追加：先分析弱項（健檢不分析弱項，直接結算）
     S.step = 4; render(); window.scrollTo(0, 0);
   });
   $('stage').addEventListener('input', function (e) {
@@ -1275,6 +1334,12 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       });
     }).then(function (r) {
       busy = false;
+      if (CK) {   // 健檢：放棄後排定仍保留，停在「已放棄」面板（可重新開始或回健檢名單）
+        S = fresh(); imgMsgs = []; resetSave(); ckPanel = { kind: 'abandoned' }; render();
+        if (r.paths.length && !r.ok) notice('warn', '健檢已放棄，但有圖片檔案沒能刪除，可能留有孤兒檔案，請通知管理人員清理。');
+        else notice('ok', '已放棄這次健檢。');
+        return;
+      }
       return toStep1().then(function () {
         if (r.paths.length && !r.ok) notice('warn', '考核已放棄，但有圖片檔案沒能刪除，可能留有孤兒檔案，請通知管理人員清理。');
         else notice('ok', '已放棄這次考核。');
@@ -1309,10 +1374,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         return d;
       });
       busy = false;
-      var fin = finished = { db: db, rows: rows, emp: emp, mismatch: mismatch, next: null, after: null,
+      var fin = finished = { db: db, rows: rows, emp: emp, aid: aid, mismatch: mismatch, next: null, after: null,
         weakTags: (S.weakInfo && items.some(function (x) { return x.isExtra; })) ? weakTags(S.weakInfo.weak) : '' };
       S = fresh(); resetSave(); imgMsgs = [];
       render(); window.scrollTo(0, 0);
+      if (CK) return;   // 健檢：不讀待開通與考核期、不預告下次建議考題（健檢只記錄在建議單）
       // 通過（已加入待開通）或仍在考核期的說明：讀資料庫實際結果；讀不到就不顯示
       Promise.all([AssessApi.activationOf(aid).catch(function () { return null; }), AssessApi.periodStatus(emp.id).catch(function () { return null; })]).then(function (x) {
         if (finished !== fin) return;
@@ -1342,6 +1408,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('whoEmail').textContent = email;
     return AssessApi.loadMe(email).then(function (row) {
       if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      if (CK && row.role !== 'cs_admin') {   // 健檢只有客服部能開始、評分；不呼叫任何寫入函式
+        showBlocked('只有客服部可以進行健檢。', true);
+        $('blockedGo').href = AssessCheckupCore.LIST_URL; $('blockedGo').textContent = '前往健檢名單';
+        return;
+      }
       if (row.role !== 'cs_admin') {
         showBlocked('只有客服部可以進行考核。即將帶你前往成績單。', true);
         setTimeout(function () { location.replace('reports.html'); }, 3000);
@@ -1349,6 +1420,25 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       }
       $('whoBadge').textContent = ROLE_LABEL[row.role];
       $('toAccounts').hidden = false; $('toQuestions').hidden = false;  // 只有客服部會走到這裡
+      if (CK && !CK.ok) {   // 健檢網址參數缺漏或格式錯誤：白話錯誤＋回健檢名單
+        showBlocked(CK.error, true);
+        $('blockedGo').href = AssessCheckupCore.LIST_URL; $('blockedGo').textContent = '回健檢名單';
+        return;
+      }
+      if (CK) {
+        var ttl = AssessCheckupCore.titleOf(CK.year, CK.quarter);
+        document.title = '業務考核系統｜' + ttl;
+        $('heroCrumb').textContent = '考核　/　健檢'; $('heroTitle').textContent = ttl;
+        $('ckInfo').textContent = ttl + '：考法與一般考核相同，身分固定「正式」，及格線 ' + AssessCheckupCore.PASS_LINE + ' 分。健檢結果只記錄在建議單。';
+        $('ckInfo').hidden = false;
+        document.querySelector('#dlg h2').textContent = '放棄這次健檢？';
+        document.querySelector('#dlg p').textContent = '放棄後，這位同仁這次的評分、備註與附圖都會刪除，已抽出的題組不算已抽過，會回到題池；健檢的排定仍然保留，可以重新開始。此動作無法復原。';
+        return AssessApi.loadStores().then(function (list) {
+          list.forEach(function (s) { storeName[s.code] = s.name; });
+          $('loading').hidden = true; $('app').hidden = false;
+          return ckStart();
+        });
+      }
       return AssessApi.loadStores().then(function (list) {
         list.forEach(function (s) { storeName[s.code] = s.name; });
         return loadStep1();
