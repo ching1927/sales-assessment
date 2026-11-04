@@ -210,7 +210,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   <section class="blocked glass" id="blocked" hidden>
     <p id="blockedText"></p>
-    <a class="btn" id="blockedGo" href="reports.html" hidden>前往成績單</a>
+    <a class="btn" id="blockedGo" href="backoffice.html#recent" hidden>前往成績單</a>
     <button class="btn" id="blockedLogout" type="button">登出</button>
   </section>
 
@@ -221,8 +221,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         <nav class="ab-tabs" aria-label="主要功能">
         <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
         <a class="ab-tab on" href="assess.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
-        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
-        <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>成績單&amp;考核後台</a>
         <a class="ab-tab" href="requests.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
         <a class="ab-tab" href="checkup.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>健檢</a>
         <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
@@ -776,7 +775,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       h += '<div class="navrow"><a class="btn" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(AssessCheckupCore.LIST_URL) + '">回健檢名單</a>' +
         '<a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(AssessCheckupCore.adviceUrl(f.aid)) + '">查看建議單</a></div>';
     } else {
-      h += '<div class="navrow"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="reports.html">前往成績單</a></div>';
+      h += '<div class="navrow"><button class="btn" type="button" data-act="again">再考一位</button><a class="btn primary" style="text-decoration:none;display:inline-flex;align-items:center" href="backoffice.html#recent">前往成績單</a></div>';
     }
     $('stage').innerHTML = h;
   }
@@ -1415,7 +1414,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       }
       if (row.role !== 'cs_admin') {
         showBlocked('只有客服部可以進行考核。即將帶你前往成績單。', true);
-        setTimeout(function () { location.replace('reports.html'); }, 3000);
+        setTimeout(function () { location.replace('backoffice.html#recent'); }, 3000);
         return;
       }
       $('whoBadge').textContent = ROLE_LABEL[row.role];

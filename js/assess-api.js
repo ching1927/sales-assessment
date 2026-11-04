@@ -5,7 +5,8 @@
  */
 (function () {
   var cfg = window.APP_CONFIG;
-  var sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY);
+  // 同一頁若同時載入 backoffice-api.js 與本檔（考核後台的「近期考核」），共用同一個 client，避免兩個 GoTrueClient；只載入本檔的頁面行為不變
+  var sb = window.__sbSharedClient || (window.__sbSharedClient = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY));
   var PAGE = 1000;
   var BUCKET = 'assess-notes';
   var URL_TTL = 300;          // 簽名網址有效秒數

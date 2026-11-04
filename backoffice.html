@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>考核後台</title>
+<title>成績單&amp;考核後台</title>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -106,9 +106,42 @@ dialog::backdrop{background:var(--scrim)}
 .chks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 12px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);padding:12px 20px;border-radius:var(--r-ctrl);
   background:var(--ink);color:var(--surface-solid);font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)}
+/* ===== 近期考核分頁（原成績單頁 reports.html 的列表與詳情樣式；詳情視窗與動態建立的對話框帶 .rr 類別，樣式只對 #p-recent 與 .rr 生效，不影響其他分頁）===== */
+#p-recent .toolbar .daterange{display:flex;align-items:center;gap:6px}
+#p-recent tr.clickrow{cursor:pointer}
+#p-recent tr.clickrow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+#p-recent .more{display:flex;justify-content:center;padding:var(--sp-3) 0 var(--sp-4);border-top:1px solid var(--ink-line)}
+#p-recent .more[hidden],#p-recent .empty[hidden]{display:none}
+.rr .tag.extra{background:var(--ci-yellow);color:var(--ci-black)}
+.rr .extra-sec{margin-top:var(--sp-4);padding:12px 14px;border:1.5px dashed var(--ink-line);border-radius:var(--r-ctrl)}
+.rr .extra-sec h3{font-size:15px;margin:0 0 4px}
+.rr .extra-sec .exnote{font-size:13px;color:var(--ink-2);margin-bottom:4px}
+.rr .wk{display:inline-block;margin:2px 4px 2px 0;padding:3px 10px;border-radius:var(--r-pill);background:var(--warning-soft);color:var(--warning);font-weight:700;font-size:13px}
+.rr .vbox{display:inline-block;padding:4px 14px;border-radius:var(--r-pill);font-weight:800;font-size:16px}
+.rr .vbox.on{background:var(--success-soft);color:var(--success)}
+.rr .vbox.new{background:var(--info-soft);color:var(--accent-deep)}
+.rr .vbox.unk{background:var(--warning-soft);color:var(--warning)}
+.rr .vbox.out{background:var(--danger-soft);color:var(--danger)}
+.rr .item{border:1px solid var(--ink-line);border-radius:var(--r-ctrl);padding:12px 14px;margin-top:var(--sp-3)}
+.rr .item h4{font-size:15px;margin:6px 0}
+.rr .stepli{margin:8px 0 0 0;padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.5;list-style:none}
+.rr .stepli b{color:var(--ink-2);font-size:12px}
+.rr .remark{margin-top:8px;padding:10px 12px;border-radius:var(--r-sm);background:var(--accent-soft);font-size:13px;line-height:1.5;white-space:pre-wrap}
+.rr tr.weakrow{background:var(--warning-soft)}
+.rr .void-box{padding:10px 14px;border-radius:var(--r-sm);background:var(--danger-soft);color:var(--danger);font-weight:600;font-size:14px;margin-bottom:var(--sp-3)}
+.rr .chartwrap.radar svg{margin:0 auto var(--sp-3)}
+.rr .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px}
+.rr .thumb{border:1px solid var(--ink-line);border-radius:var(--r-sm);padding:6px;background:var(--surface-solid);text-align:center}
+.rr .thumb .tb{display:block;width:100%;padding:0;border:none;background:none}
+.rr .thumb img{width:100%;height:90px;object-fit:cover;border-radius:6px;display:block;background:var(--track)}
+.rr .thumb .sz{font-size:12px;color:var(--ink-2);margin-top:4px}
+dialog.rr.lb{max-width:min(92vw,900px)}
+dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-radius:var(--r-sm)}
 @media (max-width:480px){
   .top h1{font-size:19px}
   .toolbar .ctrl{flex:1 1 100%}
+  #p-recent .toolbar .daterange{flex:1 1 100%}
+  #p-recent .toolbar .daterange .ctrl{flex:1 1 0}
   .count{margin-left:0}
   .dlg{padding:var(--sp-4)}
 }
@@ -130,8 +163,7 @@ dialog::backdrop{background:var(--scrim)}
         <nav class="ab-tabs" aria-label="主要功能">
         <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
         <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
-        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
-        <a class="ab-tab on" href="backoffice.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab on" href="backoffice.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>成績單&amp;考核後台</a>
         <a class="ab-tab" href="requests.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
         <a class="ab-tab" href="checkup.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>健檢</a>
         <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
@@ -145,17 +177,47 @@ dialog::backdrop{background:var(--scrim)}
       </div>
     </header>
     <section class="ab-hero">
-      <div class="ab-crumb">考核　/　考核後台</div>
-      <h1>考核後台</h1>
+      <div class="ab-crumb">考核　/　成績單&amp;考核後台</div>
+      <h1>成績單&amp;考核後台</h1>
     </section>
 
     <div class="msg err" id="pageMsg" role="alert" hidden></div>
 
     <div class="tabs" role="tablist" aria-label="考核後台分頁">
+      <button class="tab" role="tab" id="tab-recent" data-tab="recent" aria-controls="p-recent" type="button">近期考核</button>
       <button class="tab" role="tab" id="tab-history" data-tab="history" aria-controls="p-history" type="button">人員歷史</button>
       <button class="tab" role="tab" id="tab-insights" data-tab="insights" aria-controls="p-insights" type="button">弱項分析</button>
       <button class="tab" role="tab" id="tab-tickets" data-tab="tickets" aria-controls="p-tickets" type="button">改善單</button>
     </div>
+
+    <!-- 分頁 0：近期考核（原成績單頁的內容；邏輯在 js/recent-reports.js、js/recent-reports-core.js） -->
+    <section id="p-recent" role="tabpanel" aria-labelledby="tab-recent" hidden>
+      <div class="msg err" id="rMsg" role="alert" hidden></div>
+      <section class="toolbar glass" aria-label="篩選">
+        <select class="ctrl" id="rStore" aria-label="門市篩選"></select>
+        <span class="daterange"><label class="sub" for="rFrom">日期</label><input class="ctrl" type="date" id="rFrom" aria-label="起始日期"><span class="sub">～</span><input class="ctrl" type="date" id="rTo" aria-label="結束日期"></span>
+        <select class="ctrl" id="rVerdict" aria-label="判定篩選">
+          <option value="">全部判定</option><option>優秀</option><option>及格</option><option>需複訓</option><option>不及格</option>
+        </select>
+        <select class="ctrl" id="rKind" aria-label="類型篩選">
+          <option value="">全部類型</option><option value="exam">一般考核</option><option value="checkup">健檢</option>
+        </select>
+        <input class="ctrl grow" id="rSearch" type="search" placeholder="搜尋考生編號、姓名或暱稱" aria-label="搜尋考生">
+        <span class="count" id="rCount" aria-live="polite"></span>
+      </section>
+      <section class="tablebox glass">
+        <div class="scroll" tabindex="0" aria-label="近期考核列表，可左右捲動">
+          <table id="rTable" style="min-width:860px">
+            <thead><tr><th>日期時間</th><th>考生</th><th>門市</th><th>考核時身分</th><th class="num">總分</th><th>判定</th><th>狀態</th><th class="stick">操作</th></tr></thead>
+            <tbody id="rBody"></tbody>
+          </table>
+        </div>
+        <div class="loading" id="rLoading" role="status" hidden>載入中…</div>
+        <div class="empty" id="rEmpty" hidden>沒有符合條件的成績單</div>
+        <div class="more" id="rMore" hidden><button class="btn" id="rMoreBtn" type="button">載入更多（再 20 筆）</button></div>
+      </section>
+      <p class="note" id="rNote"></p>
+    </section>
 
     <!-- 分頁 1：人員歷史 -->
     <section id="p-history" role="tabpanel" aria-labelledby="tab-history" hidden>
@@ -228,6 +290,7 @@ dialog::backdrop{background:var(--scrim)}
 
 <dialog id="dlgA" class="wide"></dialog>
 <dialog id="dlgB" class="wide"></dialog>
+<dialog id="rDlg" class="wide rr"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -235,11 +298,14 @@ dialog::backdrop{background:var(--scrim)}
 <script src="js/scoring.js"></script>
 <script src="js/radar.js"></script>
 <script src="js/backoffice-api.js"></script>
+<script src="js/assess-api.js"></script>
+<script src="js/recent-reports-core.js"></script>
+<script src="js/recent-reports.js"></script>
 <script>
 (function () {
   var DIMS = Scoring.DIMENSIONS;
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
-  var TABS = ['history', 'insights', 'tickets'];
+  var TABS = ['recent', 'history', 'insights', 'tickets'];
   var VCLS = { '優秀': 'on', '及格': 'new', '需複訓': 'unk', '不及格': 'out' };
   var SZH = { open: '待改善', coached: '已輔導', closed: '已結案', cancelled: '已取消' };
   var SCLS = { open: 'unk', coached: 'new', closed: 'on', cancelled: 'reg' };
@@ -744,7 +810,7 @@ dialog::backdrop{background:var(--scrim)}
   }
 
   function showTab(name, setHash) {
-    if (TABS.indexOf(name) < 0) name = 'history';
+    if (TABS.indexOf(name) < 0) name = 'recent';
     curTab = name;
     TABS.forEach(function (n) {
       $('p-' + n).hidden = n !== name;
@@ -759,7 +825,7 @@ dialog::backdrop{background:var(--scrim)}
     b.addEventListener('keydown', function (e) {
       var i = TABS.indexOf(b.dataset.tab);
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        var n = TABS[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; showTab(n, true); $('tab-' + n).focus();
+        var n = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]; showTab(n, true); $('tab-' + n).focus();
       }
     });
   });
@@ -821,6 +887,7 @@ dialog::backdrop{background:var(--scrim)}
         fillStoreSel($('tStore'), storeOpts, true);
         $('iScope').innerHTML = '<option value="">全公司</option>' + heatStores.map(function (c) { return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>'; }).join('');
         renderAll();
+        RecentReports.init({ api: AssessApi, me: me, stores: stores });
         showTab(location.hash.slice(1), false);
         $('loading').hidden = true; $('app').hidden = false;
         // 從人員名冊點姓名過來（?emp=員編）：直接打開那位同仁的歷史成績

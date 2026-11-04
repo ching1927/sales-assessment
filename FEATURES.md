@@ -30,25 +30,25 @@
 ### 正式版（已執行 SQL、已審查；客服部流程已用測試考生實測通過，店長與主管的真實登入尚未測）
 
 - 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核
-- 考官備註文字對主管與店長可見｜`supabase/notes_visible_schema.sql`、`supabase/notes_visible_verify_fake.sql`（驗證，結尾自動復原）、`supabase/README_notes_visible.md`、`assess.html`、`reports.html`、`js/assess-api.js`｜備註改存 assessment_items.note（舊 secrets.note 停用並清空）；客服部、主管、同門市店長讀得到（主管與店長限已送出未作廢）；備註框與附圖區提醒考官不要貼腳本或考點
+- 考官備註文字對主管與店長可見｜`supabase/notes_visible_schema.sql`、`supabase/notes_visible_verify_fake.sql`（驗證，結尾自動復原）、`supabase/README_notes_visible.md`、`assess.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜備註改存 assessment_items.note（舊 secrets.note 停用並清空）；客服部、主管、同門市店長讀得到（主管與店長限已送出未作廢）；備註框與附圖區提醒考官不要貼腳本或考點
 - 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址
-- 成績單（所有已開通角色）｜`reports.html`｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
-- 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`reports.html`｜頁首黑底導覽列（貳輪嶼 LOGO、圖示分頁、目前頁黃底、頭像、登出圖示；窄螢幕分頁自成一行、信箱隱藏只留角色標籤）；分頁順序：人員名冊、進行考核（客服部）、成績單、考核後台、題庫管理（客服部）、帳號管理（客服部）；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」
+- 成績單（所有已開通角色）｜考核後台「近期考核」分頁（`backoffice.html#recent`、`js/recent-reports.js`；舊網址 `reports.html` 已改為轉址頁）｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
+- 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`backoffice.html`｜頁首黑底導覽列（貳輪嶼 LOGO、圖示分頁、目前頁黃底、頭像、登出圖示；窄螢幕分頁自成一行、信箱隱藏只留角色標籤）；分頁順序：人員名冊、進行考核（客服部）、成績單&考核後台（原「成績單」與「考核後台」合併）、題庫管理（客服部）、帳號管理（客服部）；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」
 
 ### 抽查系統（網頁已寫好，尚未連真實資料庫；需先執行 supabase/spotcheck_schema.sql，規格見 supabase/README_spotcheck.md）
 
 - 抽查頁｜`spotcheck.html`、`js/spotcheck-api.js`｜所有已開通角色可進；開頁見「人員抽查狀態」表（本月黃單／本季紅單計量格，可用門市下拉選單篩選；店長只有自己門市，不顯示下拉）與單據清單（可依門市、種類、人員、狀態篩選；選門市後人員下拉只列該門市；店長不顯示門市下拉）；寫入全走 RPC（spot_register／spot_void_ticket／spot_coach／spot_mark_executed／spot_cancel_probation）
 - 登記抽查（只有客服部）｜`spotcheck.html`｜「登記一次抽查」區塊在「人員抽查狀態」之前（警示列仍最上面；主管與店長沒有登記區塊，直接看狀態表）；選人員、日期、判定、七面向等級、原因（不適當必填）；「訊息抽檢-LINE聊天室網址」為必填單行網址（去空白、http／https 開頭、無空白、500 字內，否則顯示繁中提示不送出），以 p_message 傳送；登記後顯示開了黃單／紅單／回考核期；單據清單有「聊天室」欄（黃單用 inspection_id 對應 spot_inspections.message，http／https 開頭才顯示可點的「開啟 LINE 聊天室」連結，否則純文字；紅單顯示「—」；三種角色都看得到）
-- 備註網址（非必填）｜`assess.html`、`reports.html`、`js/assess-api.js`｜考官備註下方多一個網址欄，隨題組自動暫存（assess_save_item 第四參數 p_note_url，空字串傳 null），草稿重開會帶回；格式不合（非 http／https、含空白、超過 500 字）顯示提示、該題組不暫存、無法送出；成績單詳情（客服部與主管／店長版）有網址時在備註旁顯示「備註網址」連結，只有 http／https 才成連結（javascript: 等不會）
+- 備註網址（非必填）｜`assess.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜考官備註下方多一個網址欄，隨題組自動暫存（assess_save_item 第四參數 p_note_url，空字串傳 null），草稿重開會帶回；格式不合（非 http／https、含空白、超過 500 字）顯示提示、該題組不暫存、無法送出；成績單詳情（客服部與主管／店長版）有網址時在備註旁顯示「備註網址」連結，只有 http／https 才成連結（javascript: 等不會）
 - 回考核期警示列｜`spotcheck.html`｜待執行時客服部見「標記已執行」與「取消回考核期」（取消原因必填）；已執行時只剩取消；主管與店長只看
 - 單據作廢與輔導回填｜`spotcheck.html`｜客服部可作廢（原因必填）；客服部與該門市店長可回填輔導（日期＋備註必填）；總公司主管無任何操作按鈕
-- 導覽「抽查」｜`roster.html`、`assess.html`、`reports.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`｜所有已開通角色看得到，在「考核後台」之後（第二期起：此導覽分頁改為「健檢」，抽查頁改由健檢頁內的連結進入；第三期整併）
-- 考核期標籤｜`roster.html`、`reports.html`、`assess.html`｜成績單與進行考核的「考核時身分」在 tenure_source 為「考核期」時顯示「考核期」標籤（名冊的標籤已改為第一期規則，見「第一期」一節）
+- 導覽「抽查」｜`roster.html`、`assess.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`｜所有已開通角色看得到，在「考核後台」之後（第二期起：此導覽分頁改為「健檢」，抽查頁改由健檢頁內的連結進入；第三期整併）
+- 考核期標籤｜`roster.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`assess.html`｜成績單與進行考核的「考核時身分」在 tenure_source 為「考核期」時顯示「考核期」標籤（名冊的標籤已改為第一期規則，見「第一期」一節）
 
 ### 題庫管理（正式版；bank_schema.sql 已在 Supabase 執行，162 項驗證通過；老闆用測試分類實測通過）
 
 - 題庫管理頁（只有客服部）｜`questions.html`、`js/questions-api.js`｜取代舊管理頁，Google 登入；讀寫呼叫 bank_list_questions／bank_save_question／bank_delete_question／bank_rename_category／bank_reset 與 assess_categories；功能對應舊管理頁（分類下拉、統計、題組列表、新增編輯與步驟編輯器、草稿保留、刪除與洗牌二次確認、分類改名與合併）；題庫內容不寫入 console 或瀏覽器儲存；載入失敗時停用表單與洗牌
-- 導覽「題庫管理」｜`roster.html`、`assess.html`、`reports.html`、`accounts.html`、`backoffice.html`｜只有客服部看得到，在「帳號管理」之前
+- 導覽「題庫管理」｜`roster.html`、`assess.html`、`accounts.html`、`backoffice.html`｜只有客服部看得到，在「帳號管理」之前
 
 ### 題庫管理（樣品與設計稿）
 
@@ -60,7 +60,7 @@
 
 - 考核後台頁｜`backoffice.html`、`js/backoffice-api.js`｜所有已開通角色可進；三個分頁「人員歷史」「弱項分析」「改善單」，網址 #history、#insights、#tickets；資料皆讀資料庫（不查機密表）；改善單動作呼叫 improve_update_plan／improve_close／improve_cancel（客服部）、improve_mark_coached（店長自己門市或客服部）；主管只讀；已取消單只有客服部看得到；主管與店長視角的改善單紀錄不顯示他人信箱（頁首仍顯示自己的信箱）
 - 歷次成績單下載 PDF｜`backoffice.html`、`js/report-pdf.js`、`js/report-pdf-core.js`、`js/backoffice-api.js`、`tests/report-pdf-core.test.js`｜考核後台打開考生 →「歷次成績單」每列最右「下載 PDF」，產生 A4 兩頁（題組多自動三頁）成績單，檔名 成績單_姓名_日期.pdf；版面同 `樣品/成績單PDF樣品.html`（總分判定、雷達圖與面向得分率、與上一次比較、每題得分、全部歷次走勢）；加考題標「加考」不計入；客服部 PDF 顯示題名，主管與店長只顯示題組編號與分類（前端完全不查 assessment_item_secrets，資料庫也只放行客服部）；html2canvas 1.4.1／jsPDF 2.5.1 第一次按下載才動態載入；驗證：`node tests/report-pdf-core.test.js` 印出「通過 175 項」且結束碼 0
-- 導覽「考核後台」｜`roster.html`、`assess.html`、`reports.html`、`accounts.html`｜所有已開通角色看得到；順序：人員名冊、進行考核（客服部）、成績單、考核後台、題庫管理（客服部）、帳號管理（客服部）
+- 導覽「成績單&考核後台」（原「考核後台」，已與「成績單」合併）｜`roster.html`、`assess.html`、`accounts.html`、`backoffice.html`｜所有已開通角色看得到；順序：人員名冊、進行考核（客服部）、成績單&考核後台、題庫管理（客服部）、帳號管理（客服部）
 - 自動開單與自動取消｜資料庫觸發器（backoffice_schema.sql）｜成績單送出且判定需複訓或不及格時自動開單（期限 14 天）；成績單作廢時 open／coached 的單自動取消；**上線後要用真實流程送一張不及格成績單驗證**
 
 ### 考核後台（樣品與設計稿，已被正式版取代）
@@ -71,7 +71,7 @@
 ### 帳號管理（正式版；SQL 已在 Supabase 執行並通過 113 項驗證；網頁尚未用真實登入實測）
 
 - 帳號管理頁（只有客服部）｜`accounts.html`、`js/accounts-api.js`｜列出帳號（信箱、角色、門市、對應員工），新增、編輯、移除（二次確認）；護欄由資料庫把關，訊息直接顯示；底部操作紀錄（新到舊、每次 50 筆、載入更多、只增不改）
-- 導覽「帳號管理」｜`roster.html`、`assess.html`、`reports.html`｜導覽分頁，只有客服部看得到
+- 導覽「帳號管理」｜`roster.html`、`assess.html`、`backoffice.html`｜導覽分頁，只有客服部看得到
 - 職級「其他（自行輸入）」｜`roster.html`｜新增／編輯人員可自訂職級（必填、最長 20 字）；輸入框失焦或送出時，若恰好等於標準六種職稱就改用標準職級並套用納入考核預設；編輯時職級不在六種內自動選「其他」
 - 編輯帳號的保護｜`accounts.html`｜原門市不在清單、或找不到對應員編時，保留原值並提示，不會悄悄改掉
 
@@ -103,7 +103,7 @@
 
 - 待考回報頁｜`requests.html`、`js/requests-api.js`｜所有已開通角色可進；店長看到回報表單（情況、人員依情況載入、希望日期 1～3 個不早於今天、新人才顯示影片勾選整句紅字、備註 500 字）、「我的回報」清單、開頁時顯示未看過的客服部回覆（已排定／退回）並呼叫 exam_req_mark_seen、待處理可撤回；客服部看到待考回報清單（門市與狀態篩選、排定日期時間、重新排定、退回原因必填、已排定者「開始考核」連到 assess.html）、寄信紀錄（「更新寄信狀態」）、信件預覽，並可代為回報（表單多一個門市選擇）；總公司主管唯讀（沒有表單與任何按鈕）；寫入全走 RPC（exam_req_create／withdraw／schedule／return／mark_seen、mail_outbox_sync），不直接寫資料表
 - 待考回報前端驗證與純函式｜`js/requests-core.js`、`tests/requests-core.test.js`｜`node tests/requests-core.test.js` 印出「通過 94 項」且結束碼 0（日期 1～3 個／不重複／不早於台北今天、新人影片規則、備註 500 字、台北時間 datetime-local 與 ISO 互轉、排定時間不早於現在往前 1 小時、已回報標記與排序）
-- 導覽「待考回報」｜`roster.html`、`assess.html`、`reports.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`、`requests.html`｜所有已開通角色看得到，在「考核後台」之後、「抽查」之前
+- 導覽「待考回報」｜`roster.html`、`assess.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`、`requests.html`｜所有已開通角色看得到，在「考核後台」之後、「抽查」之前
 - 導覽紅點｜`js/appbar.js`、`app.css`｜登入後呼叫 exam_req_badge()，大於 0 時在「待考回報」分頁文字旁顯示紅色數字（超過 99 顯示 99+）；只從 localStorage 讀目前 session 的 access_token（sb-專案代號-auth-token），建不存 session、不換 token、不監聽登入的 client 以 Authorization 標頭呼叫，絕不 refresh、不寫 storage；讀不到 token、JSON 壞掉、token 過期或任何失敗都安靜忽略；登入頁不載入；requests.html 做完動作會呼叫 window.AppBadge.refresh() 重抓
 - 選考生標記「已回報待考」｜`assess.html`、`js/assess-api.js`｜進行考核步驟 1 的清單，已有待處理／已排定回報的人排最前面並顯示黃底「已回報待考」（已排定者附排定時間）；讀取 exam_requests 失敗就照原樣，不擋考核
 
@@ -117,7 +117,7 @@
 - 固定 3 題組｜`assess.html`、`js/assess-api.js`｜選考生按「準備考核・去抽題」後自動呼叫 assess_core_categories 取得核心分類，再用 assess_draw 一次抽齊（每分類 1 題）並直接進評分，不再顯示「弱項與建議題組」面板；步驟列為「固定 3 題組／評分／弱項追加題／送出結果」；若抽題失敗（例如題庫缺題）顯示錯誤並可按「改用自選分類」回到舊的選分類流程；繼續草稿時已有題就直接進評分、沒題就自動抽核心題組
 - 弱項追加題｜`assess.html`、`js/suggest.js`、`js/assess-api.js`｜核心題組評完才出現「分析弱項」（先暫存評分再呼叫 assess_draft_weak）；有弱項顯示面向與得分率、語氣／文字偏低提醒、建議追加題（Suggest 選題，允許同分類，題數預設 2、可選 1～4，可換一題，題庫不足有提示，已在核心題組內的題不會被選到）與「追加弱項題」「不追加，直接送出」；沒有弱項只顯示「沒有明顯弱項，可直接送出」；按「追加弱項題」呼叫 assess_add_extra 後回評分畫面，追加題標示「追加題・不算總分」並顯示追加開始時間（只顯示時間）；追加題沒評完不能前往結算與送出
 - 送出結果頁（第一期）｜`assess.html`｜總分、判定、題組數只看核心題組；追加題另列「弱項追加題・不算入總分」；送出後讀 reply_activations 與 period_status：有待開通紀錄顯示「已加入待開通回覆權限清單」，仍在考核期顯示「仍在考核期，可再約補考」；回考核期者合格線 85 的顯示照舊
-- 成績單追加題區塊｜`reports.html`、`js/assess-api.js`｜成績單詳情（客服部版與主管／店長版）追加題獨立區塊「弱項追加題・不算入總分」；雷達圖與題組列表只用核心題組；主管與店長版追加題不含題組名稱、步驟、考點
+- 成績單追加題區塊｜`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜成績單詳情（客服部版與主管／店長版）追加題獨立區塊「弱項追加題・不算入總分」；雷達圖與題組列表只用核心題組；主管與店長版追加題不含題組名稱、步驟、考點
 - 待開通回覆權限清單｜`requests.html`、`js/requests-api.js`｜只有客服部看得到；讀 reply_activations（人員、門市、通過日期、狀態），可依門市與狀態篩選，待開通排前面；「已開通」按鈕（先跳確認視窗）呼叫 activation_mark_done，已開通者顯示開通日期；清單讀取失敗只在該區塊提示；導覽紅點由 exam_req_badge 提供
 - 考核期與新人標籤｜`roster.html`｜身分標籤依 employees_with_tenure 的 period_status 與 tenure_group：考核期者顯示「考核期」，到職 90 天內另顯示「新人」，其餘顯示「已上線」，未填到職日者另加「未填到職日」；既有門市篩選與搜尋不變；標籤判斷只看 period_status（資料庫遷移與 spot_register 回考核期都會同步，不再看 probation_since）
 - 名冊「回覆狀態」欄位｜`roster.html`｜新增／編輯人員表單多「回覆狀態」下拉（考核期／已上線），只有客服部看得到；新增預設考核期（資料庫預設是已上線，所以新增時一定明確帶 period_status），編輯顯示目前值並可手動調整，存檔寫入 period_status，不動 passed_on；`js/api.js` 直接傳入整列，不需改
@@ -130,12 +130,18 @@
 - 健檢考試流程｜`assess.html?mode=checkup&emp=<員編>&year=<年>&quarter=<季>`、`js/assess-api.js`、`js/assess-checkup-core.js`｜客服部由健檢名單進入，沿用現有核心 3 題組抽題與評分，身分正式、及格線 85；結果頁顯示總分、判定、「健檢結果只記錄在建議單」，連結建議單與健檢名單；非客服部只看到提示；一般考核流程不變｜`node tests/assess-checkup-core.test.js` 通過 37 項
 - 一般考核草稿標示健檢｜`assess.html`｜進行中草稿含健檢者顯示「健檢 年 季」標籤，「繼續」連到健檢網址｜開一般考核頁，有健檢草稿時見標籤
 - 建議單｜`advice.html?assessment=<成績單 id>`、`js/advice-api.js`、`js/advice-core.js`、`js/advice-pdf.js`｜A4 一頁：考生資料、總分與判定（及格線 85）、七面向雷達圖（本次實線、上一次健檢虛線）、各面向得分率與差異、與上一次比較、歷年健檢走勢；首次健檢顯示「首次健檢，沒有上一次可比較」；「下載 PDF」直接下載（檔名 建議單_姓名_健檢日期.pdf）；客服部、主管、該店店長可看｜`node tests/advice-core.test.js` 通過 93 項；開頁按下載 PDF 為 1 頁
-- 成績單列表標示健檢｜`backoffice.html`、`reports.html`、`js/backoffice-api.js`｜歷次成績單與成績單列表的健檢列顯示「健檢 年 Qn」標籤，操作改為「建議單」連結（一般考核列不變）；結案複檢候選排除健檢；成績單 PDF 的上一次與走勢只含一般考核｜開考核後台歷次成績單，健檢列有標籤與建議單連結
+- 成績單列表標示健檢｜`backoffice.html`（近期考核分頁與歷次成績單）、`js/recent-reports.js`、`js/backoffice-api.js`｜歷次成績單與成績單列表的健檢列顯示「健檢 年 Qn」標籤，操作改為「建議單」連結（一般考核列不變）；結案複檢候選排除健檢；成績單 PDF 的上一次與走勢只含一般考核｜開考核後台歷次成績單，健檢列有標籤與建議單連結
 - 健檢資料庫｜`supabase/checkup_schema.sql`、`supabase/checkup_verify_fake.sql`｜門市季次表（種子 Q1 中和、新莊、樹林；Q2 桃園中壢、新竹、花蓮；Q3 旗艦、南台中、太平；Q4 台南、高雄）、健檢排定表、成績單分「考核／健檢」；健檢送出不動考核期、通過日、待開通、不開改善單；兩張新表不開直接讀取｜假環境驗證 250/250，既有各支驗證全過
+
+## 成績單併入考核後台（網頁已寫好；沒有資料庫改動，不需執行新 SQL；真實登入後的讀取尚未實測）
+
+- 近期考核分頁｜`backoffice.html#recent`、`js/recent-reports.js`、`js/recent-reports-core.js`、`tests/recent-reports-core.test.js`｜考核後台新增第一個、也是預設的分頁「近期考核」（原成績單頁全部功能）：搜尋考生（編號、姓名、暱稱）、篩選（門市、日期區間含起訖當天、判定、類型＝一般考核／健檢）、預設最近 20 筆新到舊、「載入更多」每次再 20 筆、計數「顯示 N / 共 M 筆」；點整列開成績單詳情（客服部完整版可作廢、主管與店長精簡版）；健檢列顯示「健檢 年 Qn」標籤與「建議單」連結；草稿與作廢、手動指定、考核期標籤規則同原成績單頁；操作欄固定在右側；詳情視窗點視窗外空白處可關閉｜`node tests/recent-reports-core.test.js` 通過 73 項；開 `backoffice.html` 預設停在「近期考核」
+- 舊網址 reports.html 轉址｜`reports.html`｜極簡轉址頁，用 location.replace 轉到 `backoffice.html` ＋原網址參數 ＋ `#recent`；不載入 Supabase、不顯示導覽列｜開 `reports.html` 會跳到 `backoffice.html#recent`
+- 近期考核與原分頁共用同一個 Supabase client｜`js/assess-api.js`、`js/backoffice-api.js`｜兩檔都改成先看 `window.__sbSharedClient` 有沒有，沒有才建立（只載入其中一檔的頁面行為不變）；近期考核沿用 AssessApi 的 loadSummaries、loadItemsFull、loadItemsLimited、voidReport、signedUrl｜開 `backoffice.html` 登入事件不重複、沒有 Multiple GoTrueClient 警告
 
 ## 版面升級（貳輪嶼 CI）
 
 - 共用版面與配色｜`app.css`、`js/appbar.js`、`img/*`｜6 個頁面頁首為黑底導覽列＋黑色標題橫幅，CI 色黑藍黃白；開 `roster.html` 登入後見黑底導覽、選中分頁黃底、頭像為信箱首字
 - 登入頁 LOGO｜`index.html`｜登入卡片頂部顯示貳輪嶼 LOGO，登入鈕黑底
-- 雷達圖（七面向得分率）｜`js/radar.js`、`reports.html`（成績單詳情，客服部與主管/店長版都有）、`backoffice.html`（人員歷史）｜開一張成績單，標頭下方出現七面向雷達圖、最弱面向橘色，下方表格仍在；人員歷史的「七面向平均得分率」也是雷達圖
+- 雷達圖（七面向得分率）｜`js/radar.js`、`backoffice.html`（近期考核的成績單詳情，客服部與主管/店長版都有；以及人員歷史）、`js/recent-reports.js`｜開一張成績單，標頭下方出現七面向雷達圖、最弱面向橘色，下方表格仍在；人員歷史的「七面向平均得分率」也是雷達圖
 - 名冊姓名連結｜`roster.html`、`backoffice.html`｜點名冊裡的姓名／暱稱，會跳到考核後台並直接打開那位同仁的歷史成績；沒有考核資料的人（離職或未納入考核且無成績單）顯示提示
