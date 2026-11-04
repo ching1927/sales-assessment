@@ -284,6 +284,9 @@ dialog::backdrop{background:var(--scrim)}
     clearTimeout(toast.tm); toast.tm = setTimeout(function () { el.hidden = true; }, 3200);
   }
   function vtag(v) { return v ? '<span class="tag ' + (VCLS[v] || 'reg') + '">' + esc(v) + '</span>' : '<span class="sub">—</span>'; }
+  // 年度健檢成績單標示（例：健檢 2026 Q4）；一般考核回空字串
+  function chkText(r) { return r.kind === 'checkup' ? '健檢' + (r.cy ? ' ' + r.cy + (r.cq ? ' Q' + r.cq : '') : '') : ''; }
+  function chkTag(r) { return r.kind === 'checkup' ? '<span class="tag chk">' + esc(chkText(r)) + '</span>' : ''; }
   function dimTags(list) {
     return list && list.length ? list.map(function (d) { return '<span class="tag reg">' + esc(d) + '</span>'; }).join('') : '<span class="sub">尚未指定</span>';
   }
@@ -301,7 +304,8 @@ dialog::backdrop{background:var(--scrim)}
         id: s.id, eid: s.employee_id, label: s.employee_label, store: s.store_code, ts: Date.parse(s.submitted_at || s.created_at),
         date: dateOf(s.submitted_at || s.created_at), at: stamp(s.submitted_at || s.created_at),
         total: s.total_score == null ? null : Number(s.total_score), verdict: s.verdict, tenure: s.tenure,
-        weakest: s.weakest_dims || [], items: s.item_count
+        weakest: s.weakest_dims || [], items: s.item_count,
+        kind: s.kind === 'checkup' ? 'checkup' : 'exam', cy: s.checkup_year, cq: s.checkup_quarter
       };
     });
     repById = {}; repsByEmp = {};
@@ -453,7 +457,7 @@ dialog::backdrop{background:var(--scrim)}
       return '<tr><td>' + esc(p.name) + ' <span class="mono sub">' + esc(p.id) + '</span></td><td>' + esc(sName(p.store)) + '</td>' +
         '<td><span class="tag ' + tenureCls(tn) + '">' + esc(tn) + '</span></td>' +
         '<td class="ctr">' + rs.length + '</td>' +
-        '<td>' + (last ? '<span class="mono">' + esc(last.date) + '</span> ' + vtag(last.verdict) + ' ' + (last.total == null ? '—' : esc(fmt(last.total)) + ' 分') :'<span class="sub">尚無考核</span>') + '</td>' +
+        '<td>' + (last ? '<span class="mono">' + esc(last.date) + '</span> ' + vtag(last.verdict) + chkTag(last) + ' ' + (last.total == null ? '—' : esc(fmt(last.total)) + ' 分') :'<span class="sub">尚無考核</span>') + '</td>' +
         '<td>' + sparkline(rs.slice(-4).filter(function (r) { return r.total != null; }).map(function (r) { return r.total; })) + '</td>' +
         '<td>' + (tk.length ? '<span class="tag unk">改善中 ' + tk.length + ' 張</span>' + (od ? '<span class="tag out">逾期 ' + od + ' 張</span>' : '') : '<span class="sub">—</span>') + '</td>' +
         '<td class="stick"><button type="button" class="btn sm" data-stu="' + esc(p.id) + '">查看</button></td></tr>';
@@ -485,23 +489,24 @@ dialog::backdrop{background:var(--scrim)}
     var h = '<div class="dlg"><h2>' + esc(p.name) + ' 的考核歷史</h2><dl class="kv">' +
       '<dt>員編</dt><dd class="mono">' + esc(p.id) + '</dd><dt>門市</dt><dd>' + esc(sName(p.store)) + '</dd>' +
       '<dt>到職日</dt><dd class="mono">' + (p.hire ? esc(p.hire) : '未填到職日') + '</dd>' +
-      '<dt>目前身分</dt><dd>' + esc(tn) + '</dd><dt>考核次數</dt><dd>' + rs.length + ' 次</dd></dl>';
+      '<dt>目前身分</dt><dd>' + esc(tn) + '</dd><dt>考核次數</dt><dd>' + rs.length + ' 次' + (rs.some(function (r) { return r.kind === 'checkup'; }) ? '（含年度健檢 ' + rs.filter(function (r) { return r.kind === 'checkup'; }).length + ' 次）' : '') + '</dd></dl>';
     if (!rs.length) return h + '<div class="msg info">這位考生還沒有已送出的成績單。</div>' + stuTickets(tk) + '<div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
     var sc = rs.filter(function (r) { return r.total != null; });
     if (sc.length) {
       var tl = '總分走勢：' + sc.map(function (r) { return r.date + ' ' + fmt(r.total) + '分' + (r.verdict || ''); }).join('、');
       h += '<h3>總分走勢</h3><div class="chartwrap min">' + trendChart(sc, tl) + '</div>' +
-        '<div class="legend"><span><i></i>合格線：新人 70／正式 85（點上標示總分與判定）</span></div>' +
+        '<div class="legend"><span><i></i>合格線：新人 70／正式 85（點上標示總分與判定）' + (sc.some(function (r) { return r.kind === 'checkup'; }) ? '；走勢含年度健檢成績單（數值表有「健檢」標示）' : '') + '</span></div>' +
         '<details class="vals"><summary>展開走勢數值表</summary><div class="scroll"><table><thead><tr><th>日期</th><th class="num">總分</th><th>判定</th></tr></thead><tbody>' +
-        sc.map(function (r) { return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + fmt(r.total) + '</td><td>' + vtag(r.verdict) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
+        sc.map(function (r) { return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + fmt(r.total) + '</td><td>' + vtag(r.verdict) + chkTag(r) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
     } else h += '<h3>總分走勢</h3><p>目前沒有可顯示的總分。</p>';
     var rates = sortedRates(dimRates(rs));
     if (rates.every(function (r) { return r.pct === null; })) h += '<h3>七面向平均得分率</h3><p>目前沒有可分析的面向資料。</p>'; else
     h += '<h3>七面向平均得分率</h3><div class="chartwrap radar">' + Radar.svg(rates, p.name + ' 七面向平均得分率：' + ratesLabel(rates)) + '</div>' +
       '<details class="vals"><summary>展開數值表</summary><div class="scroll">' + barValsTable(rates) + '</div></details>';
-    h += '<h3>歷次成績單</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="num">題組數</th><th class="num">總分</th><th>判定</th><th>考核時身分</th><th>最弱面向</th><th>PDF</th></tr></thead><tbody>' +
+    h += '<h3>歷次成績單</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="num">題組數</th><th class="num">總分</th><th>判定</th><th>考核時身分</th><th>最弱面向</th><th>PDF／建議單</th></tr></thead><tbody>' +
       rs.slice().reverse().map(function (r) {
-        return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + esc(r.items == null ? '—' : r.items) + '</td><td class="num">' + (r.total == null ? '—' : esc(fmt(r.total))) + '</td><td>' + vtag(r.verdict) + '</td><td>' + esc(r.tenure || '—') + '</td><td>' + esc(r.weakest.length ? r.weakest.join('、') : '—') + '</td><td><button type="button" class="btn sm primary" data-pdf="' + esc(r.id) + '">下載 PDF</button></td></tr>';
+        return '<tr><td class="mono">' + esc(r.date) + '</td><td class="num">' + esc(r.items == null ? '—' : r.items) + '</td><td class="num">' + (r.total == null ? '—' : esc(fmt(r.total))) + '</td><td>' + vtag(r.verdict) + '</td><td>' + (r.kind === 'checkup' ? chkTag(r) : esc(r.tenure || '—')) + '</td><td>' + esc(r.weakest.length ? r.weakest.join('、') : '—') + '</td><td>' +
+          (r.kind === 'checkup' ? '<a class="btn sm primary" href="advice.html?assessment=' + encodeURIComponent(r.id) + '">建議單</a>' : '<button type="button" class="btn sm primary" data-pdf="' + esc(r.id) + '">下載 PDF</button>') + '</td></tr>';
       }).join('') + '</tbody></table></div><div class="msg err" id="pdfMsg" role="alert" hidden></div>';
     return h + stuTickets(tk) + '<div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
   }
@@ -681,7 +686,7 @@ dialog::backdrop{background:var(--scrim)}
     if (!isCS() || !isOpenT(t)) return;
     var created = Date.parse(t.created_at);
     var cands = (repsByEmp[t.employee_id] || []).filter(function (r) {
-      return r.id !== t.assessment_id && r.ts > created && (r.verdict === '及格' || r.verdict === '優秀');
+      return r.kind !== 'checkup' && r.id !== t.assessment_id && r.ts > created && (r.verdict === '及格' || r.verdict === '優秀');
     });
     var D = makeDlg('<h2>結案</h2>' + (cands.length
       ? '<p>請選擇一張複檢成績單（只列送出時間晚於開單時間 ' + esc(stamp(t.created_at)) + '、判定為及格或優秀的成績單）。</p><label class="field">複檢成績單<select class="ctrl" id="cRep">' +
