@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>每年健檢</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<style>
+/* 公版 tokens 沒有的兩個中性色（與其他頁相同）：純白（按鈕字、對話框底）、對話框遮罩 */
+body{--surface-solid:#fff;--scrim:rgba(15,23,42,0.30)}
+[hidden]{display:none!important}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+button:disabled{cursor:not-allowed;opacity:.5}
+.page{max-width:1100px;margin:0 auto;padding:var(--sp-4)}
+/* 版面沿用「健檢與建議單樣品」（老闆已確認） */
+.panel{padding:var(--sp-6);margin-bottom:var(--sp-4)}
+.sub{font-size:13px;color:var(--ink-2);line-height:1.6}
+.note{font-size:13px;color:var(--ink-2);line-height:1.7}
+.mono{font-family:var(--mono)}
+.ctrl{padding:9px 12px;border-radius:var(--r-ctrl);border:0.5px solid var(--ink-line);background:var(--glass-bg-strong);min-height:40px;font-size:15px;font-family:inherit;color:var(--ink)}
+.ctrl.sm{min-height:34px;padding:5px 10px;font-size:14px}
+textarea.ctrl{width:100%;min-height:72px;resize:vertical}
+.btn{padding:8px 16px;min-height:38px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);color:var(--ink);font-size:14px;font-weight:600;box-shadow:var(--specular),var(--hairline);cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;transition:transform var(--dur-micro) var(--ease)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.sm{padding:4px 12px;min-height:30px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.list{width:100%;border-collapse:collapse;font-size:14px}
+table.list th,table.list td{padding:10px 10px;text-align:left;border-bottom:1px solid var(--ink-line);white-space:nowrap;vertical-align:middle}
+table.list tbody tr:last-child td{border-bottom:none}
+table.list th{font-size:12px;color:var(--ink-2)}
+table.list td.num,table.list th.num{text-align:right;font-family:var(--mono)}
+th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-shadow:-6px 0 8px -6px rgba(15,23,42,.18)}
+#rosterTable{min-width:980px}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;background:var(--info-soft);color:var(--accent-deep)}
+.tag.new{background:var(--info-soft);color:var(--accent-deep)}
+.tag.reg{background:var(--track);color:var(--ink-2)}
+.tag.unk{background:var(--warning-soft);color:var(--warning)}
+.tag.on{background:var(--success-soft);color:var(--success)}
+.tag.out{background:var(--danger-soft);color:var(--danger)}
+.tag.first{background:var(--ci-yellow);color:var(--ci-black)}
+.msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
+.msg.err{background:var(--danger-soft);color:var(--danger);font-weight:600}
+.msg.info{background:var(--info-soft);color:var(--accent-deep);font-weight:600}
+.empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
+.foot{margin:var(--sp-6) 0 var(--sp-4)}
+.loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
+.blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
+.blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
+.who b{display:block;font-size:14px}
+.who small{display:block;color:var(--ink-3);font-size:12px}
+.opwrap{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap}
+.ophint{display:block;font-size:12px;color:var(--ink-2);white-space:normal;max-width:240px;margin-top:4px;line-height:1.5}
+
+/* 頁內分頁與頂列 */
+.tophead{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:0 0 var(--sp-4)}
+.pgtabs{display:flex;gap:6px;padding:5px;border-radius:var(--r-pill);background:var(--track);width:max-content;max-width:100%;overflow-x:auto}
+.pgtab{padding:9px 22px;border-radius:var(--r-pill);border:0;background:transparent;font-size:15px;font-weight:700;color:var(--ink-2);cursor:pointer;font-family:inherit;white-space:nowrap}
+.pgtab:hover{color:var(--ink)}
+.pgtab.on{background:var(--ci-black);color:var(--ci-yellow);box-shadow:0 2px 10px rgba(10,10,10,.25)}
+.pane[hidden]{display:none}
+.spotlink{font-weight:700;color:var(--accent-deep);text-decoration:none;font-size:14px}
+.spotlink:hover{text-decoration:underline}
+
+/* 季次統計卡 */
+.qcards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-3);margin-bottom:var(--sp-4)}
+.qcard{padding:var(--sp-4) var(--sp-6)}
+.qcard small{display:block;font-size:12px;font-weight:700;color:var(--ink-2);letter-spacing:1px}
+.qcard b{display:block;font-size:30px;font-weight:800;line-height:1.2;margin-top:2px}
+.qcard b span{font-size:14px;font-weight:600;color:var(--ink-2);margin-left:2px}
+.qcard em{display:block;font-style:normal;font-size:13px;color:var(--ink-2);margin-top:2px}
+.qcard.now{box-shadow:0 0 0 2px var(--ci-yellow),var(--shadow)}
+.savebar{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin-top:var(--sp-4)}
+.prevhead{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin-bottom:var(--sp-3)}
+.prevhead .grow{flex:1}
+@media (max-width:760px){.qcards{grid-template-columns:repeat(2,1fr)}}
+
+dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
+dialog::backdrop{background:var(--scrim)}
+.dlg{padding:var(--sp-6)}
+.dlg h2{font-size:19px;margin:0 0 var(--sp-3)}
+.dlg p{font-size:14px;line-height:1.6;color:var(--ink-2)}
+.actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
+.field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
+.field .ctrl{display:block;width:100%;margin-top:6px;font-weight:400}
+.field textarea{min-height:100px}
+.fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:calc(100% - 32px);padding:12px 20px;border-radius:var(--r-ctrl);
+  background:var(--ink);color:var(--surface-solid);font-weight:600;font-size:14px;box-shadow:var(--shadow-lg)}
+@media (max-width:640px){
+  .panel{padding:var(--sp-4)}
+}
+@media (max-width:480px){
+  .dlg{padding:var(--sp-4)}
+  .fieldrow{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="loading" id="loading" role="status">載入中…</div>
+
+  <section class="blocked glass" id="blocked" hidden>
+    <p id="blockedText"></p>
+    <button class="btn" id="blockedLogout" type="button">登出</button>
+  </section>
+
+  <div id="app" hidden>
+    <header class="ab-bar">
+      <div class="ab-in">
+        <a class="ab-brand" href="roster.html" aria-label="貳輪嶼 MOTOR ISLAND"><img src="img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND"></a>
+        <nav class="ab-tabs" aria-label="主要功能">
+        <a class="ab-tab" href="roster.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
+        <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
+        <a class="ab-tab" href="reports.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>成績單</a>
+        <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>考核後台</a>
+        <a class="ab-tab" href="requests.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
+        <a class="ab-tab on" href="checkup.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>健檢</a>
+        <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
+        <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
+        </nav>
+        <div class="ab-me">
+          <div class="ab-me-txt"><b id="whoEmail"></b><span class="ab-role" id="whoBadge"></span></div>
+          <div class="ab-avatar" id="whoAvatar" aria-hidden="true"></div>
+          <button class="ab-icon" id="logout" type="button" aria-label="登出" title="登出"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+        </div>
+      </div>
+    </header>
+    <section class="ab-hero">
+      <div class="ab-crumb">考核　/　每年健檢</div>
+      <h1>每年健檢：門市季次與健檢名單</h1>
+    </section>
+
+    <div class="msg err" id="pageMsg" role="alert" hidden></div>
+
+    <div class="tophead">
+      <div class="pgtabs" role="tablist" aria-label="健檢功能分頁">
+        <button type="button" class="pgtab on" role="tab" data-pane="paneStores" aria-selected="true">門市季次表</button>
+        <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢名單</button>
+      </div>
+      <a class="spotlink" id="spotLink" href="spotcheck.html" hidden>抽查（黃單／紅單）</a>
+    </div>
+
+    <!-- ① 門市季次表 -->
+    <section class="pane" id="paneStores" role="tabpanel">
+      <div class="qcards" id="qcards"></div>
+      <section class="glass panel">
+        <p class="sub" id="storeHint" style="margin-bottom:var(--sp-3)"></p>
+        <div class="msg err" id="storeErr" role="alert" hidden></div>
+        <div class="scroll" tabindex="0" aria-label="門市季次表，可左右捲動"><table class="list"><thead><tr><th>門市</th><th>健檢季</th><th class="num">約人數</th></tr></thead><tbody id="storeBody"></tbody></table></div>
+        <div class="empty" id="storeEmpty" hidden>沒有門市資料</div>
+        <div class="savebar" id="saveBar" hidden><button type="button" class="btn primary" id="saveStores">儲存</button><span class="sub" id="storeSum"></span></div>
+        <p class="sub" id="storeSumRo" style="margin-top:var(--sp-3)" hidden></p>
+      </section>
+    </section>
+
+    <!-- ② 健檢名單 -->
+    <section class="pane" id="paneList" role="tabpanel" hidden>
+      <section class="glass panel">
+        <div class="prevhead">
+          <label for="listYear" class="sub">年度</label><select id="listYear" class="ctrl"></select>
+          <label for="listQ" class="sub">季次</label><select id="listQ" class="ctrl"></select>
+          <span class="grow sub" id="listInfo" aria-live="polite"></span>
+          <label for="listStore" class="sub">門市</label><select id="listStore" class="ctrl"></select>
+        </div>
+        <div class="msg err" id="listMsg" role="alert" hidden></div>
+        <div class="scroll" tabindex="0" aria-label="健檢名單，可左右捲動"><table class="list" id="rosterTable"><thead><tr><th>人員</th><th>門市</th><th>到職日</th><th>標籤</th><th>狀態</th><th>排定時間</th><th>分數與判定</th><th class="stick">操作</th></tr></thead><tbody id="listBody"></tbody></table></div>
+        <div class="empty" id="listEmpty" hidden>這一季沒有應健檢的人員。</div>
+      </section>
+    </section>
+
+    <p class="note" id="roleNote" style="margin-top:var(--sp-4)"></p>
+  </div>
+
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/checkup-core.js"></script>
+<script src="js/checkup-api.js"></script>
+<script>
+(function () {
+  var C = CheckupCore;
+  var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ====== 狀態 ======
+  var me = null;
+  var qrows = [];          // checkup_quarters_list 的結果
+  var pending = {};        // 客服部尚未儲存的選擇 { 門市代碼: 季次 }
+  var roster = [], rosterKey = '', rosterSeq = 0, rosterLoaded = false;
+  var busy = false, dyn = [];
+  var now = C.taipeiYearQuarter();
+
+  function isCS() { return !!me && me.role === 'cs_admin'; }
+  function errText(e) { return (e && e.userMessage) || CheckupApi.explain(e); }
+  function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
+  function doLogout() { CheckupApi.signOut().then(function () { goLogin(''); }); }
+  function showBlocked(text) {
+    $('loading').hidden = true; $('app').hidden = true;
+    $('blockedText').textContent = text; $('blocked').hidden = false;
+  }
+  function showMsg(id, t) { var m = $(id); m.textContent = t || ''; m.hidden = !t; }
+  function toast(t) {
+    var el = $('toast'); el.textContent = t; el.hidden = false;
+    clearTimeout(toast.tm); toast.tm = setTimeout(function () { el.hidden = true; }, 3200);
+  }
+  function sName(code) {
+    for (var i = 0; i < qrows.length; i++) if (qrows[i].store_code === code) return qrows[i].store_name || code;
+    return code || '—';
+  }
+
+  // ====== 分頁 ======
+  function showPane(id) {
+    Array.prototype.forEach.call(document.querySelectorAll('.pane'), function (p) { p.hidden = p.id !== id; });
+    Array.prototype.forEach.call(document.querySelectorAll('.pgtab'), function (b) {
+      var on = b.getAttribute('data-pane') === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    if (id === 'paneList' && !rosterLoaded) loadRoster();
+  }
+  document.querySelector('.pgtabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.pgtab'); if (b) showPane(b.getAttribute('data-pane'));
+  });
+
+  // ====== ① 門市季次表 ======
+  function renderStores() {
+    var rows = C.sortStores(qrows, 'store_code');
+    $('storeEmpty').hidden = rows.length > 0;
+    $('storeBody').innerHTML = rows.map(function (r) {
+      var q = pending[r.store_code] || r.quarter;
+      var cell = isCS()
+        ? '<select class="ctrl sm" data-store="' + esc(r.store_code) + '" aria-label="' + esc(r.store_name || r.store_code) + ' 健檢季"' + (busy ? ' disabled' : '') + '>' +
+          C.QUARTERS.map(function (n) { return '<option value="' + n + '"' + (Number(q) === n ? ' selected' : '') + '>Q' + n + '</option>'; }).join('') + '</select>'
+        : '<span class="tag reg">Q' + esc(r.quarter) + '</span>';
+      return '<tr><td><b>' + esc(r.store_name || r.store_code) + '</b></td><td>' + cell + '</td><td class="num">' + esc(r.headcount == null ? '—' : r.headcount) + '</td></tr>';
+    }).join('');
+    updateStats();
+  }
+  function updateStats() {
+    var stats = C.quarterStats(qrows, pending), totS = 0, totP = 0;
+    $('qcards').innerHTML = stats.map(function (s) {
+      totS += s.stores; totP += s.people;
+      var cur = s.quarter === now.quarter;
+      return '<div class="glass qcard' + (cur ? ' now' : '') + '"><small>Q' + s.quarter + (cur ? '　（本季）' : '') + '</small><b>' + s.stores + '<span>家門市</span></b><em>約 ' + s.people + ' 人</em></div>';
+    }).join('');
+    var sum = '合計 ' + totS + ' 家門市、約 ' + totP + ' 人';
+    var n = C.changedStores(qrows, pending).length;
+    if (isCS()) {
+      $('storeSum').textContent = sum + (n ? '（有 ' + n + ' 家尚未儲存）' : '');
+      $('saveStores').disabled = busy || n === 0;
+    } else {
+      $('storeSumRo').textContent = sum;
+    }
+  }
+  $('storeBody').addEventListener('change', function (e) {
+    var s = e.target.getAttribute('data-store'); if (!s || !isCS() || busy) return;
+    pending[s] = Number(e.target.value);
+    showMsg('storeErr', '');
+    updateStats();
+  });
+  $('saveStores').addEventListener('click', function () {
+    if (!isCS() || busy) return;
+    var list = C.changedStores(qrows, pending);
+    if (!list.length) return;
+    busy = true; $('saveStores').disabled = true; showMsg('storeErr', '');
+    var done = 0, failMsg = '';
+    // 一家一家存；遇到失敗就停，已存的保留
+    list.reduce(function (p, it) {
+      return p.then(function () {
+        if (failMsg) return;
+        return CheckupApi.setQuarter(it.store, it.quarter).then(function () { done++; delete pending[it.store]; },
+          function (e) { failMsg = '「' + sName(it.store) + '」儲存失敗：' + errText(e); });
+      });
+    }, Promise.resolve()).then(function () {
+      return CheckupApi.quarters().then(function (rows) { qrows = rows; }, function (e) {
+        failMsg = (failMsg ? failMsg + '　' : '') + '已儲存，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。';
+      });
+    }).then(function () {
+      busy = false;
+      if (failMsg) showMsg('storeErr', (done ? '已儲存 ' + done + ' 家；' : '') + failMsg);
+      else toast('門市季次已儲存。改的季次從下一次名單起算，不影響已排定的健檢。');
+      renderStores(); refreshStoreOptions();
+      // 季次變了，名單頁下次要重讀
+      if (done) rosterLoaded = false;
+      if (done && !$('paneList').hidden) loadRoster();
+    });
+  });
+
+  // ====== ② 健檢名單 ======
+  function selYear() { return Number($('listYear').value); }
+  function selQ() { return Number($('listQ').value); }
+  function refreshStoreOptions() {
+    var keep = $('listStore').value;
+    var opts = C.rosterStoreOptions(roster, qrows, selQ());
+    $('listStore').innerHTML = '<option value="">全部門市</option>' + opts.map(function (o) {
+      return '<option value="' + esc(o.store_code) + '">' + esc(o.store_name) + '</option>';
+    }).join('');
+    $('listStore').value = opts.some(function (o) { return o.store_code === keep; }) ? keep : '';
+  }
+  function loadRoster() {
+    var y = selYear(), q = selQ(), seq = ++rosterSeq;
+    rosterKey = y + '-' + q; rosterLoaded = true;
+    showMsg('listMsg', '');
+    roster = []; renderRoster(true);
+    CheckupApi.roster(y, q).then(function (rows) {
+      if (seq !== rosterSeq) return;      // 已切換年度或季次，舊回應不採用
+      roster = rows; refreshStoreOptions(); renderRoster(false);
+    }, function (e) {
+      if (seq !== rosterSeq) return;
+      showMsg('listMsg', '讀取健檢名單失敗：' + errText(e));
+      roster = []; refreshStoreOptions(); renderRoster(false);
+      rosterLoaded = false;
+    });
+  }
+  function opsHtml(r, y, q) {
+    var o = C.rosterActions(r, me && me.role, y, q);
+    var html = o.buttons.map(function (b) {
+      if (b.href) return '<a class="btn sm' + (b.kind === 'begin' || b.kind === 'continue' || b.kind === 'advice' ? ' primary' : '') + '" href="' + esc(b.href) + '">' + esc(b.label) + '</a>';
+      return '<button type="button" class="btn sm' + (b.kind === 'schedule' ? ' primary' : ' danger') + '" data-k="' + b.kind + '" data-e="' + esc(r.employee_id) + '"' + (busy ? ' disabled' : '') + '>' + esc(b.label) + '</button>';
+    }).join('');
+    if (!html) html = '<span class="sub">—</span>';
+    return '<div class="opwrap">' + html + '</div>' + (o.hint ? '<span class="ophint">' + esc(o.hint) + '</span>' : '');
+  }
+  function renderRoster(loading) {
+    var y = selYear(), q = selQ();
+    var sel = $('listStore').value;
+    var rows = C.sortRoster(C.filterRoster(roster, sel));
+    var stores = C.rosterStoreOptions(roster, qrows, q).map(function (o) { return o.store_name; });
+    $('listInfo').textContent = loading ? '載入中…' : y + ' Q' + q + '：' + (stores.length ? stores.join('、') : '沒有門市') + '　共 ' + rows.length + ' 人';
+    $('listEmpty').hidden = loading || rows.length > 0 || !!$('listMsg').textContent;
+    $('listBody').innerHTML = rows.map(function (r) {
+      var st = C.statusInfo(r.status);
+      var done = r.status === '已完成';
+      return '<tr>' +
+        '<td class="who"><b>' + esc(r.display_name || r.employee_id) + '</b><small class="mono">' + esc(r.employee_id) + '</small></td>' +
+        '<td>' + esc(r.store_name || r.store_code) + '</td>' +
+        '<td class="mono">' + esc(r.hire_date || '—') + '</td>' +
+        '<td>' + (r.is_first ? '<span class="tag first">首次健檢</span>' : '') + '</td>' +
+        '<td><span class="tag ' + st.cls + '">' + esc(st.label) + '</span></td>' +
+        '<td class="mono">' + esc(C.formatScheduled(r.scheduled_at)) + '</td>' +
+        '<td>' + (done ? '<b>' + esc(C.formatScore(r.score)) + '</b> <span class="tag ' + C.verdictCls(r.verdict) + '">' + esc(r.verdict || '—') + '</span>' : '<span class="sub">—</span>') + '</td>' +
+        '<td class="stick">' + opsHtml(r, y, q) + '</td></tr>';
+    }).join('');
+  }
+  ['listYear', 'listQ'].forEach(function (id) { $(id).addEventListener('change', loadRoster); });
+  $('listStore').addEventListener('change', function () { renderRoster(false); });
+
+  $('listBody').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b || !isCS() || busy) return;
+    var r = null;
+    for (var i = 0; i < roster.length; i++) if (roster[i].employee_id === b.dataset.e) { r = roster[i]; break; }
+    if (!r) return;
+    if (b.dataset.k === 'schedule') actSchedule(r);
+    else if (b.dataset.k === 'unschedule') actUnschedule(r);
+  });
+
+  // ====== 對話框與寫入動作（寫法同待考回報頁） ======
+  function makeDlg(html) {
+    var d = document.createElement('dialog'); d.innerHTML = '<form class="dlg" novalidate>' + html + '</form>';
+    document.body.appendChild(d); dyn.push(d);
+    function rm() { if (d.open) d.close(); d.remove(); dyn = dyn.filter(function (x) { return x !== d; }); }
+    d.addEventListener('cancel', function () { setTimeout(rm, 0); });
+    d.querySelector('[data-no]').addEventListener('click', rm);
+    d.showModal();
+    return { el: d, rm: rm, q: function (sel) { return d.querySelector(sel); } };
+  }
+  // 送出一個寫入：成功才關對話框並重讀名單；失敗把函式回傳的訊息顯示在對話框內
+  function submitAct(D, btn, errSel, job, okMsg) {
+    var err = D.q(errSel);
+    if (busy) return;
+    busy = true; btn.disabled = true; err.hidden = true;
+    job().then(function () {
+      D.rm(); toast(okMsg);
+      loadRoster();
+    }, function (e) { err.textContent = errText(e); err.hidden = false; })
+      .then(function () { busy = false; btn.disabled = false; });
+  }
+  function who(r) { return esc(r.display_name || r.employee_id) + '（' + esc(r.employee_id) + '，' + esc(r.store_name || r.store_code) + '）'; }
+
+  function actSchedule(r) {
+    if (r.status !== '待排定') return;
+    var y = selYear(), q = selQ();
+    var D = makeDlg('<h2>排定健檢</h2><p>' + who(r) + '<br>' + y + ' 年第 ' + q + ' 季</p>' +
+      '<div class="fieldrow"><label class="field">日期（台北時間）<input class="ctrl" type="date" id="sDate"></label>' +
+      '<label class="field">時間<input class="ctrl" type="time" id="sTime"></label></div>' +
+      '<label class="field">備註（選填，500 字內）<textarea class="ctrl" id="sNote"></textarea></label>' +
+      '<div class="msg err" id="sErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="sOk">確認排定</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var err = D.q('#sErr'), note = D.q('#sNote').value.trim();
+      var iso = C.scheduleToIso(D.q('#sDate').value, D.q('#sTime').value);
+      if (!iso) { err.textContent = '請選擇健檢日期與時間。'; err.hidden = false; return; }
+      var m = C.noteError(note);
+      if (m) { err.textContent = m; err.hidden = false; return; }
+      submitAct(D, D.q('#sOk'), '#sErr', function () { return CheckupApi.schedule(r.employee_id, y, q, iso, note); }, '已排定。');
+    });
+  }
+  function actUnschedule(r) {
+    if (r.status !== '已排定' || r.assessment_status === 'draft' || !r.checkup_id) return;
+    var D = makeDlg('<h2>取消排定</h2><p>' + who(r) + '，原排定時間 ' + esc(C.formatScheduled(r.scheduled_at)) + '。取消後這位人員回到「待排定」，可以重新排定。</p>' +
+      '<div class="msg err" id="uErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn primary" type="submit" id="uOk">確認取消排定</button></div>');
+    D.el.querySelector('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      submitAct(D, D.q('#uOk'), '#uErr', function () { return CheckupApi.unschedule(r.checkup_id); }, '已取消排定。');
+    });
+  }
+
+  // ====== 載入與角色 ======
+  function applyRole() {
+    var lab = ROLE_LABEL[me.role] + (me.role === 'store_manager' ? '・' + sName(me.store_code) : '');
+    $('whoBadge').textContent = lab;
+    $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
+    $('spotLink').hidden = false;      // 原本看得到抽查的角色＝所有已開通角色；第三期整併後這個連結會拿掉
+    $('saveBar').hidden = !isCS();
+    $('storeSumRo').hidden = isCS();
+    $('storeHint').textContent = isCS()
+      ? '請為每家門市選擇它的健檢季；改完上方統計會即時更新，按「儲存」才會生效。改的季次從下一次名單起算，不影響已排定的健檢。'
+      : me.role === 'store_manager' ? '這是你門市的健檢季；季次由客服部指定。' : '各門市的健檢季由客服部指定，這裡只能查看。';
+    $('roleNote').textContent = isCS() ? '客服部可改門市季次、排定與取消排定健檢、開始健檢（進入考核頁）。'
+      : me.role === 'store_manager' ? '只顯示自己門市；只能查看，已完成的健檢可查看建議單。'
+      : '總公司主管只能查看；已完成的健檢可查看建議單。';
+  }
+
+  $('logout').addEventListener('click', doLogout);
+  $('blockedLogout').addEventListener('click', doLogout);
+  CheckupApi.onSignedOut(function () { goLogin(''); });
+
+  // ====== 啟動：登入、網域、開通三道檢查 ======
+  CheckupApi.getSession().then(function (session) {
+    if (!session) { goLogin(''); return; }
+    var email = (session.user && session.user.email) || '';
+    if (!/@2motor\.tw$/i.test(email)) {
+      CheckupApi.signOut().then(function () { goLogin('domain'); });
+      return;
+    }
+    $('whoEmail').textContent = email;
+    return CheckupApi.loadMe(email).then(function (row) {
+      if (!row || !ROLE_LABEL[row.role]) { showBlocked('你的帳號尚未開通，請聯絡客服部。'); return; }
+      me = row;
+      // 名單頁的年度、季次下拉：預設今天（台北時間）所在的年與季
+      $('listYear').innerHTML = C.yearOptions().map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
+      $('listQ').innerHTML = C.QUARTERS.map(function (n) { return '<option value="' + n + '">Q' + n + '</option>'; }).join('');
+      $('listYear').value = String(now.year); $('listQ').value = String(now.quarter);
+      $('loading').hidden = true; $('app').hidden = false;
+      applyRole();
+      return CheckupApi.quarters().then(function (rows) {
+        qrows = rows; applyRole(); renderStores(); refreshStoreOptions();
+      }, function (e) {
+        showMsg('pageMsg', '讀取門市季次失敗：' + errText(e));
+        renderStores();
+      });
+    });
+  }).catch(function (e) {
+    showBlocked(errText(e) || '載入失敗，請重新整理頁面。');
+  });
+})();
+</script>
+<script src="js/appbar.js"></script>
+</body>
+</html>
