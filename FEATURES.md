@@ -123,6 +123,16 @@
 - 名冊「回覆狀態」欄位｜`roster.html`｜新增／編輯人員表單多「回覆狀態」下拉（考核期／已上線），只有客服部看得到；新增預設考核期（資料庫預設是已上線，所以新增時一定明確帶 period_status），編輯顯示目前值並可手動調整，存檔寫入 period_status，不動 passed_on；`js/api.js` 直接傳入整列，不需改
 - 第一期網頁驗證方式｜以 jsdom 搭配假的 Api 物件逐項驗證（有弱項／無弱項／不追加／追加題未評完不能送出／核心抽題失敗改自選／繼續草稿／放棄／通過與未通過結果頁／成績單追加題區塊／待開通清單／名冊標籤）；`node tests/suggest.test.js`、`tests/scoring.test.js`、`tests/requests-core.test.js` 皆結束碼 0
 
+## 第二期：每年健檢（網頁已寫好，尚未連真實資料庫；需先執行 supabase/checkup_schema.sql，規格見 supabase/README_checkup.md）
+
+- 健檢頁｜`checkup.html`、`js/checkup-api.js`、`js/checkup-core.js`｜導覽列「健檢」；兩個頁籤：門市季次表（客服部可改 Q1～Q4，主管與店長唯讀，頂端四季統計即時更新）、健檢名單（選年度與季次、門市篩選；狀態待排定／已排定／已完成、首次健檢標籤；客服部可排定、取消排定、開始／繼續健檢；已完成者可查看建議單）；頁內有「抽查（黃單／紅單）」連結｜`node tests/checkup-core.test.js` 通過 77 項；開頁看兩個頁籤
+- 導覽列抽查換健檢｜各頁 html 的 `ab-tab`｜導覽列指向抽查的分頁改為「健檢」（checkup.html）；抽查頁 spotcheck.html 仍可由健檢頁內連結進入｜任一頁導覽列顯示「健檢」且不再有「抽查」
+- 健檢考試流程｜`assess.html?mode=checkup&emp=<員編>&year=<年>&quarter=<季>`、`js/assess-api.js`、`js/assess-checkup-core.js`｜客服部由健檢名單進入，沿用現有核心 3 題組抽題與評分，身分正式、及格線 85；結果頁顯示總分、判定、「健檢結果只記錄在建議單」，連結建議單與健檢名單；非客服部只看到提示；一般考核流程不變｜`node tests/assess-checkup-core.test.js` 通過 37 項
+- 一般考核草稿標示健檢｜`assess.html`｜進行中草稿含健檢者顯示「健檢 年 季」標籤，「繼續」連到健檢網址｜開一般考核頁，有健檢草稿時見標籤
+- 建議單｜`advice.html?assessment=<成績單 id>`、`js/advice-api.js`、`js/advice-core.js`、`js/advice-pdf.js`｜A4 一頁：考生資料、總分與判定（及格線 85）、七面向雷達圖（本次實線、上一次健檢虛線）、各面向得分率與差異、與上一次比較、歷年健檢走勢；首次健檢顯示「首次健檢，沒有上一次可比較」；「下載 PDF」直接下載（檔名 建議單_姓名_健檢日期.pdf）；客服部、主管、該店店長可看｜`node tests/advice-core.test.js` 通過 93 項；開頁按下載 PDF 為 1 頁
+- 成績單列表標示健檢｜`backoffice.html`、`reports.html`、`js/backoffice-api.js`｜歷次成績單與成績單列表的健檢列顯示「健檢 年 Qn」標籤，操作改為「建議單」連結（一般考核列不變）；結案複檢候選排除健檢；成績單 PDF 的上一次與走勢只含一般考核｜開考核後台歷次成績單，健檢列有標籤與建議單連結
+- 健檢資料庫｜`supabase/checkup_schema.sql`、`supabase/checkup_verify_fake.sql`｜門市季次表（種子 Q1 中和、新莊、樹林；Q2 桃園中壢、新竹、花蓮；Q3 旗艦、南台中、太平；Q4 台南、高雄）、健檢排定表、成績單分「考核／健檢」；健檢送出不動考核期、通過日、待開通、不開改善單；兩張新表不開直接讀取｜假環境驗證 250/250，既有各支驗證全過
+
 ## 版面升級（貳輪嶼 CI）
 
 - 共用版面與配色｜`app.css`、`js/appbar.js`、`img/*`｜6 個頁面頁首為黑底導覽列＋黑色標題橫幅，CI 色黑藍黃白；開 `roster.html` 登入後見黑底導覽、選中分頁黃底、頭像為信箱首字

@@ -1,12 +1,3 @@
-/* 導覽列「抽查」換成「健檢」：各頁的導覽列是寫死在各自的 html 裡，這裡統一把指向 spotcheck.html 的分頁改成指向 checkup.html 的「健檢」
-   （圖示換成愛心、文字換成「健檢」，其餘分頁、目前頁標示、紅點都不動）。抽查頁本身改從健檢頁內的連結進入；第三期整併後這段可拿掉。 */
-(function () {
-  var tab = document.querySelector('a.ab-tab[href="spotcheck.html"]');
-  if (!tab) return;
-  tab.setAttribute('href', 'checkup.html');
-  tab.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>健檢';
-})();
-
 /* 導覽列頭像：取登入信箱第一個字母（信箱由各頁原本的程式寫入 #whoEmail） */
 (function () {
   var email = document.getElementById('whoEmail');
