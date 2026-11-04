@@ -189,11 +189,11 @@
     return h;
   }
 
-  // 總公司主管／店長：只有日期、考官、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數、考官備註與附圖
-  // （不產生題組名稱、步驟、考點、作廢鈕；也不查機密表；考官備註來自 assessment_items.note）
+  // 總公司主管／店長：只有日期、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數、考官備註與附圖
+  // （不產生題組名稱、步驟、考點、考官信箱、作廢鈕；也不查機密表；考官備註來自 assessment_items.note）
   function detailLimited(r, items) {
     var core = items.filter(function (x) { return !x.isExtra; }), extras = items.filter(function (x) { return !!x.isExtra; });
-    var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>' +
+    var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
       '<dt>考生身分</dt><dd>' + esc(r.tenure) + (C.isCheckup(r) ? ' <span class="tag chk">年度健檢</span>' : '') + '</dd>' +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '—' : esc(C.fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +

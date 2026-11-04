@@ -32,7 +32,7 @@
 - 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核
 - 考官備註文字對主管與店長可見｜`supabase/notes_visible_schema.sql`、`supabase/notes_visible_verify_fake.sql`（驗證，結尾自動復原）、`supabase/README_notes_visible.md`、`assess.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜備註改存 assessment_items.note（舊 secrets.note 停用並清空）；客服部、主管、同門市店長讀得到（主管與店長限已送出未作廢）；備註框與附圖區提醒考官不要貼腳本或考點
 - 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址
-- 成績單（所有已開通角色）｜考核後台「近期考核」分頁（`backoffice.html#recent`、`js/recent-reports.js`；舊網址 `reports.html` 已改為轉址頁）｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
+- 成績單（所有已開通角色）｜考核後台「近期考核」分頁（`backoffice.html#recent`、`js/recent-reports.js`；舊網址 `reports.html` 已改為轉址頁）｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點、考官信箱（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
 - 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`backoffice.html`｜頁首黑底導覽列（貳輪嶼 LOGO、圖示分頁、目前頁黃底、頭像、登出圖示；窄螢幕分頁自成一行、信箱隱藏只留角色標籤）；分頁順序：人員名冊、進行考核（客服部）、成績單&考核後台（原「成績單」與「考核後台」合併）、題庫管理（客服部）、帳號管理（客服部）；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」
 
 ### 抽查系統（網頁已寫好，尚未連真實資料庫；需先執行 supabase/spotcheck_schema.sql，規格見 supabase/README_spotcheck.md）
