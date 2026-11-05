@@ -15,7 +15,7 @@
  *   ReportPdfCore.trendSeries(list, currentId)   歷次走勢（全部歷次）-> { points:[...], curIdx }
  *   ReportPdfCore.itemRows(items, opts)          每題得分列；opts.showTitle 為 false（非客服部）時完全不帶題名
  *   ReportPdfCore.buildReport(input)             把資料整理成 PDF 要畫的內容 -> { ok, model } 或 { ok:false, error }
-  *   ReportPdfCore.layoutPages(blocks, contentH)  分頁分配：以區塊／表格列為單位，不切半；換頁處重印表頭；算各頁剩餘高度分配
+ *   ReportPdfCore.layoutPages(blocks, contentH)  分頁分配：以區塊／表格列為單位，不切半；換頁處重印表頭；算各頁剩餘高度分配
  *   ReportPdfCore.trendLabelLayout(o)            走勢圖標籤避讓（合格線文字與資料點標籤互相、與折線、資料點都不重疊）-> { lines, points }
  *
  * 等級：優 100%、良 70%、待加強 40%、不及格 0%（見 scoring.js）。差異一律以「十分位整數」比較，避免浮點誤差。
