@@ -272,4 +272,37 @@ ok(l30.pages[1].rowExtra <= 1, '第 2 頁已幾乎塞滿，列只加高一點點
 var full = C.layoutPages([{ h: H, type: 'blk' }], H);
 eq(full.pages[0].gapExtra, 0, '剛好一頁高沒有可分配');
 
+
+// ===== 走勢圖標籤避讓 trendLabelLayout =====
+function rectsOf(lay, o) {
+  var rs = [];
+  lay.lines.forEach(function (l, i) { var w = 0; String(o.lines[i].text).split('').forEach(function (c) { w += c.charCodeAt(0) > 255 ? 11 : 6.2; }); var L = l.anchor === 'end' ? l.x - w : l.x; rs.push({ l: L, r: L + w, t: l.y - 10, b: l.y + 3 }); });
+  return rs;
+}
+function overlap(a, b) { return a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b; }
+// 情境 (a)：最後一點 81.5 貼近 85 線，單條合格線
+var oa = { lineX: { l: 44, r: 690 }, bounds: { l: 44, r: 712, t: 2, b: 640 }, lines: [{ y: 100, text: '及格線 85' }],
+  points: [{ x: 94, y: 160, score: '59.5', verdict: '不及格' }, { x: 366, y: 140, score: '72', verdict: '需複訓' }, { x: 640, y: 110, score: '81.5', verdict: '需複訓' }] };
+var la = C.trendLabelLayout(oa);
+eq(la.points.length, 3, '建議單：每點都有標籤位置');
+var ra = rectsOf(la, oa)[0];
+la.points.forEach(function (p, i) {
+  var x = oa.points[i].x, y = oa.points[i].y, bx = p.score.anchor === 'middle' ? x - 14 : p.score.anchor === 'start' ? p.score.x : p.score.x - 28;
+  ok(!overlap({ l: bx, r: bx + 28, t: p.score.y - 11, b: p.score.y + 2 }, ra), '建議單：第 ' + (i + 1) + ' 點分數不壓合格線文字');
+  ok(!overlap({ l: bx, r: bx + 28, t: p.score.y - 11, b: p.score.y + 2 }, { l: x - 8, r: x + 8, t: y - 8, b: y + 8 }), '建議單：第 ' + (i + 1) + ' 點分數不壓自己的圓點');
+});
+// 情境 (b)：兩條合格線 85、70，74.5 夾在兩線中間且貼右緣
+var ob = { lineX: { l: 44, r: 580 }, bounds: { l: 44, r: 598, t: 2, b: 320 }, lines: [{ y: 127, text: '新人合格線 70' }, { y: 83.5, text: '正式合格線 85' }],
+  points: [{ x: 80, y: 100.9, score: '79', verdict: '需複訓' }, { x: 340, y: 70.5, score: '89.5', verdict: '及格' }, { x: 544, y: 114, score: '74.5', verdict: '不及格' }] };
+var lb = C.trendLabelLayout(ob), rb = rectsOf(lb, ob);
+ok(!overlap(rb[0], rb[1]), '成績單：兩條合格線文字互不重疊');
+lb.points.forEach(function (p, i) {
+  var x = ob.points[i].x, bx = p.score.anchor === 'middle' ? x - 14 : p.score.anchor === 'start' ? p.score.x : p.score.x - 28, sr = { l: bx, r: bx + 28, t: p.score.y - 11, b: p.score.y + 2 };
+  rb.forEach(function (r, k) { ok(!overlap(sr, r), '成績單：第 ' + (i + 1) + ' 點分數不壓合格線文字 ' + (k + 1)); });
+  ok(sr.l >= 44 - 1 && sr.r <= 598, '成績單：第 ' + (i + 1) + ' 點分數在可用範圍內');
+});
+// 沒有合格線、單一點：回傳上方標籤
+var one = C.trendLabelLayout({ lineX: { l: 0, r: 100 }, bounds: { l: 0, r: 100, t: 0, b: 100 }, lines: [], points: [{ x: 50, y: 60, score: '80', verdict: '' }] });
+eq(one.lines.length, 0, '無合格線時 lines 為空');
+eq(one.points[0].verdict, null, '沒有判定文字時不回傳判定位置');
 console.log('通過 ' + passed + ' 項');

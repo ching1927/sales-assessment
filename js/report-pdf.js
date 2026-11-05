@@ -129,16 +129,21 @@
       s += '<line x1="' + L0 + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="var(--track)" stroke-width="1"/>' +
         '<text x="' + (L0 - 8) + '" y="' + (Y(v) + 4) + '" font-size="12" text-anchor="end" fill="var(--ink-2)">' + v + '</text>';
     });
-    [[70, '新人合格線 70'], [85, '正式合格線 85']].forEach(function (l) {
+    // 標籤位置交給 ReportPdfCore.trendLabelLayout 避讓：合格線文字不壓資料點／折線，資料點標籤不壓合格線文字
+    var PL = [[70, '新人合格線 70'], [85, '正式合格線 85']];
+    var lay = Core.trendLabelLayout({ lineX: { l: L0, r: W - R }, bounds: { l: L0, r: W - 2, t: 2, b: H - B - 2 },
+      lines: PL.map(function (l) { return { y: Y(l[0]), text: l[1] }; }),
+      points: points.map(function (r, k) { return { x: xs[k], y: Y(r.total), score: fmt(r.total), verdict: (showVerdict || k === curIdx) ? (r.verdict || '') : '' }; }) });
+    PL.forEach(function (l, li) {
       s += '<line x1="' + L0 + '" x2="' + (W - R) + '" y1="' + Y(l[0]) + '" y2="' + Y(l[0]) + '" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="6 4"/>' +
-        '<text x="' + (W - R - 2) + '" y="' + (Y(l[0]) + (l[0] === 70 ? 14 : -5)) + '" font-size="11" text-anchor="end" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + l[1] + '</text>';
+        '<text x="' + lay.lines[li].x + '" y="' + lay.lines[li].y + '" font-size="11" text-anchor="' + lay.lines[li].anchor + '" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + l[1] + '</text>';
     });
     if (n > 1) s += '<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" points="' + points.map(function (r, k) { return xs[k].toFixed(1) + ',' + Y(r.total).toFixed(1); }).join(' ') + '"/>';
     points.forEach(function (r, k) {
-      var x = xs[k], y = Y(r.total), col = VCOL[r.verdict] || '#0669EB', cur = k === curIdx;
+      var x = xs[k], y = Y(r.total), col = VCOL[r.verdict] || '#0669EB', cur = k === curIdx, lb = lay.points[k];
       s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (cur ? 6.5 : 5) + '" fill="' + (cur ? col : 'var(--surface-solid)') + '" stroke="' + col + '" stroke-width="3"/>' +
-        '<text x="' + x.toFixed(1) + '" y="' + (y - 20).toFixed(1) + '" font-size="12" font-weight="700" text-anchor="middle" fill="var(--ink)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + fmt(r.total) + '</text>' +
-        (showVerdict || cur ? '<text x="' + x.toFixed(1) + '" y="' + (y - 8).toFixed(1) + '" font-size="11" text-anchor="middle" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + esc(r.verdict || '') + '</text>' : '') +
+        '<text x="' + lb.score.x.toFixed(1) + '" y="' + lb.score.y.toFixed(1) + '" font-size="12" font-weight="700" text-anchor="' + lb.score.anchor + '" fill="var(--ink)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + fmt(r.total) + '</text>' +
+        (lb.verdict ? '<text x="' + lb.verdict.x.toFixed(1) + '" y="' + lb.verdict.y.toFixed(1) + '" font-size="11" text-anchor="' + lb.verdict.anchor + '" fill="var(--ink-2)" stroke="var(--surface-solid)" stroke-width="3" paint-order="stroke">' + esc(r.verdict || '') + '</text>' : '') +
         (k % step === 0 || cur ? '<text x="' + x.toFixed(1) + '" y="' + (H - B + 18) + '" font-size="12" text-anchor="middle" fill="var(--ink-2)">' + esc(r.date.slice(5).replace('-', '/')) + '</text>' : '');
     });
     s += '<text x="' + (L0 + pw / 2) + '" y="' + (H - 6) + '" font-size="11" text-anchor="middle" fill="var(--ink-3)">考核日期（月/日）　實心＝本份成績單</text>';

@@ -15,7 +15,8 @@
  *   ReportPdfCore.trendSeries(list, currentId)   歷次走勢（全部歷次）-> { points:[...], curIdx }
  *   ReportPdfCore.itemRows(items, opts)          每題得分列；opts.showTitle 為 false（非客服部）時完全不帶題名
  *   ReportPdfCore.buildReport(input)             把資料整理成 PDF 要畫的內容 -> { ok, model } 或 { ok:false, error }
- *   ReportPdfCore.layoutPages(blocks, contentH)  分頁分配：以區塊／表格列為單位，不切半；換頁處重印表頭；算各頁剩餘高度分配
+  *   ReportPdfCore.layoutPages(blocks, contentH)  分頁分配：以區塊／表格列為單位，不切半；換頁處重印表頭；算各頁剩餘高度分配
+ *   ReportPdfCore.trendLabelLayout(o)            走勢圖標籤避讓（合格線文字與資料點標籤互相、與折線、資料點都不重疊）-> { lines, points }
  *
  * 等級：優 100%、良 70%、待加強 40%、不及格 0%（見 scoring.js）。差異一律以「十分位整數」比較，避免浮點誤差。
  */
@@ -197,12 +198,76 @@
     return { pages: pages, overflow: any };
   }
 
+  // ===== 走勢圖標籤避讓（純幾何，不碰畫面）=====
+  // 輸入 o：{ points:[{x,y,score,verdict,fs}], lines:[{y,text}], bounds:{l,r,t,b}, lineX:{l,r} }
+  //   points.verdict 為空字串＝不畫判定；lines 為合格線（y 為像素）；bounds 是標籤可用範圍；lineX 是合格線左右端 x
+  // 回傳 { lines:[{x,y,anchor}], points:[{score:{x,y,anchor}, verdict:{x,y,anchor}|null}] }
+  // 做法：先放合格線文字（避開資料點、折線），再放資料點標籤（避開合格線文字、其他標籤，並盡量不壓到合格線）。
+  // 候選位置依序嘗試（點標籤：上、下、右、左；線標籤：右上、右下、左上、左下），取罰分最低者。
+  function tw(text, fs, bold) {
+    var w = 0, s = String(text);
+    for (var i = 0; i < s.length; i++) w += s.charCodeAt(i) > 255 ? fs : fs * (bold ? 0.62 : 0.56);
+    return w;
+  }
+  function textRect(x, b, anchor, text, fs, bold) {
+    var w = tw(text, fs, bold), l = anchor === 'start' ? x : anchor === 'end' ? x - w : x - w / 2;
+    return { l: l, r: l + w, t: b - fs * 0.95, b: b + fs * 0.15 };
+  }
+  function hit(a, c, pad) { return a.l < c.r + pad && c.l < a.r + pad && a.t < c.b + pad && c.t < a.b + pad; }
+  function trendLabelLayout(o) {
+    var pts = o.points, lines = o.lines || [], bd = o.bounds, lx = o.lineX;
+    var markers = pts.map(function (p) { return { l: p.x - 8, r: p.x + 8, t: p.y - 8, b: p.y + 8 }; });
+    var samples = [];
+    for (var i = 0; i + 1 < pts.length; i++) for (var k = 0; k <= 40; k++) samples.push({ x: pts[i].x + (pts[i + 1].x - pts[i].x) * k / 40, y: pts[i].y + (pts[i + 1].y - pts[i].y) * k / 40 });
+    function onPoly(r) { var n = 0; samples.forEach(function (s) { if (s.x > r.l - 2 && s.x < r.r + 2 && s.y > r.t - 2 && s.y < r.b + 2) n++; }); return n; }
+    function crossLines(r) { var n = 0; lines.forEach(function (ln) { if (ln.y > r.t + 1 && ln.y < r.b - 1) n++; }); return n; }
+    function outside(r) { return r.l < bd.l || r.r > bd.r || r.t < bd.t || r.b > bd.b; }
+    // 1) 合格線文字
+    var placedLines = [], lineRects = [];
+    lines.forEach(function (ln) {
+      var cands = [['end', lx.r - 2, ln.y - 5], ['end', lx.r - 2, ln.y + 14], ['start', lx.l + 4, ln.y - 5], ['start', lx.l + 4, ln.y + 14]], best = null;
+      cands.forEach(function (c, ci) {
+        var r = textRect(c[1], c[2], c[0], ln.text, 11, true), pen = ci;
+        markers.forEach(function (m) { if (hit(r, m, 2)) pen += 1000; });
+        lineRects.forEach(function (q) { if (hit(r, q, 2)) pen += 1000; });
+        pts.forEach(function (p) { var d = p.verdict ? 33 : 21; if (hit(r, { l: p.x - 22, r: p.x + 22, t: p.y - d, b: p.y - 6 }, 0)) pen += 8; });
+        pen += onPoly(r) * 20 + crossLines(r) * 30 + (outside(r) ? 1000 : 0);
+        if (!best || pen < best.pen) best = { pen: pen, c: c, r: r };
+      });
+      placedLines.push({ x: best.c[1], y: best.c[2], anchor: best.c[0] }); lineRects.push(best.r);
+    });
+    // 2) 資料點標籤
+    var taken = lineRects.slice(), out = [];
+    pts.forEach(function (p) {
+      var fs = p.fs || 12, hasV = !!p.verdict, cands = [];
+      cands.push({ s: ['middle', p.x, p.y - 23], v: hasV ? ['middle', p.x, p.y - 11] : null });
+      cands.push({ s: ['middle', p.x, p.y + 23], v: hasV ? ['middle', p.x, p.y + 36] : null });
+      cands.push({ s: ['start', p.x + 12, hasV ? p.y - 1 : p.y + 4], v: hasV ? ['start', p.x + 12, p.y + 12] : null });
+      cands.push({ s: ['end', p.x - 12, hasV ? p.y - 1 : p.y + 4], v: hasV ? ['end', p.x - 12, p.y + 12] : null });
+      var best = null;
+      cands.forEach(function (c, ci) {
+        var rs = [textRect(c.s[1], c.s[2], c.s[0], p.score, fs, true)];
+        if (c.v) rs.push(textRect(c.v[1], c.v[2], c.v[0], p.verdict, 11, false));
+        var u = { l: Math.min.apply(null, rs.map(function (r) { return r.l; })), r: Math.max.apply(null, rs.map(function (r) { return r.r; })),
+          t: Math.min.apply(null, rs.map(function (r) { return r.t; })), b: Math.max.apply(null, rs.map(function (r) { return r.b; })) };
+        var pen = ci * 2;
+        taken.forEach(function (q) { if (hit(u, q, 1)) pen += 1000; });
+        markers.forEach(function (m) { if (hit(u, m, 0)) pen += 1000; });
+        pen += onPoly(u) * 20 + crossLines(u) * 30 + (outside(u) ? 1000 : 0);
+        if (!best || pen < best.pen) best = { pen: pen, c: c, u: u };
+      });
+      taken.push(best.u);
+      out.push({ score: { x: best.c.s[1], y: best.c.s[2], anchor: best.c.s[0] }, verdict: best.c.v ? { x: best.c.v[1], y: best.c.v[2], anchor: best.c.v[0] } : null });
+    });
+    return { lines: placedLines, points: out };
+  }
+
   var api = {
     DIMS: DIMS,
     ROW_EXTRA_MAX: ROW_EXTRA_MAX,
     taipeiToday: taipeiToday, taipeiDate: taipeiDate,
     eligibleAssessments: eligibleAssessments, dimRates: dimRates, compare: compare,
-    trendSeries: trendSeries, itemRows: itemRows, buildReport: buildReport, layoutPages: layoutPages
+    trendSeries: trendSeries, itemRows: itemRows, buildReport: buildReport, layoutPages: layoutPages, trendLabelLayout: trendLabelLayout
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ReportPdfCore = api;
