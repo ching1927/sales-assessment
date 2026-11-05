@@ -123,4 +123,24 @@ eq(C.safeNoteUrl('javascript:alert(1)'), '', 'javascript 不可');
 eq(C.safeNoteUrl(null), '', 'null 回空');
 eq(C.safeNoteUrl(''), '', '空字串回空');
 
+// 弱項分析雷達圖數值表
+var RR = [{ name: 'A', pct: 70, weak: false, n: 3 }, { name: 'B', pct: 50, weak: true, n: 3 }, { name: 'C', pct: null, weak: false, n: 0 }, { name: 'D', pct: 90, weak: false, n: 3 }, { name: 'E', pct: 70, weak: false, n: 3 }];
+var RC = [{ name: 'A', pct: 65.5 }, { name: 'B', pct: 60 }, { name: 'C', pct: 80 }, { name: 'D', pct: 90 }, { name: 'E', pct: 75 }];
+var sr = C.radarRows(RR, RC);
+eq(sr.map(function (r) { return r.name; }), ['D', 'A', 'E', 'B', 'C'], '雷達表由高到低、同分維持原序、無資料最後');
+eq(sr.map(function (r) { return r.diff; }), [0, 4.5, -5, -10, null], '差異＝所選範圍減全公司（小數 1 位）；無資料為 null');
+eq(sr.filter(function (r) { return r.weak; }).map(function (r) { return r.name; }), ['B'], '最弱旗標保留');
+eq(sr[0].co, 90, '全公司得分率帶入');
+eq(C.radarRows([{ name: 'X', pct: 82.94 }], [{ name: 'X', pct: 82.86 }])[0].diff, 0, '顯示相同的兩個值差異為 0（先取 1 位小數再相減）');
+var sn = C.radarRows(RR, null);
+eq(sn.map(function (r) { return r.co; }), [null, null, null, null, null], '無對照時 co 為 null');
+eq(sn.map(function (r) { return r.diff; }), [null, null, null, null, null], '無對照時 diff 為 null');
+eq(RR[0].name, 'A', '不改動傳入陣列順序');
+eq(C.radarRows([], null), [], '空陣列');
+eq(C.canCompare('', ['a', 'b']), false, '全公司不畫對照');
+eq(C.canCompare('a', ['a', 'b', 'a']), true, '單一門市且資料含多門市就畫');
+eq(C.canCompare('a', ['a', 'a']), false, '店長只看得到自己門市不畫');
+eq(C.canCompare('a', []), false, '沒資料不畫');
+eq(C.canCompare('a', undefined), false, 'undefined 不報錯');
+
 console.log('通過 ' + passed + ' 項');

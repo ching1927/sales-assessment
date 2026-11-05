@@ -92,7 +92,31 @@
     return /^https?:\/\//i.test(s) ? s : '';
   }
 
+  // 弱項分析雷達圖旁的數值表：rows 為七面向平均得分率（含 weak 旗標），cmpRows 為全公司對照（可為 null）。
+  // 回傳依得分率由高到低排列（無資料排最後、同分維持原順序），每列多 co（全公司得分率）與 diff（所選範圍減全公司，取小數 1 位）。
+  function radarRows(rows, cmpRows) {
+    var out = (rows || []).map(function (r, i) {
+      var c = cmpRows && cmpRows[i] ? cmpRows[i].pct : null;
+      // 差異以畫面上顯示的 1 位小數相減，避免兩欄看起來一樣卻出現 ▼0.1
+      var d = r.pct !== null && r.pct !== undefined && c !== null && c !== undefined ? Math.round((Math.round(r.pct * 10) / 10 - Math.round(c * 10) / 10) * 10) / 10 : null;
+      return { name: r.name, pct: r.pct, weak: !!r.weak, n: r.n, co: cmpRows ? c : null, diff: d, i: i };
+    });
+    out.sort(function (a, b) {
+      var x = a.pct === null ? -1 : a.pct, y = b.pct === null ? -1 : b.pct;
+      return y - x || a.i - b.i;
+    });
+    return out.map(function (r) { delete r.i; return r; });
+  }
+  // 是否畫「全公司平均」對照線：選了單一門市，且手上的成績單涵蓋兩家以上門市（店長被 RLS 限制只看到自己門市時不畫）
+  function canCompare(scope, storeCodes) {
+    if (!scope) return false;
+    var seen = {};
+    (storeCodes || []).forEach(function (s) { seen[s] = 1; });
+    return Object.keys(seen).length > 1;
+  }
+
   var api = {
+    radarRows: radarRows, canCompare: canCompare,
     PAGE_SIZE: PAGE_SIZE, VCLS: VCLS,
     dateOf: dateOf, stamp: stamp, taipeiDate: taipeiDate,
     visibleRows: visibleRows, applyFilters: applyFilters, paginate: paginate, countText: countText,
