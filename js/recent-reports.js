@@ -9,6 +9,7 @@
 (function () {
   var C = window.RecentReportsCore;
   var DIMS = Scoring.DIMENSIONS, NA = Scoring.NOT_APPLICABLE;
+  var G3 = window.Grade3Core;
   var ROLE_NOTE_CS = '客服部可看全部成績單，包含暫存中與已作廢，並可作廢已送出的成績單。';
   var ROLE_NOTE_OTHER = '只顯示已送出且未作廢的成績單；考官備註與備註附圖主管與店長也看得到；題組名稱、步驟與考點只有客服部看得到。';
 
@@ -105,6 +106,18 @@
     return '<div class="chartwrap radar">' + Radar.svg(rows, '七面向得分率：' + rows.map(function (r) { return r.name + ' ' + (r.pct === null ? '無資料' : C.fmt(r.pct) + '%'); }).join('、')) + '</div>';
   }
 
+  // 等級文字上色（新單三級、舊單原字串都有對應顏色）；未評顯示「未評」
+  function lvText(lv) { return lv ? '<span class="g3-t g3-' + G3.levelKind(lv) + '">' + esc(lv) + '</span>' : '未評'; }
+  // 面向備註（客服部視角才有；非優良且有字的面向，在該面向那一列下方顯示；舊單沒有就空字串）
+  function dimNoteMap(it) {
+    var m = {};
+    G3.reportNotes(it.levels, it.dimNotes).forEach(function (x) { m[x.dim] = x.note; });
+    return m;
+  }
+  function dimNoteRow(map, dim, cols) {
+    return map[dim] ? '<tr class="g3-noterow"><td colspan="' + cols + '"><b>考官備註：</b>' + esc(map[dim]) + '</td></tr>' : '';
+  }
+
   // 備註網址：只有 http／https 開頭才渲染成連結（其他如 javascript: 一律不成為連結）
   function noteUrlLink(it) {
     var u = C.safeNoteUrl(it.note_url);
@@ -126,11 +139,11 @@
     return '<div class="extra-sec"><h3>弱項追加題・不算入總分</h3><p class="exnote">追加題只記在成績單上當輔導參考，不算入總分、判定、最弱面向與上方雷達圖。</p>';
   }
   function extraDimRows(it, full) {
-    var dp = it.dim_points || {};
+    var dp = it.dim_points || {}, nm = full ? dimNoteMap(it) : {};
     return DIMS.map(function (d) {
       var lv = (it.levels || {})[d.name], pt = dp[d.name];
       return full
-        ? '<tr><td>' + esc(d.name) + '</td><td class="num">' + d.weight + '</td><td>' + (lv ? esc(lv) : '未評') + '</td><td class="num">' + (lv === NA ? '不適用' : (pt == null ? '—' : esc(C.fmt(pt)))) + '</td></tr>'
+        ? '<tr><td>' + esc(d.name) + '</td><td class="num">' + d.weight + '</td><td>' + lvText(lv) + '</td><td class="num">' + (lv === NA ? '不適用' : (pt == null ? '—' : esc(C.fmt(pt)))) + '</td></tr>' + dimNoteRow(nm, d.name, 4)
         : '<tr><td>' + esc(d.name) + '</td><td class="num">' + (pt == null ? '不適用' : esc(C.fmt(pt)) + ' / ' + d.weight) + '</td></tr>';
     }).join('');
   }
@@ -178,9 +191,9 @@
         '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><h4>題組 ' + (i + 1) + '：' + esc(it.title) + '</h4>' + stepsHtml(it) +
         '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' +
         DIMS.map(function (d) {
-          var lv = it.levels[d.name], pt = dp[d.name];
+          var lv = it.levels[d.name], pt = dp[d.name], nm = dimNoteMap(it);
           var isW = weak.indexOf(d.name) >= 0;
-          return '<tr' + (isW ? ' class="weakrow"' : '') + '><td>' + esc(d.name) + (isW ? '（最弱）' : '') + '</td><td class="num">' + d.weight + '</td><td>' + (lv ? esc(lv) : '未評') + '</td><td class="num">' + (lv === NA ? '不適用' : (pt == null ? '—' : esc(C.fmt(pt)))) + '</td></tr>';
+          return '<tr' + (isW ? ' class="weakrow"' : '') + '><td>' + esc(d.name) + (isW ? '（最弱）' : '') + '</td><td class="num">' + d.weight + '</td><td>' + lvText(lv) + '</td><td class="num">' + (lv === NA ? '不適用' : (pt == null ? '—' : esc(C.fmt(pt)))) + '</td></tr>' + dimNoteRow(nm, d.name, 4);
         }).join('') + '</tbody></table></div>' + remarkHtml(it) + '</div>';
     });
     h += extrasCS(extras);

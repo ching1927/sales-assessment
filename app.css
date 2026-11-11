@@ -68,3 +68,28 @@ body .formcol{top:calc(var(--ab-h) + var(--sp-4))}
 .tag.req{background:var(--ci-yellow);color:var(--ci-black)}
 /* 年度健檢成績單標示（成績單列表、考核後台歷次成績單） */
 .tag.chk{background:var(--ci-yellow);color:var(--ci-black)}
+
+/* 三級制評分（老闆指定顏色）：優良 #10B981、尚可 #F59E0B、待加強 #EF4444、不適用 #9CA3AF。
+   舊單的「優」「良」「不及格」文字沿用對應顏色（優→優良色、良→尚可色、不及格→待加強色），不換算、不改名。
+   專用 class（g3-）不影響 tokens.css 與其他用途。 */
+.g3-b[aria-pressed="true"].g3-top{background:#10B981;border-color:#10B981;color:#fff}
+.g3-b[aria-pressed="true"].g3-mid{background:#F59E0B;border-color:#F59E0B;color:#fff}
+.g3-b[aria-pressed="true"].g3-low{background:#EF4444;border-color:#EF4444;color:#fff}
+.g3-b[aria-pressed="true"].g3-na{background:#9CA3AF;border-color:#9CA3AF;color:#fff}
+.g3-t{font-weight:700}
+.g3-t.g3-top{color:#10B981}
+.g3-t.g3-mid{color:#F59E0B}
+.g3-t.g3-low{color:#EF4444}
+.g3-t.g3-na{color:#9CA3AF}
+/* 面向備註欄（評分頁）：新人考核必填時標紅 */
+.g3-note{margin-top:8px}
+.g3-note label{display:block;font-size:13px;font-weight:700;margin-bottom:4px}
+.g3-note.req label{color:#DC2626}
+.g3-note textarea{width:100%;min-height:64px;font:inherit;font-size:16px;padding:8px 10px;border-radius:14px;border:1.5px solid rgba(15,23,42,0.08);resize:vertical;background:#fff}
+.g3-note.req textarea{border-color:#DC2626}
+.g3-note.req.bad textarea{background:rgba(220,38,38,0.10);box-shadow:0 0 0 3px rgba(220,38,38,0.10)}
+.g3-note .e{display:none;color:#DC2626;font-size:13px;font-weight:700;margin-top:4px}
+.g3-note.bad .e{display:block}
+/* 成績單上的面向備註列 */
+tr.g3-noterow td{background:rgba(15,23,42,0.06);font-size:13px;line-height:1.5;white-space:normal}
+tr.g3-noterow td b{color:#4A4F5A}

@@ -16,7 +16,8 @@
   var PAGE_W = 794, PAGE_H = 1123, TOP = 34, BOT = 44, CONTENT_H = PAGE_H - TOP - BOT, SCALE = 2;
   var LOGO = 'img/logo.png';
   var SHORT = ['資訊', '預設', '掌握', '引導', '風險', '語氣', '文字'];
-  var LVCLS = { '優': 'o', '良': 'g', '待加強': 'w', '不及格': 'f' };
+  // 等級顏色：優良／優＝綠、尚可／良＝橘、待加強／不及格＝紅、不適用＝灰（老闆指定；舊單文字維持舊名稱）
+  var LVCLS = { '優良': 'o', '優': 'o', '尚可': 'm', '良': 'm', '待加強': 'l', '不及格': 'l', '不適用': 'n' };
   var VCOL = { '優秀': '#16A34A', '及格': '#0669EB', '需複訓': '#D97706', '不及格': '#DC2626' };
   var VBG = { '優秀': 'rgba(22,163,74,.12)', '及格': 'rgba(6,105,235,.12)', '需複訓': 'rgba(217,119,6,.12)', '不及格': 'rgba(220,38,38,.10)' };
   // SVG 單獨轉圖時讀不到頁面的 CSS 變數，所以把用到的 var(--x) 換成固定色碼（與 app.css／tokens.css 的值相同）
@@ -72,7 +73,9 @@
 '#rpdfDoc .qrow .sc{text-align:right;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums}' +
 '#rpdfDoc .qrow.extra{background:#FFF8E6}' +
 '#rpdfDoc .qrow .code{font-size:11px;color:#4A4F5A}' +
-'#rpdfDoc .lv-o{color:#16A34A}#rpdfDoc .lv-g{color:#0669EB}#rpdfDoc .lv-w{color:#D97706}#rpdfDoc .lv-f{color:#DC2626}' +
+'#rpdfDoc .lv-o{color:#10B981}#rpdfDoc .lv-m{color:#F59E0B}#rpdfDoc .lv-l{color:#EF4444}#rpdfDoc .lv-n{color:#9CA3AF}' +
+'#rpdfDoc .qnotes{background:#F3F5F8;padding:5px 10px 7px 44px;font-size:11px;line-height:1.5;border-bottom:1px solid #E3E7ED}' +
+'#rpdfDoc .qnotes b{color:#4A4F5A}' +
 '#rpdfDoc .xtag{display:inline-block;background:#D9FF00;color:#0A0A0A;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px}' +
 '#rpdfDoc .qnote{font-size:11px;color:#4A4F5A;padding-top:6px}' +
 '#rpdfDoc .trend svg{display:block;width:100%;height:auto}' +
@@ -182,9 +185,10 @@
       h += blk('row', '<div class="qrow' + (it.isExtra ? ' extra' : '') + '"><div>' + (it.isExtra ? '<span class="xtag">加考</span>' : it.no) + '</div><div>' + esc(it.category) + '</div>' +
         '<div>' + main + '<div class="code">' + sub + '</div></div>' +
         it.levels.map(function (lv) { return '<div class="lv lv-' + (LVCLS[lv] || 'x') + '">' + esc(lv) + '</div>'; }).join('') +
-        '<div class="sc">' + (it.score == null ? '—' : fmt(it.score)) + '</div></div>');
+        '<div class="sc">' + (it.score == null ? '—' : fmt(it.score)) + '</div></div>' +
+        (it.notes ? '<div class="qnotes">' + it.notes.map(function (n) { return '<div><b>' + esc(n.dim) + '（' + esc(n.level) + '）考官備註：</b>' + esc(n.note) + '</div>'; }).join('') + '</div>' : ''));
     });
-    h += blk('blk', '<div class="qnote">等級：優 100％、良 70％、待加強 40％、不及格 0％；面向由左至右依序為資訊正確性、預設訊息運用、問題掌握、主動引導、風險意識、語氣與禮貌、文字品質。' +
+    h += blk('blk', '<div class="qnote">等級：優良 100％、尚可 70％、待加強 40％（改制前的舊單照原等級顯示：優 100％、良 70％、待加強 40％、不及格 0％，不換算）；面向由左至右依序為資訊正確性、預設訊息運用、問題掌握、主動引導、風險意識、語氣與禮貌、文字品質。' +
       (m.hasExtra ? '<br><b>加考題（弱項追加題）不計入總分與判定，也不計入面向得分率。</b>' : '') + '</div>');
     var t = m.trend, tl = '歷次總分走勢：' + t.points.map(function (x) { return x.date + ' ' + fmt(x.total); }).join('、');
     h += blk('blk', '<div class="sec">歷次總分走勢</div>' + trendSvg(t.points, t.curIdx, tl), ' style="padding-top:8px" data-keep="1"', 'trend');

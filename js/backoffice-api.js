@@ -156,14 +156,15 @@
         .in('assessment_id', assessmentIds).order('assessment_id').order('seq')).then(function (r) {
         var rows = r.data || [], ids = rows.map(function (i) { return i.id; });
         var titles = (withTitle && ids.length)
-          ? wrap(sb.from('assessment_item_secrets').select('item_id,title').in('item_id', ids)).then(function (t) { return t.data || []; })
+          ? wrap(sb.from('assessment_item_secrets').select('item_id,title,dim_notes').in('item_id', ids)).then(function (t) { return t.data || []; })
           : Promise.resolve([]);
         return titles.then(function (ts) {
           var tmap = {}, out = {};
-          ts.forEach(function (t) { tmap[t.item_id] = t.title || ''; });
+          var nmap = {};
+          ts.forEach(function (t) { tmap[t.item_id] = t.title || ''; nmap[t.item_id] = t.dim_notes && typeof t.dim_notes === 'object' ? t.dim_notes : {}; });
           rows.forEach(function (i) {
             var it = { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {}, item_score: i.item_score, isExtra: !!i.is_extra };
-            if (withTitle) it.title = tmap[i.id] || '';
+            if (withTitle) { it.title = tmap[i.id] || ''; it.dimNotes = nmap[i.id] || {}; }
             (out[i.assessment_id] = out[i.assessment_id] || []).push(it);
           });
           return out;

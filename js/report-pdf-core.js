@@ -18,11 +18,12 @@
  *   ReportPdfCore.layoutPages(blocks, contentH)  分頁分配：以區塊／表格列為單位，不切半；換頁處重印表頭；算各頁剩餘高度分配
  *   ReportPdfCore.trendLabelLayout(o)            走勢圖標籤避讓（合格線文字與資料點標籤互相、與折線、資料點都不重疊）-> { lines, points }
  *
- * 等級：優 100%、良 70%、待加強 40%、不及格 0%（見 scoring.js）。差異一律以「十分位整數」比較，避免浮點誤差。
+ * 等級：新單為優良 100%、尚可 70%、待加強 40%；舊單（改制前）照原等級優 100%、良 70%、待加強 40%、不及格 0%，不換算（見 scoring.js）。差異一律以「十分位整數」比較，避免浮點誤差。
  */
 (function (root) {
   var Scoring = (typeof module !== 'undefined' && module.exports) ? require('./scoring.js') : root.Scoring;
   var DIMS = Scoring.DIMENSIONS;
+  var G3 = (typeof module !== 'undefined' && module.exports) ? require('./grade3-core.js') : root.Grade3Core;
   var TZ_MS = 8 * 3600000;   // 台北固定 UTC+8
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -109,7 +110,12 @@
         levels: DIMS.map(function (d) { return (it.levels || {})[d.name] || '—'; }),
         score: it.item_score == null ? null : Number(it.item_score)
       };
-      if (showTitle) row.title = it.title || '';
+      if (showTitle) {
+        row.title = it.title || '';
+        // 三級制面向備註（只有客服部的資料才帶；舊單沒有就不加這個欄位）
+        var notes = G3 ? G3.reportNotes(it.levels, it.dimNotes) : [];
+        if (notes.length) row.notes = notes;
+      }
       return row;
     });
   }

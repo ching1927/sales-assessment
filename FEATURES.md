@@ -27,6 +27,13 @@
 
 ## 階段 2 評分
 
+### 三級制評分與新人面向備註（網頁與資料庫腳本已寫好；尚未在真實 Supabase 執行，順序見 supabase/README_assess.md 文末）
+
+- 三級制評分（優良 100、尚可 70、待加強 40、不適用）｜`assess.html`、`js/scoring.js`、`js/grade3-core.js`、`app.css`｜新人考核頁每面向四顆按鈕（優良綠、尚可橘、待加強紅、不適用灰）；驗證：`node tests/scoring.test.js`、`node tests/grade3-core.test.js` 全過（含新舊等級換算相同、舊單 優／良／不及格 結果與改制前一致）
+- 新人考核面向備註必填｜`assess.html`、`js/assess-api.js`、`supabase/grade3_schema.sql`｜新人選尚可／待加強，該面向下方跳紅字必填備註（無字數下限，空白不算）；未填按「分析弱項」或送出會被擋並標紅面向；資料庫送出時也擋；正式、回考核期、健檢備註選填；驗證：`supabase/grade3_verify_fake.sql`（結尾復原）第一列「100/100 項通過」
+- 舊單相容（不換算、不修改）｜`supabase/grade3_schema.sql`（assess_level_pct 新舊都認得）、`js/recent-reports.js`、`js/report-pdf.js`｜舊單的優／良／不及格原樣顯示並借用綠／橘／紅；資料庫新資料只准新等級（觸發器擋舊字串）；驗證：grade3_verify_fake.sql 區段 1、5
+- 成績單面向備註（客服部視角）｜`backoffice.html` 近期考核詳情、成績單 PDF（`js/report-pdf.js`、`js/report-pdf-core.js`）｜非優良面向下方顯示「考官備註：…」；舊單沒有就不顯示；店長／主管精簡版不顯示也不查此欄（備註存機密表）；驗證：`node tests/report-pdf-core.test.js`
+
 ### 正式版（已執行 SQL、已審查；客服部流程已用測試考生實測通過，店長與主管的真實登入尚未測）
 
 - 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核

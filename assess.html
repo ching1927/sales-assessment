@@ -119,7 +119,7 @@ summary{cursor:pointer;color:var(--accent-deep);font-weight:600;font-size:13px;p
 .dimhead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px}
 .dimhead b{font-size:15px}
 .dimhead .pt{font-size:13px;color:var(--ink-2);white-space:nowrap}
-.lvrow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.lvrow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .lv{min-height:48px;padding:4px 2px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);font-weight:700;font-size:13px;line-height:1.2}
 .lv[aria-pressed="true"].l0{background:var(--success);border-color:var(--success);color:#fff}
 .lv[aria-pressed="true"].l1{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -283,6 +283,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/scoring.js"></script>
+<script src="js/grade3-core.js"></script>
 <script src="js/suggest.js"></script>
 <script src="js/requests-core.js"></script>
 <script src="js/assess-checkup-core.js"></script>
@@ -291,7 +292,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 (function () {
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
   var DIMS = Scoring.DIMENSIONS, NA = Scoring.NOT_APPLICABLE;
-  var LV_LIST = ['優', '良', '待加強', '不及格', NA];
+  var G3 = Grade3Core;
+  var LV_LIST = Scoring.LEVEL_NAMES.concat([NA]);   // 優良、尚可、待加強、不適用（舊制的優／良／不及格只存在舊單，不能再選）
   var MAX_NA = 2;
   var STEP_NAMES = ['固定 3 題組', '評分', '弱項追加題', '送出結果'];
   var CK_STEP_NAMES = ['固定 3 題組', '評分', '結算', '送出結果'];   // 健檢沒有弱項追加題
@@ -330,7 +332,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var finished = null;       // 送出後的資料庫結果
   var abandonTarget = null;  // 要放棄的考核 id
 
-  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false, coreFail: '', manual: false, weakInfo: null, ex: null, extraStart: '' }; }
+  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false, coreFail: '', manual: false, weakInfo: null, ex: null, extraStart: '', badNotes: {} }; }
   var S = fresh();
 
   function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
@@ -405,8 +407,13 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       }
       delete dirty[id];   // 請求進行中又有改動會再標回 dirty
       saving++; updateSaved();
-      return AssessApi.saveItem(id, lv, note, noteUrl).then(function () {
+      // 面向備註：只留尚可／待加強且有字的；從來沒寫過備註的題組不呼叫（undefined），寫過又清空要送空物件才會清掉
+      var dn = G3.notesPayload(lv, it.dimNotes);
+      var sendNotes = (Object.keys(dn).length || it.dimNotesTouched || it.hadDimNotes) ? dn : undefined;
+      it.dimNotesTouched = false;
+      return AssessApi.saveItem(id, lv, note, noteUrl, sendNotes).then(function () {
         if (epoch !== saveEpoch) return;   // 在途請求的回呼：放棄後忽略
+        if (sendNotes) it.hadDimNotes = Object.keys(sendNotes).length > 0;
         saving--; saveFailed = false; S.savedOnce = true; updateSaved();
       }, function (err) {
         if (epoch !== saveEpoch) return;
@@ -438,7 +445,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var lv = item.levels[dim];
     if (!lv || lv === NA) return null;
     var l = {};
-    DIMS.forEach(function (d) { l[d.name] = d.name === dim ? lv : '優'; });
+    DIMS.forEach(function (d) { l[d.name] = d.name === dim ? lv : '優良'; });
     var r = Scoring.scoreItem(l);
     return r.ok ? r.dimPoints[dim] : null;
   }
@@ -627,6 +634,41 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('stage').innerHTML = h;
   }
 
+  // 面向備註欄：只有選「尚可」「待加強」才出現；新人考核紅字必填（去空白後不是空的即可，無字數下限），其他考核選填
+  function dimNoteHtml(it, dim, cur) {
+    if (!G3.noteApplies(cur)) return '';
+    var idx = S.items.indexOf(it), req = G3.noteRequired(S.emp.tenure, cur);
+    var bad = req && S.badNotes[it.id + '|' + dim];
+    var val = (it.dimNotes && it.dimNotes[dim]) || '';
+    return '<div class="g3-note' + (req ? ' req' : '') + (bad ? ' bad' : '') + '"><label for="dn' + idx + '_' + DIMS.map(function (x) { return x.name; }).indexOf(dim) + '">' +
+      (req ? '請寫下為什麼是' + esc(cur) + '（必填）' : '考官備註（選填）') + '</label>' +
+      '<textarea id="dn' + idx + '_' + DIMS.map(function (x) { return x.name; }).indexOf(dim) + '" data-dimnote="' + esc(dim) + '" data-note="' + idx + '" placeholder="' + (req ? '例如：沒有先確認客人的行車狀況就直接報價' : '例如：第 2 步回答不夠具體') + '">' + esc(val) + '</textarea>' +
+      (req ? '<div class="e" role="alert">「' + esc(dim) + '」還沒寫備註，請寫下原因才能送出。</div>' : '') + '</div>';
+  }
+  // 還沒寫的必填面向（所有題組含追加題）：[{ item, dims }]
+  function allMissingNotes() {
+    var out = [];
+    S.items.forEach(function (it) {
+      var m = G3.missingNotes(S.emp && S.emp.tenure, it.levels, it.dimNotes);
+      if (m.length) out.push({ item: it, dims: m });
+    });
+    return out;
+  }
+  // 擋下前往結算／送出：標紅每個沒寫的面向、跳到第一個有缺的題組並顯示是哪些面向；全都有寫回 false（放行）
+  function blockIfNotesMissing() {
+    var miss = allMissingNotes();
+    S.badNotes = {};
+    if (!miss.length) return false;
+    miss.forEach(function (m) { m.dims.forEach(function (d) { S.badNotes[m.item.id + '|' + d] = true; }); });
+    S.step = 3; S.cur = S.items.indexOf(miss[0].item);
+    var parts = miss.map(function (m) { return labelOf(m.item) + '：' + m.dims.map(function (d) { return '「' + d + '」'; }).join('、'); });
+    notice('err', '不能送出：新人考核中，選了尚可或待加強的面向必須寫備註。還沒寫的有：' + parts.join('；') + '。');
+    render();
+    var first = document.querySelector('.g3-note.bad');
+    if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center' });
+    return true;
+  }
+
   function renderStep3() {
     var it = S.items[S.cur];
     var h = '<div class="tabs" role="group" aria-label="題組分頁">' + S.items.map(function (x, i) {
@@ -647,11 +689,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       var cur = it.levels[d.name], pts = dimPts(it, d.name);
       var ptxt = !cur ? '尚未評分' : cur === NA ? '不適用' : fmt(pts) + ' / ' + d.weight + ' 分';
       h += '<div class="dim"><div class="dimhead"><b>' + esc(d.name) + '（配分 ' + d.weight + '）</b><span class="pt">' + ptxt + '</span></div><div class="lvrow" role="group" aria-label="' + esc(d.name) + '等級">';
-      LV_LIST.forEach(function (lv, i) {
+      LV_LIST.forEach(function (lv) {
         var dis = (lv === NA && cur !== NA && nas >= MAX_NA);
-        h += '<button type="button" class="lv l' + i + '" data-act="lv" data-dim="' + esc(d.name) + '" data-lv="' + esc(lv) + '" aria-pressed="' + (cur === lv) + '"' + (dis ? ' disabled' : '') + '>' + esc(lv) + '</button>';
+        h += '<button type="button" class="lv g3-b g3-' + G3.levelKind(lv) + '" data-act="lv" data-dim="' + esc(d.name) + '" data-lv="' + esc(lv) + '" aria-pressed="' + (cur === lv) + '"' + (dis ? ' disabled' : '') + '>' + esc(lv) + '</button>';
       });
-      h += '</div></div>';
+      h += '</div>' + dimNoteHtml(it, d.name, cur) + '</div>';
     });
     if (nas >= MAX_NA) h += '<div class="msg warn">此題組已有 ' + MAX_NA + ' 個面向標「不適用」，已達上限，其餘面向的「不適用」暫時不能選。要再選請先取消其中一個。</div>';
     h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填；送出後總公司主管與該門市店長也看得到，請不要貼入題組腳本或考點原文）</label>' +
@@ -727,7 +769,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       h += '<tr' + (isW ? ' class="weak"' : '') + '><td>' + esc(d.name) + '（' + d.weight + '）' + (isW ? '【最弱】' : '') + '</td>' +
         heads.map(function (it, i) {
           var pt = vals[i].dim ? vals[i].dim[d.name] : null;
-          return '<td class="num">' + esc(it.levels[d.name] || '') + '　' + (pt === null || pt === undefined ? '—' : fmt(pt)) + '</td>';
+          var lvx = it.levels[d.name] || '';
+          return '<td class="num"><span class="g3-t g3-' + G3.levelKind(lvx) + '">' + esc(lvx) + '</span>　' + (pt === null || pt === undefined ? '—' : fmt(pt)) + '</td>';
         }).join('') + '</tr>';
     });
     h += '<tr class="sum"><td>題組分數</td>' + vals.map(function (v) { return '<td class="num">' + (v.score === null || v.score === undefined ? '—' : fmt(v.score)) + '</td>'; }).join('') + '</tr></tbody></table></div>';
@@ -1062,7 +1105,12 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
 
   function itemFromDb(r) {
-    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: r.levels || {}, note: r.note || '', noteUrl: r.note_url || '', imgs: r.imgs || [], isExtra: !!r.isExtra };
+    var dn = r.dimNotes && typeof r.dimNotes === 'object' ? r.dimNotes : {};
+    var lv = {}, cleared = [];
+    Object.keys(r.levels || {}).forEach(function (k) {
+      if (G3.isLegacyLevel(r.levels[k])) cleared.push(k); else lv[k] = r.levels[k];   // 改制前的舊草稿：舊等級不能送出，清掉讓考官重新評
+    });
+    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: lv, dimNotes: dn, hadDimNotes: Object.keys(dn).length > 0, legacyCleared: cleared, note: r.note || '', noteUrl: r.note_url || '', imgs: r.imgs || [], isExtra: !!r.isExtra };
   }
   function empFromDraft(a) {
     return { id: a.employee_id, label: a.employee_label, store: a.store_code, tenure: a.tenure, source: a.tenure_source };
@@ -1075,12 +1123,17 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       S.items = d.items.map(itemFromDb);
       if (S.items.length) { S.drawn = true; S.step = 3; S.cur = 0; }
       else { S.step = 2; }
+      var nLegacy = S.items.reduce(function (n, it) { return n + it.legacyCleared.length; }, 0);
+      if (nLegacy) {   // 草稿是改制前建立的：舊等級已清掉，請重新評分（舊單本身不受影響）
+        S.items.forEach(function (it) { if (it.legacyCleared.length) markDirty(it); });
+        notice('warn', '這張草稿是改制前建立的，裡面有 ' + nLegacy + ' 個面向用了舊等級（優／良／不及格），已清除，請重新評分（現在是優良、尚可、待加強）。');
+      }
       return d;
     });
   }
   // 抽題結果（assess_draw／assess_add_extra 共用格式）轉成前端題組物件；isExtra 為追加題
   function itemFromDraw(r, isExtra) {
-    return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round, isExtra: !!isExtra };
+    return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, dimNotes: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round, isExtra: !!isExtra };
   }
   // 固定核心題組：準備考核後自動用 assess_core_categories() 的分類一次抽齊（每分類 1 題）並直接進評分；
   // 抽不出來（例如題庫缺題）時停在抽題步驟，顯示錯誤並提供「改用自選分類」
@@ -1236,7 +1289,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         var aid = S.aid;
         return AssessApi.draw(aid, cats).then(function (rows) {
           S.items = rows.map(function (r) {
-            return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round };
+            return { id: r.item_id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: {}, dimNotes: {}, note: '', noteUrl: '', imgs: [], repeated: !!r.repeated, newRound: !!r.new_round };
           });
           S.drawn = true; S.cur = 0;
         }, function (err) {
@@ -1293,6 +1346,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       var it = S.items[S.cur], dim = b.dataset.dim, lv = b.dataset.lv;
       if (lv === NA && it.levels[dim] !== NA && naCount(it) >= MAX_NA) return;
       it.levels[dim] = lv;
+      delete S.badNotes[it.id + '|' + dim];
       markDirty(it);
     }
     else if (act === 'back3') S.step = 3;
@@ -1303,12 +1357,19 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   });
   $('fixGo').addEventListener('click', function () {
     if (!canAdvance() || pendingReason() || busy) return;
+    if (blockIfNotesMissing()) return;   // 新人考核：尚可／待加強沒寫備註不能往下走（資料庫送出時也會擋）
     if (!CK && !extraItems().length) { analyzeWeak(); return; }   // 還沒追加：先分析弱項（健檢不分析弱項，直接結算）
     S.step = 4; render(); window.scrollTo(0, 0);
   });
   $('stage').addEventListener('input', function (e) {
     var t = e.target;
     if (t.id === 'noteBox') { var it = S.items[+t.getAttribute('data-note')]; it.note = t.value; markDirty(it); }
+    if (t.getAttribute && t.getAttribute('data-dimnote')) {   // 面向備註
+      var id2 = S.items[+t.getAttribute('data-note')], dn = t.getAttribute('data-dimnote');
+      id2.dimNotes = id2.dimNotes || {}; id2.dimNotes[dn] = t.value; id2.dimNotesTouched = true;
+      if (t.value.replace(/[s　]/g, '')) { delete S.badNotes[id2.id + '|' + dn]; var bx = t.closest('.g3-note'); if (bx) bx.classList.remove('bad'); }
+      markDirty(id2);
+    }
     if (t.id === 'noteUrlBox') {
       var iu = S.items[+t.getAttribute('data-note')]; iu.noteUrl = t.value;
       var ue = noteUrlError(t.value), eb = $('noteUrlErr');
@@ -1352,6 +1413,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var pre = Scoring.scoreAssessment(coreItems().map(function (i) { return i.levels; }), S.emp.tenure);
     if (!pre.ok || pendingReason()) return;
     if (!allDone()) { notice('err', '還有題組或追加題沒評完，不能送出。'); return; }
+    if (blockIfNotesMissing()) return;
     var aid = S.aid, emp = S.emp, items = S.items.slice();
     busy = true; notice('', ''); render();
     uploadChain.then(flushAll).then(function (ok) {

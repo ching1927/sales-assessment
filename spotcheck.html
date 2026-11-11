@@ -209,7 +209,7 @@ dialog::backdrop{background:var(--scrim)}
 (function () {
   var DIMS = Scoring.DIMENSIONS;
   var NA = Scoring.NOT_APPLICABLE;
-  var LEVEL_NAMES = Object.keys(Scoring.LEVELS).concat([NA]);   // 優、良、待加強、不及格、不適用
+  var LEVEL_NAMES = Scoring.LEVEL_NAMES.concat([NA]);   // 優良、尚可、待加強、不適用（改制前的舊字串只存在舊紀錄，不能再選）
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -302,7 +302,7 @@ dialog::backdrop{background:var(--scrim)}
   function buildForm() {
     $('rDims').innerHTML = DIMS.map(function (d, i) {
       return '<div><label class="lb" for="rd' + i + '">' + esc(d.name) + '（' + d.weight + '）</label><select class="ctrl" id="rd' + i + '">' +
-        LEVEL_NAMES.map(function (k) { return '<option value="' + esc(k) + '"' + (k === '良' ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select></div>';
+        LEVEL_NAMES.map(function (k) { return '<option value="' + esc(k) + '"' + (k === '尚可' ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select></div>';
     }).join('');
     $('rDay').value = today();
     showScore();

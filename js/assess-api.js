@@ -212,8 +212,13 @@
     pick: function (assessmentId, questionIds) {
       return drawRows(sb.rpc('assess_pick', { p_assessment_id: assessmentId, p_question_ids: questionIds }));
     },
-    saveItem: function (itemId, levels, note, noteUrl) {
-      return wrap(sb.rpc('assess_save_item', { p_item_id: itemId, p_levels: levels, p_note: note || '', p_note_url: noteUrl || null }));
+    // dimNotes（三級制面向備註 { 面向: 文字 }）：不是 undefined 才多呼叫一次 assess_save_dim_notes（需先執行 supabase/grade3_schema.sql）；
+    // 資料庫只留「該面向目前是尚可／待加強」的備註，所以一定在存完等級之後才存備註
+    saveItem: function (itemId, levels, note, noteUrl, dimNotes) {
+      return wrap(sb.rpc('assess_save_item', { p_item_id: itemId, p_levels: levels, p_note: note || '', p_note_url: noteUrl || null })).then(function (r) {
+        if (dimNotes === undefined) return r;
+        return wrap(sb.rpc('assess_save_dim_notes', { p_item_id: itemId, p_dim_notes: dimNotes || {} }));
+      });
     },
     submit: function (assessmentId) {
       return wrap(sb.rpc('assess_submit', { p_assessment_id: assessmentId })).then(function (r) {
@@ -261,7 +266,7 @@
         var ids = items.map(function (i) { return i.id; });
         if (!ids.length) return [];
         return Promise.all([
-          wrap(sb.from('assessment_item_secrets').select('item_id,title,steps').in('item_id', ids)),
+          wrap(sb.from('assessment_item_secrets').select('item_id,title,steps,dim_notes').in('item_id', ids)),
           loadImages(ids)
         ]).then(function (res) {
           var sec = {};
@@ -271,7 +276,7 @@
             return {
               id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {}, isExtra: !!i.is_extra,
               item_score: i.item_score, dim_points: i.dim_points, na_dims: i.na_dims, weakest_dims: i.weakest_dims,
-              title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], note: i.note || '', note_url: i.note_url || '',
+              title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], dimNotes: s.dim_notes && typeof s.dim_notes === 'object' ? s.dim_notes : {}, note: i.note || '', note_url: i.note_url || '',
               imgs: res[1][i.id] || []
             };
           });

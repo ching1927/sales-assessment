@@ -4,7 +4,9 @@
  *
  * 用法：
  *   Scoring.DIMENSIONS                       // [{name, weight}] 七面向，順序固定，配分合計 100
- *   Scoring.LEVELS                           // {優:100, 良:70, 待加強:40, 不及格:0}（百分比整數）；另有字串「不適用」
+ *   Scoring.LEVEL_NAMES                      // ['優良','尚可','待加強']：新單可選的三個等級（另有「不適用」）
+ *   Scoring.LEVELS                           // 「讀取用」對照表，新舊等級都認得：{優良:100, 尚可:70, 待加強:40, 優:100, 良:70, 不及格:0}（百分比整數）
+ *                                            // 舊單（等級存舊字串）原樣讀取、不換算；新單只用 LEVEL_NAMES 三級。另有字串「不適用」
  *   Scoring.scoreItem({資訊正確性:'良', ...}) // 算一個題組
  *     -> { ok, error?, score, dimPoints:{面向:得分|null}, applicableWeight, naDims:[], weakest:[] }
  *   Scoring.scoreAssessment([題組等級, ...], '新人'|'正式') // 算整場考核
@@ -26,7 +28,9 @@
     { name: '語氣與禮貌', weight: 10 },
     { name: '文字品質', weight: 10 }
   ];
-  var LEVELS = { '優': 100, '良': 70, '待加強': 40, '不及格': 0 };
+  // 三級制（新單）：優良 100、尚可 70、待加強 40；舊四級（優、良、不及格）只用來讀舊單，結果與改制前完全相同
+  var LEVEL_NAMES = ['優良', '尚可', '待加強'];
+  var LEVELS = { '優良': 100, '尚可': 70, '待加強': 40, '優': 100, '良': 70, '不及格': 0 };
   var NA = '不適用';
   var MAX_NA = 2;
 
@@ -64,7 +68,7 @@
         return fail('「' + d.name + '」還沒有評分，七個面向都要選一個等級。');
       }
       var pct = levelPct(levels[d.name]);
-      if (pct === undefined) return fail('「' + d.name + '」的等級「' + String(levels[d.name]) + '」不正確，只能選優、良、待加強、不及格或不適用。');
+      if (pct === undefined) return fail('「' + d.name + '」的等級「' + String(levels[d.name]) + '」不正確，只能選優良、尚可、待加強或不適用。');
       if (pct === null) {
         naDims.push(d.name);
         dimPoints[d.name] = null;
@@ -146,6 +150,7 @@
   var api = {
     DIMENSIONS: DIMENSIONS,
     LEVELS: LEVELS,
+    LEVEL_NAMES: LEVEL_NAMES,
     NOT_APPLICABLE: NA,
     scoreItem: scoreItem,
     scoreAssessment: scoreAssessment,

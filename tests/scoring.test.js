@@ -21,7 +21,8 @@ var ALL = Scoring.DIMENSIONS.map(function (d) { return d.name; });
 // ---- 基本常數 ----
 eq(Scoring.DIMENSIONS.reduce(function (s, d) { return s + d.weight; }, 0), 100, '配分合計');
 eq(ALL, ['資訊正確性', '預設訊息運用', '問題掌握', '主動引導', '風險意識', '語氣與禮貌', '文字品質'], '面向順序');
-eq(Scoring.LEVELS, { '優': 100, '良': 70, '待加強': 40, '不及格': 0 }, '等級');
+eq(Scoring.LEVELS, { '優良': 100, '尚可': 70, '待加強': 40, '優': 100, '良': 70, '不及格': 0 }, '等級讀取表（新舊都認得）');
+eq(Scoring.LEVEL_NAMES, ['優良', '尚可', '待加強'], '新單三級');
 
 // ---- V1 ----
 var V1 = mk(['良', '優', '良', '待加強', '優', '良', '優']);

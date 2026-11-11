@@ -276,7 +276,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
         <p class="intro">每格為該門市該面向的平均得分率；低於 70% 標示「偏低」。期間條件同上；「—」代表沒有資料。</p>
         <div class="scroll" tabindex="0" aria-label="門市乘面向熱度表，可左右捲動"><div id="iHeat"></div></div>
       </section>
-      <p class="note">算法：每張成績單的每個題組，取該面向的等級百分比（優 100、良 70、待加強 40、不及格 0；不適用不計入），再對所有題組取平均。「最近 3 次」是對每位考生各取最近 3 張成績單再彙總。</p>
+      <p class="note">算法：每張成績單的每個題組，取該面向的等級百分比（優良 100、尚可 70、待加強 40；不適用不計入），再對所有題組取平均。改制前的舊成績單照原等級計算（優 100、良 70、待加強 40、不及格 0），不換算。「最近 3 次」是對每位考生各取最近 3 張成績單再彙總。</p>
     </section>
 
     <!-- 分頁 3：改善單 -->
@@ -311,6 +311,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/scoring.js"></script>
+<script src="js/grade3-core.js"></script>
 <script src="js/radar.js"></script>
 <script src="js/backoffice-api.js"></script>
 <script src="js/coached-core.js"></script>

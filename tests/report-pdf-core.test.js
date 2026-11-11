@@ -305,4 +305,22 @@ lb.points.forEach(function (p, i) {
 var one = C.trendLabelLayout({ lineX: { l: 0, r: 100 }, bounds: { l: 0, r: 100, t: 0, b: 100 }, lines: [], points: [{ x: 50, y: 60, score: '80', verdict: '' }] });
 eq(one.lines.length, 0, '無合格線時 lines 為空');
 eq(one.points[0].verdict, null, '沒有判定文字時不回傳判定位置');
+
+// ---- 三級制：成績單 PDF 的面向備註（只有客服部的資料才帶；舊單沒有備註就沒有 notes）----
+(function () {
+  var lvNew = { '資訊正確性': '優良', '預設訊息運用': '尚可', '問題掌握': '待加強', '主動引導': '優良', '風險意識': '優良', '語氣與禮貌': '優良', '文字品質': '不適用' };
+  var withNotes = { id: 'n1', seq: 1, category: '分類甲', code: 'ZZ1', levels: lvNew, item_score: Scoring.scoreItem(lvNew).score, isExtra: false, title: '假題名',
+    dimNotes: { '預設訊息運用': '沒依客人狀況改寫', '資訊正確性': '優良不顯示', '問題掌握': '沒問清楚時機' } };
+  var cs = C.itemRows([withNotes], { showTitle: true })[0];
+  eq(cs.notes, [{ dim: '預設訊息運用', level: '尚可', note: '沒依客人狀況改寫' }, { dim: '問題掌握', level: '待加強', note: '沒問清楚時機' }], 'PDF 客服部列帶非優良面向備註（照七面向順序）');
+  eq(cs.levels, ['優良', '尚可', '待加強', '優良', '優良', '優良', '不適用'], 'PDF 新單等級原字串');
+  var mgr = C.itemRows([withNotes], { showTitle: false })[0];
+  eq(Object.prototype.hasOwnProperty.call(mgr, 'notes'), false, 'PDF 非客服部完全不帶 notes（不意外洩漏）');
+  eq(Object.prototype.hasOwnProperty.call(mgr, 'title'), false, 'PDF 非客服部仍不帶題名');
+  var oldIt = item('o1', 1, '分類甲', 'ZZ2', 'ogwfo', false, '舊題名');
+  var oldRow = C.itemRows([oldIt], { showTitle: true })[0];
+  eq(Object.prototype.hasOwnProperty.call(oldRow, 'notes'), false, 'PDF 舊單沒有面向備註就沒有 notes 欄位');
+  eq(oldRow.levels[0], '優', 'PDF 舊單：優');
+  eq(oldRow.levels[3], '不及格', 'PDF 舊單：不及格原字串不換算');
+})();
 console.log('通過 ' + passed + ' 項');
