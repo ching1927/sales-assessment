@@ -197,7 +197,7 @@
         }).join('') + '</tbody></table></div>' + remarkHtml(it) + '</div>';
     });
     h += extrasCS(extras);
-    h += '<div class="actions">' + (C.canVoid(r, me) ? '<button class="btn danger" type="button" data-void="' + esc(r.id) + '">作廢這張成績單</button>' : '') +
+    h += pdfMsgBox() + '<div class="actions">' + pdfBtn(r) + (C.canVoid(r, me) ?'<button class="btn danger" type="button" data-void="' + esc(r.id) + '">作廢這張成績單</button>' : '') +
       '<button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
   }
@@ -220,12 +220,18 @@
         extraDimRows(it, true) + '</tbody></table></div>' + remarkHtml(it) + '</div>';
     });
     h += extrasLimited(extras);
-    h += '<div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
+    h += pdfMsgBox() + '<div class="actions">' + pdfBtn(r) + '<button class="btn" type="button" data-close="1">關閉</button></div></div>';
     return h;
   }
 
   // ====== 詳情視窗 ======
   var dlg = null, openToken = 0, openRow = null, downOnBackdrop = false;
+  // 成績單詳情的「下載 PDF」：只給已送出且未作廢的一般考核（健檢走建議單）
+  function pdfBtn(r) {
+    if (C.isCheckup(r) || r.status !== 'submitted' || r.voided_at) return '';
+    return '<button class="btn primary" type="button" data-pdf="' + esc(r.id) + '">下載 PDF</button>';
+  }
+  function pdfMsgBox() { return '<div class="msg err" id="rPdfMsg" role="alert" hidden></div>'; }
   function closeDetail() {
     openToken++; openRow = null;
     removeVoidDlg(); removeLightbox();
@@ -332,6 +338,14 @@
     dlg.addEventListener('click', function (e) {
       if (e.target === dlg && downOnBackdrop) { downOnBackdrop = false; closeDetail(); return; }
       if (e.target.closest('[data-close]')) { closeDetail(); return; }
+      var pb = e.target.closest('[data-pdf]');
+      if (pb && openRow) {
+        var pm = $('rPdfMsg');
+        if (!window.ReportPdf) { pm.textContent = 'PDF 功能沒有載入，請重新整理頁面後再試。'; pm.hidden = false; return; }
+        window.ReportPdf.run({ btn: pb, msgEl: pm, person: { name: openRow.employee_label, id: openRow.employee_id, hire: '' },
+          assessmentId: openRow.id, withTitle: true, viaRpc: !isCS(), storeName: function (c) { return storeName[c] || c; } });
+        return;
+      }
       var z = e.target.closest('[data-zoom]');
       if (z) { openLightbox(z.dataset.zoom, z.dataset.alt || ''); return; }
       var v = e.target.closest('[data-void]');

@@ -899,7 +899,12 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
   $('tStore').addEventListener('change', renderTickets);
   $('hBody').addEventListener('click', function (e) { var b = e.target.closest('[data-stu]'); if (b) openStu(b.dataset.stu); });
   $('tBody').addEventListener('click', function (e) { var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk); });
+  // 點視窗外的空白處也能關閉（按下與放開都要在空白處，避免在內容裡拖曳選字時誤關）
+  var downOnBackdropA = false, downOnBackdropB = false;
+  $('dlgA').addEventListener('mousedown', function (e) { downOnBackdropA = (e.target === $('dlgA')); });
+  $('dlgB').addEventListener('mousedown', function (e) { downOnBackdropB = (e.target === $('dlgB')); });
   $('dlgA').addEventListener('click', function (e) {
+    if (e.target === $('dlgA') && downOnBackdropA) { downOnBackdropA = false; $('dlgA').close(); return; }
     if (e.target.closest('[data-closeA]')) { $('dlgA').close(); return; }
     var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk);
   });
@@ -914,6 +919,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
   });
   $('dlgB').addEventListener('close', function () { openTid = null; $('dlgB').innerHTML = ''; });
   $('dlgB').addEventListener('click', function (e) {
+    if (e.target === $('dlgB') && downOnBackdropB) { downOnBackdropB = false; $('dlgB').close(); return; }
     if (e.target.closest('[data-closeB]')) { $('dlgB').close(); return; }
     var a = e.target.closest('[data-act]'); if (!a) return;
     var t = ticketById(openTid); if (!t) return;
