@@ -11,16 +11,17 @@
 -- 前提：必須先執行過 roster_schema.sql（本檔會用到 employees、app_users 與 roster_my_role()、roster_my_store()）。
 --
 -- ---------- 備份（第 0 步，非技術人員照貼即可） ----------
--- 在 Supabase：SQL Editor → New query → 把下面兩行貼上 → Run。
+-- 在 Supabase：SQL Editor → New query → 把下面三行貼上 → Run。
 -- 它會把「目前的員工名冊」整份複製成一張叫 bak_line_employees 的備份表（原表不會被改動）：
 --
 --   drop table if exists public.bak_line_employees;
 --   create table public.bak_line_employees as select * from public.employees;
+--   alter table public.bak_line_employees enable row level security;
 --
 -- 看到 Success 就是備份好了。要確認的話再跑：select count(*) from public.bak_line_employees;
 -- 數字應該跟名冊人數一樣。若之後要還原某個人的資料，可從這張表查回來。
 -- 備份表只是暫時保險，確認一切正常後可以刪掉：drop table public.bak_line_employees;
--- （備份表沒有開權限控管，內含姓名，確認完請盡快刪除。）
+-- （備份表已開權限控管、一般登入者讀不到，但內含姓名，確認完仍請盡快刪除。）
 --
 -- 本檔新增的名稱（皆不與既有重複）：
 --   資料表：line_accounts（官方 LINE 帳號清單）、line_access（誰有哪個 LINE 的回覆權限）

@@ -4,8 +4,7 @@
 //   規則檔：同資料夾的 line_rules.local.json（含員編，檔名有 .local. 所以不進 git），格式：
 //     { "newEmployeeIds": ["MI-xxxx"],   // 名冊還沒有、要新增的一般人員（技師與公務機由職稱自動判斷，不用列）
 //       "leaveIds": ["MI-xxxx", ...] }   // 要改成「離職」的人
-// 依賴：exceljs（套件不在本專案內）。預設從下面這個絕對路徑載入，也可用環境變數 EXCELJS 指定 exceljs 資料夾：
-//   C:\Users\user\AppData\Local\Temp\claude\C--Users-user-Downloads-AI----------1-\7a8872d7-8799-44f5-9e70-a88e18482c83\scratchpad\node_modules\exceljs
+// 依賴：exceljs（套件不在本專案內）。用環境變數 EXCELJS 指定 exceljs 資料夾，未指定則用一般 require('exceljs')。
 // 本腳本不含任何個資（沒有姓名、員編、信箱）；終端機只印數量彙總。
 'use strict';
 const fs = require('fs');
@@ -13,8 +12,7 @@ const path = require('path');
 
 const XLSX_PATH = process.argv[2] || 'C:\\Users\\user\\Downloads\\官方LINE權限名單.xlsx';
 const SHEET = '總表-各官方LINE權限';
-const EXCELJS_PATH = process.env.EXCELJS ||
-  'C:\\Users\\user\\AppData\\Local\\Temp\\claude\\C--Users-user-Downloads-AI----------1-\\7a8872d7-8799-44f5-9e70-a88e18482c83\\scratchpad\\node_modules\\exceljs';
+const EXCELJS_PATH = process.env.EXCELJS || 'exceljs';
 const RULES_PATH = path.join(__dirname, 'line_rules.local.json');
 
 const HQ = '總公司';

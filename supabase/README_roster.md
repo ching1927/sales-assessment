@@ -20,11 +20,12 @@
 
 ### 老闆照這個順序在 Supabase SQL Editor 執行（每一步貼上 → Run → 看到 Success 再做下一步）
 
-1. **備份**：貼上並執行下面兩行（把員工名冊整份複製成 bak_line_employees，原表不動）：
+1. **備份**：貼上並執行下面三行（把員工名冊整份複製成 bak_line_employees，原表不動）：
 
 ```sql
 drop table if exists public.bak_line_employees;
 create table public.bak_line_employees as select * from public.employees;
+alter table public.bak_line_employees enable row level security;
 ```
 
    再執行 `select count(*) from public.bak_line_employees;`，數字應等於名冊人數。
@@ -46,7 +47,7 @@ select job_title, count(*) from public.employees
 
 產生匯入檔（工程師做）：`node supabase/import/gen_line_import.js [xlsx 路徑]`。依賴 exceljs（不在專案內，路徑見腳本開頭）與本機規則檔 `supabase/import/line_rules.local.json`（員編清單，含個資，不進倉庫）。
 
-匯入規則摘要：名冊已有的人只寫 LINE 權限、職稱門市納入考核維持名冊現況；總公司老闆與行銷不新增、不寫權限；新增一般人員 1 位、技師 6 位、公務機 6 台；4 位改離職（只改狀態，employees 沒有離職日欄位）；陳立寧、緣不做任何標記。
+匯入規則摘要：名冊已有的人只寫 LINE 權限、職稱門市納入考核維持名冊現況；總公司老闆與行銷不新增、不寫權限；新增一般人員 1 位、技師 6 位、公務機 6 台；4 位改離職（只改狀態，employees 沒有離職日欄位）；兩位未在名單內的人員不做任何標記。
 
 ## 三張表是做什麼的
 
