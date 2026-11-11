@@ -57,6 +57,7 @@ th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-sh
 .tag.unk{background:var(--warning-soft);color:var(--warning)}
 .tag.on{background:var(--success-soft);color:var(--success)}
 .tag.out{background:var(--danger-soft);color:var(--danger)}
+.tag.todo{background:var(--ci-yellow);color:var(--ci-black)}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
 .note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3);line-height:1.5}
 .intro{font-size:14px;line-height:1.6;color:var(--ink-2);margin-bottom:var(--sp-3)}
@@ -312,6 +313,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
 <script src="js/scoring.js"></script>
 <script src="js/radar.js"></script>
 <script src="js/backoffice-api.js"></script>
+<script src="js/coached-core.js"></script>
 <script src="js/assess-api.js"></script>
 <script src="js/recent-reports-core.js"></script>
 <script src="js/recent-reports.js"></script>
@@ -345,6 +347,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
   var reps = [], repById = {}, repsByEmp = {};      // 已送出的成績單（整理後）
   var dimByAid = {};                                 // 成績單 id → [{dim, pct}]
   var tickets = [];
+  var pendingBook = {};   // 「已輔導但尚未約考」：{ 改善單編號: 列 }（資料庫依身分過濾）
   var storeOpts = [], heatStores = [];
   var openSid = null, openTid = null, dyn = [], busy = false;
 
@@ -594,7 +597,8 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       (t.source_total_score == null ? '—' : esc(fmt(t.source_total_score)) + ' 分') + ' ' + vtag(t.source_verdict);
   }
   function statusTags(t) {
-    return '<span class="tag ' + (SCLS[t.status] || 'reg') + '">' + esc(SZH[t.status] || '—') + '</span>' + (t.is_overdue ? '<span class="tag out">逾期</span>' : '');
+    return '<span class="tag ' + (SCLS[t.status] || 'reg') + '">' + esc(SZH[t.status] || '—') + '</span>' + (t.is_overdue ? '<span class="tag out">逾期</span>' : '') +
+      (pendingBook[t.id] ? '<span class="tag todo">尚未約考</span>' : '');
   }
 
   function stuDetailHtml(p) {
@@ -701,7 +705,8 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       return '<tr class="' + (t.status === 'cancelled' ? 'off' : '') + '"><td>' + esc(tName(t)) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td><td>' + esc(sName(t.store_code)) + '</td><td>' + srcCell(t) + '</td>' +
         '<td style="white-space:normal;min-width:160px">' + dimTags(t.target_dims) + '</td>' +
         '<td><span class="mono">' + esc(t.due_date) + '</span>' + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td>' +
-        '<td class="stick"><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
+        '<td class="stick"><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button>' +
+        (pendingBook[t.id] && (isCS() || isMgr()) ? ' <a class="btn sm primary" href="' + esc(CoachedCore.requestsUrl(t.id)) + '">前往預約</a>' : '') + '</td></tr>';
     }).join('');
     $('tEmpty').textContent = tickets.length ? '沒有符合條件的改善單' : '目前沒有改善單';
     $('tEmpty').hidden = list.length > 0;
@@ -766,16 +771,18 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
 
   function renderAll() { applyRole(); renderHistory(); renderInsights(); renderTickets(); }
   function reloadTickets() {
-    return BackofficeApi.loadTickets().then(function (rows) {
-      tickets = visibleTickets(rows); renderAll(); refreshA(); refreshB();
+    return Promise.all([BackofficeApi.loadTickets(), BackofficeApi.coachedPending()]).then(function (r) {
+      tickets = visibleTickets(r[0]); pendingBook = CoachedCore.byTicket(r[1]); renderAll(); refreshA(); refreshB();
     });
   }
   // 送出一個改善單操作：成功才關對話框並重讀改善單；失敗把白話訊息顯示在對話框內
-  function submitAct(D, btn, errSel, job, okMsg) {
+  // jumpTo（選填）：成功後直接跳轉到該網址（不顯示提示、不重讀），店長按「已輔導」後帶去預約考核用
+  function submitAct(D, btn, errSel, job, okMsg, jumpTo) {
     var err = D.q(errSel);
     if (busy) return;
     busy = true; btn.disabled = true; err.hidden = true;
     job().then(function () {
+      if (jumpTo) { location.href = jumpTo; return; }
       D.rm(); toast(okMsg);
       return reloadTickets().catch(function (e) { showPageMsg('已儲存，但重新載入改善單失敗：' + errText(e) + ' 請重新整理頁面。'); });
     }, function (e) { err.textContent = errText(e); err.hidden = false; })
@@ -846,7 +853,8 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       var date = D.q('#gDate').value, note = D.q('#gNote').value.trim(), err = D.q('#gErr'), now = today();
       var m = !date ? '請選擇輔導日期。' : date < openDate ? '輔導日期不可早於開單日（' + openDate + '）。' : date > now ? '輔導日期不可晚於今天。' : !note ? '輔導備註必填。' : '';
       if (m) { err.textContent = m; err.hidden = false; return; }
-      submitAct(D, D.q('#gOk'), '#gErr', function () { return BackofficeApi.markCoached(t.id, date, note); }, had ? '輔導紀錄已更新。' : '已回填為「已輔導」。');
+      submitAct(D, D.q('#gOk'), '#gErr', function () { return BackofficeApi.markCoached(t.id, date, note); }, had ? '輔導紀錄已更新。' : '已回填為「已輔導」。',
+        had ? '' : CoachedCore.requestsUrl(t.id));   // 第一次按「已輔導」成功後直接帶去待考回報（編輯既有紀錄不跳轉）
     });
   }
 
@@ -928,8 +936,9 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       me = row;
       return Promise.all([
         BackofficeApi.loadStores(), BackofficeApi.loadEmployees(), BackofficeApi.loadSummaries(),
-        BackofficeApi.loadDimRates(), BackofficeApi.loadTickets()
+        BackofficeApi.loadDimRates(), BackofficeApi.loadTickets(), BackofficeApi.coachedPending()
       ]).then(function (r) {
+        pendingBook = CoachedCore.byTicket(r[5]);
         stores = r[0]; storeName = {};
         stores.forEach(function (s) { storeName[s.code] = s.name; });
         buildData(r[1], r[2], r[3], r[4]);

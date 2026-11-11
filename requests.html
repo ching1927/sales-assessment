@@ -53,6 +53,11 @@ th{font-size:12px;color:var(--ink-2)}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .log{font-size:13px;color:var(--ink-2);margin-top:var(--sp-3);line-height:1.7}
 .log.err{color:var(--danger);font-weight:700}
+.remind{display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;background:var(--ci-yellow);color:var(--ci-black);border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);font-weight:700;font-size:14px;line-height:1.5;margin-bottom:var(--sp-3)}
+.remind span{flex:1 1 240px}
+.remind .btn{background:var(--ci-black);color:var(--ci-yellow);border-color:var(--ci-black)}
+.tag.src{background:var(--accent-soft);color:var(--accent-deep)}
+.fromtk{display:inline-block;margin-left:8px;font-size:12px;vertical-align:middle}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
 .txt{white-space:pre-wrap;overflow-wrap:anywhere}
 .msg{font-size:13px;line-height:1.5;padding:8px 12px;border-radius:var(--r-sm);margin:var(--sp-2) 0}
@@ -129,14 +134,16 @@ dialog::backdrop{background:var(--scrim)}
 
     <div id="mgrNotice" aria-live="polite"></div>
 
+    <div id="remindBar" aria-live="polite"></div>
+
     <section id="formWrap" hidden>
       <h2 class="sec">回報待考</h2>
       <form class="glass panel" id="reqForm" novalidate>
         <div class="grid">
           <div id="qStoreWrap" hidden><label class="lb" for="qStore">門市</label><select class="ctrl" id="qStore"></select></div>
-          <div><label class="lb" for="qKind">回報情況</label>
+          <div><label class="lb" for="qKind">回報情況<span class="tag src fromtk" id="fromK" hidden>由改善單帶入</span></label>
             <select class="ctrl" id="qKind"><option value="新人">新人準備好了，要考核</option><option value="回考核期">回考核期的人，準備好再考</option><option value="複檢">改善單複檢考核</option></select></div>
-          <div><label class="lb" for="qEmp">人員</label><select class="ctrl" id="qEmp"></select></div>
+          <div><label class="lb" for="qEmp">人員<span class="tag src fromtk" id="fromE" hidden>由改善單帶入</span></label><select class="ctrl" id="qEmp"></select></div>
         </div>
         <label class="lb">希望考核日期（可多選，最多 3 個，至少 1 個）</label>
         <div class="days" id="qDays"></div>
@@ -211,6 +218,7 @@ dialog::backdrop{background:var(--scrim)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/requests-core.js"></script>
+<script src="js/coached-core.js"></script>
 <script src="js/requests-api.js"></script>
 <script>
 (function () {
@@ -291,6 +299,41 @@ dialog::backdrop{background:var(--scrim)}
     }).join('');
   }
 
+  // ====== 已輔導但尚未約考：黃色提醒條與預填 ======
+  // 清單由資料庫依身分過濾（店長只拿得到自己門市），所以網址帶別間門市的單號時，這裡找不到、參數會被忽略
+  var pending = [], prefillTicket = '';
+  function renderRemind() {
+    var list = isMgr() ? pending.filter(function (p) { return p.ticket_id !== prefillTicket; }) : [];
+    $('remindBar').innerHTML = list.map(function (p) {
+      return '<div class="remind"><span>' + esc(CoachedCore.remindText(p)) + '</span><button class="btn sm" type="button" data-fill="' + esc(p.ticket_id) + '">一鍵帶入</button></div>';
+    }).join('');
+  }
+  function loadPending() {
+    if (!canReport()) return Promise.resolve();
+    return RequestsApi.coachedPending().then(function (l) { pending = l; renderRemind(); });
+  }
+  function clearFromTags() { $('fromK').hidden = true; $('fromE').hidden = true; prefillTicket = ''; renderRemind(); }
+  // 依改善單預填情況與人員；判斷不了情況（資料庫回 null）就不動表單，只提示店長自己選
+  function applyPrefill(ticketId) {
+    var row = CoachedCore.findPrefill(pending, ticketId);
+    if (!row) return Promise.resolve(false);
+    if (!row.kind) { toast('「' + (row.employee_label || row.employee_id) + '」已輔導完成，請選擇回報情況與人員。'); return Promise.resolve(false); }
+    $('qKind').value = row.kind; syncVideoRow();
+    return loadCands().then(function () {
+      if (isCS()) { $('qStore').value = row.store_code; fillCands(); }
+      var idx = -1;
+      shown.forEach(function (c, i) {
+        if (idx < 0 && c.employee_id === row.employee_id && (row.kind !== '複檢' || c.ticket_id === row.ticket_id)) idx = i;
+      });
+      if (idx < 0) return false;
+      $('qEmp').value = String(idx);
+      $('fromK').hidden = false; $('fromE').hidden = false;
+      prefillTicket = row.ticket_id; renderRemind();
+      try { $('formWrap').scrollIntoView({ block: 'start' }); } catch (e) {}
+      return true;
+    });
+  }
+
   // ====== 畫面：回報表單 ======
   function dayInputs() { return [].slice.call($('qDays').querySelectorAll('input')); }
   function addDay(v) {
@@ -364,7 +407,8 @@ dialog::backdrop{background:var(--scrim)}
       $('qNote').value = ''; $('qVideo').checked = false; resetDays();
       toast('回報已送出。');
       refreshBadge();
-      return Promise.all([reloadAll(), loadCands()]).catch(function (e) { showPageMsg('已送出，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
+      clearFromTags();
+      return Promise.all([reloadAll(), loadCands(), loadPending()]).catch(function (e) { showPageMsg('已送出，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
     }, function (e) { setLog(errText(e), true); })
       .then(function () { busy = false; $('qGo').disabled = false; });
   }
@@ -501,7 +545,7 @@ dialog::backdrop{background:var(--scrim)}
     job().then(function () {
       D.rm(); toast(okMsg); refreshBadge();
       var jobs = [reloadAll()];
-      if (canReport()) jobs.push(loadCands());
+      if (canReport()) { jobs.push(loadCands()); jobs.push(loadPending()); }
       return Promise.all(jobs).catch(function (e) { showPageMsg('已儲存，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
     }, function (e) { err.textContent = errText(e); err.hidden = false; })
       .then(function () { busy = false; btn.disabled = false; });
@@ -607,6 +651,11 @@ dialog::backdrop{background:var(--scrim)}
   $('blockedLogout').addEventListener('click', doLogout);
   $('reqForm').addEventListener('submit', submitForm);
   $('qKind').addEventListener('change', function () { syncVideoRow(); loadCands(); });
+  $('qKind').addEventListener('change', clearFromTags);
+  $('qEmp').addEventListener('change', function () { $('fromE').hidden = true; });
+  $('remindBar').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b && b.dataset.fill) applyPrefill(b.dataset.fill);
+  });
   $('qStore').addEventListener('change', fillCands);
   $('qAddDay').addEventListener('click', function () { addDay(''); });
   $('qDays').addEventListener('click', function (e) {
@@ -659,7 +708,10 @@ dialog::backdrop{background:var(--scrim)}
           RequestsApi.markSeen().then(refreshBadge, function () {});
         }
         $('loading').hidden = true; $('app').hidden = false;
-        return loadCands();
+        return loadCands().then(loadPending).then(function () {
+          var tk = CoachedCore.parseFromTicket(location.search);   // 從改善單「已輔導」或提醒信帶過來：?from_ticket=單號
+          return tk ? applyPrefill(tk) : false;
+        });
       });
     });
   }).catch(function (e) {

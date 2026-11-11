@@ -128,3 +128,107 @@ on conflict (key) do update set value = excluded.value;
 - 每日上限 20 筆是「同一回報人、台北日期」計算，含已取消；客服部代報也算在客服部本人名下。
 - 並發保護（兩個連線同時回報同一人）無法在單一連線的驗證腳本實測：以唯一部分索引的直接重複寫入被拒、`exam_req_create` 內含 `for update` 鎖定做靜態確認。
 - 驗證腳本在交易內暫時取代三個 `exam_req_net_*` 函式與刪除寄信設定，整段 rollback 後自動還原；第 1 區用「真實」pg_net 驗證 queued（rollback 後不會真的送出）。我沒有在真實 Supabase 跑過，真實 pg_net 的簽名（`net.http_post` 具名參數 `url`／`body`／`headers`／`timeout_milliseconds`）、`net._http_response` 欄位、以及 postgres 角色對 `net` 的權限，是依 pg_net 文件寫的，未實測；若驗證腳本第 1 區出現「failed」並附權限類錯誤訊息，就是這裡要調整。
+
+---
+
+## 六、已輔導後的「尚未約考」提醒（2026-11-11，老闆已看過樣品 `樣品/已輔導跳轉待考回報樣品.html` 並確認）
+
+> ⚠️ `coached_reminder_schema.sql` 與 `coached_reminder_verify_fake.sql` **尚未在真實 Supabase 執行**；網頁已寫好，資料庫還沒執行時，網頁會自動當作「沒有尚未約考的人」，其他功能照常。
+
+### 一句話講完
+
+店長在「考核後台 → 改善單」按「已輔導」並儲存成功後，**自動跳到待考回報頁**，人員與情況已幫他填好；如果他沒送出，系統會用**三個地方**提醒他（改善單黃色標籤、待考回報頁黃色提醒條、導覽列紅點），並且**每兩天寄一封提醒信**給該門市店長，直到他送出待考回報（或這張改善單被客服部作廢／結案）為止。
+
+### 「尚未約考」的定義（資料庫與網頁共用同一套）
+
+同時符合才算：
+
+1. 改善單目前是「已輔導」（待改善、已結案、已取消都不算；成績單作廢會自動取消改善單，所以作廢也會停）。
+2. 開單之後，這位人員沒有任何「待處理、已排定」的待考回報。**已取消（已撤回、已退回）不算有效**，退回後仍視為尚未約考。
+3. 這位人員在職且納入考核（否則系統本來就不能替他回報）。
+4. **「已完成」的待考回報也算已約考**（考核已經考過，不必再提醒）。這一點老闆原話沒有寫到，是工程師的解讀，請老闆確認。
+
+### 情況預填規則（資料庫依真實欄位決定，欄位來源：改善單的來源成績單判定 `assessments.verdict`、人員 `employees.probation_since`）
+
+| 來源成績單判定 | 人員目前狀態 | 預填的「情況」 |
+|---|---|---|
+| 需複訓 | 任何 | 複檢（連到這張改善單） |
+| 不及格 | 在考核期（`probation_since` 有值） | 回考核期 |
+| 不及格 | 不在考核期 | **留空，由店長自己選**（資料庫不允許不在考核期的人以「回考核期」回報，樣品假設的「不及格→回考核期」在這種人身上做不到） |
+| 其他 | — | 留空 |
+
+留空時：不動表單，只跳出提示「請選擇回報情況與人員」；黃色提醒條與「一鍵帶入」仍在。
+
+### 網頁行為
+
+- 網址：`requests.html?from_ticket=<改善單編號>`（只放單號，不放姓名）。店長若帶別間門市的單號、亂寫的參數、已約考的單，一律忽略（資料庫只回他自己門市「尚未約考」的清單，找不到就不預填）。
+- 表單預填人員與情況後，兩個欄位旁顯示「由改善單帶入」小標示；店長改情況或人員後標示收起。日期（1～3 個）、備註照舊自己填，送出走原本的 `exam_req_create`，其餘待考回報行為沒有任何改變。
+- 黃色提醒條：只給店長看，每位尚未約考的人一條，「一鍵帶入」套用同一個預填；已預填的那位不重複顯示。客服部與主管沒有提醒條（客服部也可帶 `from_ticket` 預填，會自動切到該門市）。
+- 改善單清單：該單顯示黃色「尚未約考」標籤；店長與客服部另有「前往預約」按鈕，主管只有標籤。
+- 導覽紅點：`js/appbar.js` 現在同時呼叫 `exam_req_badge()`（**語意完全沒改**）與新的 `coached_pending_count()`，店長的數字＝兩者相加；客服部、主管的 `coached_pending_count()` 回 0，所以他們的紅點不變。資料庫還沒有新函式或呼叫失敗時，新的那一半當 0，紅點與原本一模一樣。**本次沒有修改 `exam_req_badge` 函式**，所以日後重跑 `exam_request_schema.sql` 也不會把新功能蓋掉。
+
+### 提醒信規則
+
+| 項目 | 規定 |
+|---|---|
+| 對象 | 該人員目前所屬門市的所有店長帳號（`app_users` 角色 store_manager 且門市相同）；沒有店長帳號時留一筆 skipped 紀錄寫明原因 |
+| 第一封 | 按「已輔導」（`coached_at`，台北日期）後第 2 天 |
+| 之後 | 每 2 天一封（第 4、6、8…天）；某天漏跑會在下次執行時補寄，之後仍每 2 天一封 |
+| 時間 | 固定台北時間早上 9 點（pg_cron 每天 UTC 01:00） |
+| 停止 | 店長送出待考回報（待處理／已排定／已完成）、改善單被取消或結案、人員離職或不納入考核 |
+| 輔導紀錄被重填 | 店長之後又編輯輔導紀錄（`coached_at` 會更新），提醒從新的輔導時間重新算 |
+| 同一天不重複 | 改善單的 `last_reminded_at`、`reminder_count` 記錄（新增兩欄位） |
+| 收件人限制 | 沿用 `exam_req_enqueue`：只限 `app_users` 內的 @2motor.tw 信箱；`mail-relay.gs` 的安全限制完全沒動 |
+| 紀錄 | 寫進 `mail_outbox`（`kind = 'coached_reminder'`，`request_id` 欄位放改善單編號，該欄沒有外鍵）。客服部在「待考回報頁 → 寄信紀錄」現有清單就看得到（主旨是「【提醒】○○ 已輔導完成 N 天，尚未預約考核」），不必改任何畫面 |
+| 信件文案 | 照樣品畫面 D：主旨「【提醒】○○ 已輔導完成 N 天，尚未預約考核」；內文「○○門市的 ○○（情況）已輔導完成 N 天，尚未預約考核。」＋按鈕「前往預約考核」（連到 `requests.html?from_ticket=單號`）＋「這是系統自動寄出的提醒。你送出待考回報後，就不會再收到這封信。」；不含「計時」「倒數」「監控」字眼 |
+
+### 新增的資料庫物件（名稱一律 `coached_` 開頭，與既有名稱不重複；不修改任何既有函式）
+
+- 欄位（加在 `improvement_tickets`）：`last_reminded_at`、`reminder_count`。
+- 對外函式（authenticated 可呼叫，函式內自己驗角色）：`coached_pending()`（客服部、主管全部；店長自己門市；其他身分「沒有權限」）、`coached_pending_count()`（店長自己門市人數；其他一律 0）。
+- 內部函式（任何網頁角色都不能直接呼叫）：`coached_pending_rows(timestamptz)`、`coached_reminder_content(...)`、`coached_reminder_run(timestamptz)`（排程與手動測試用，參數只給驗證腳本模擬日期，預設現在）。
+- 排程：pg_cron 的 `coached_reminder_daily`（`0 1 * * *`＝每天台北 09:00，執行 `select public.coached_reminder_run()`）。沒有 pg_cron 時整份 SQL 仍成功，只用提示訊息略過排程註冊；註冊動作可重複執行（先 unschedule 同名再 schedule）。
+
+### 老闆照這個順序在 Supabase SQL Editor 執行（每一步貼上 → Run → 看到 Success 再做下一步）
+
+前提：`exam_request_schema.sql` 已執行（含 pg_net 與寄信設定，見第五節）；`phase1`、`checkup` 等先前的 schema 已依序執行。
+
+1. **備份**：貼上並執行下面三行（把改善單整份複製成 bak_improvement_tickets，原表不動；備份表一定要開 RLS）：
+
+```sql
+drop table if exists public.bak_improvement_tickets;
+create table public.bak_improvement_tickets as select * from public.improvement_tickets;
+alter table public.bak_improvement_tickets enable row level security;
+```
+
+   再執行 `select count(*) from public.bak_improvement_tickets;`，數字應等於改善單張數。
+2. **啟用 pg_cron**：Dashboard → Database → Extensions → 搜尋 `pg_cron` → 打開。（沒啟用也能做第 3 步，只是不會有每天 09:00 的排程；啟用後把第 3 步再貼一次就補上。）
+3. 貼上 `coached_reminder_schema.sql` **整份** → Run。可重複執行。成功時 Messages 會顯示「已註冊排程 coached_reminder_daily」；若顯示「偵測不到 pg_cron」就是第 2 步沒做。
+4. **驗證查詢**（貼上執行，看結果）：
+
+```sql
+-- 排程有沒有註冊（預期 1 列：coached_reminder_daily、0 1 * * *）
+select jobname, schedule, command from cron.job where jobname = 'coached_reminder_daily';
+-- 新增的兩個欄位（預期 2 列）
+select column_name from information_schema.columns
+ where table_schema = 'public' and table_name = 'improvement_tickets'
+   and column_name in ('last_reminded_at', 'reminder_count');
+-- 目前有幾位「已輔導但尚未約考」（在 SQL Editor 以管理者身分執行，看到的是全部門市）
+select count(*) as pending_n from public.coached_pending_rows();
+```
+
+5. **手動呼叫測試函式一次**：
+
+```sql
+select public.coached_reminder_run();
+```
+
+   回傳的整數＝這次寫進寄信佇列的提醒封數（只有「已輔導滿 2 天、尚未約考」的才會寄；目前沒有就是 0）。回傳大於 0 時，到「待考回報頁 → 寄信紀錄」按「更新寄信狀態」確認狀態（寄信設定還沒填會是「未寄出（尚未設定寄信）」）。**手動呼叫也會真的記下 `last_reminded_at`，所以同一天再按一次不會重複寄。**
+6. 可再執行 `coached_reminder_verify_fake.sql`（假資料、全程 rollback），最後一個結果表第一列應為「77/77 項通過」（pg_cron 有沒有啟用都會通過）。
+7. 緊急停止寄提醒信：`select cron.unschedule('coached_reminder_daily');`
+
+### 驗證與沒測到的
+
+- 已在 PGlite（Postgres 相容引擎，模擬）跑完整條 schema 鏈（含 phase1、checkup、roster_line）後，`coached_reminder_schema.sql` 連跑兩次不報錯、驗證腳本 77/77 通過；「沒有 pg_cron」與「有（假的）pg_cron」兩種情況都測過，排程重複註冊只留一筆；既有 `backoffice_verify_fake.sql`（161/161）、`exam_request_verify_fake.sql`（388/388）在加上本檔後結果不變。
+- 網頁在假環境（假 Supabase、真瀏覽器）實際走過：按「已輔導」→自動跳轉→預填→送出→提醒消失；沒送出時標籤、黃條、紅點都在；非本店單號被忽略；手機寬度可用。
+- **未測**：真實 Supabase（含真實 pg_cron 排程是否準時、真實 pg_net 呼叫簽名與 postgres 角色權限，同第五節）、真實寄信（Apps Script 是否收到、信箱是否收到、信件在各家信箱的排版）、真實店長帳號登入操作。第一次上線後，請找一位店長實際走一次，並留意隔天 09:00 後的寄信紀錄。

@@ -107,6 +107,9 @@
 - 導覽「待考回報」｜`roster.html`、`assess.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`、`requests.html`｜所有已開通角色看得到，在「考核後台」之後、「抽查」之前
 - 導覽紅點｜`js/appbar.js`、`app.css`｜登入後呼叫 exam_req_badge()，大於 0 時在「待考回報」分頁文字旁顯示紅色數字（超過 99 顯示 99+）；只從 localStorage 讀目前 session 的 access_token（sb-專案代號-auth-token），建不存 session、不換 token、不監聽登入的 client 以 Authorization 標頭呼叫，絕不 refresh、不寫 storage；讀不到 token、JSON 壞掉、token 過期或任何失敗都安靜忽略；登入頁不載入；requests.html 做完動作會呼叫 window.AppBadge.refresh() 重抓
 - 選考生標記「已回報待考」｜`assess.html`、`js/assess-api.js`｜進行考核步驟 1 的清單，已有待處理／已排定回報的人排最前面並顯示黃底「已回報待考」（已排定者附排定時間）；讀取 exam_requests 失敗就照原樣，不擋考核
+- 已輔導後自動跳轉待考回報並預填（尚未連真實資料庫；需先執行 supabase/coached_reminder_schema.sql，說明見 supabase/README_exam_request.md 第六節）｜`backoffice.html`、`requests.html`、`js/coached-core.js`、`js/backoffice-api.js`、`js/requests-api.js`｜店長在考核後台改善單第一次按「回填已輔導」儲存成功，直接跳到 `requests.html?from_ticket=單號`，人員與情況（需複訓→複檢；不及格且在考核期→回考核期；其他留空）已預填並顯示「由改善單帶入」；非本店單號、亂寫參數、已約考的單一律忽略；編輯既有輔導紀錄不跳轉。驗證：`node tests/coached-core.test.js` 印出「通過 75 項」；資料庫驗證 `coached_reminder_verify_fake.sql` 第一列「77/77 項通過」
+- 尚未約考三處提醒｜`backoffice.html`（改善單黃色「尚未約考」標籤＋店長與客服部的「前往預約」按鈕）、`requests.html`（店長頂部黃色提醒條「○○ 已輔導完成，記得預約考核」＋「一鍵帶入」）、`js/appbar.js`（待考回報紅點＝`exam_req_badge()`＋`coached_pending_count()`，店長才會加；客服部、主管不變）｜驗證：假環境走一輪，沒送出時標籤、黃條、紅點都在，送出後消失（`coached_pending()` 資料庫函式依身分過濾）
+- 尚未約考提醒信（每兩天一封）｜`supabase/coached_reminder_schema.sql`（`coached_reminder_run()`、pg_cron 排程 `coached_reminder_daily`、改善單新增 `last_reminded_at`／`reminder_count`）、`supabase/coached_reminder_verify_fake.sql`｜按「已輔導」後第 2 天起每 2 天一封給該門市店長，台北時間 09:00；店長送出待考回報或改善單作廢／結案即停止；信件記在 `mail_outbox`（kind=coached_reminder），客服部在「寄信紀錄」看得到。驗證：SQL Editor 執行 `select public.coached_reminder_run();` 回傳整數（本次寫入的封數）
 
 ## 名冊加技師、公務機與官方 LINE 回覆權限（網頁已寫好，尚未連真實資料庫；需先依 supabase/README_roster.md「LINE 權限與新類別」備份並執行 roster_line_schema.sql）
 

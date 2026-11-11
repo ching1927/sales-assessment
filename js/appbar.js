@@ -53,7 +53,15 @@
     try {
       var sb = getClient();
       if (!sb) return Promise.resolve();
-      return Promise.resolve(sb.rpc('exam_req_badge')).then(function (r) { if (r && !r.error) show(r.data); }, function () {});
+      // 數字＝exam_req_badge()（原有語意不變）＋ coached_pending_count()（店長自己門市「已輔導但尚未約考」的人數；
+      // 客服部與主管回 0；資料庫還沒有這個函式或呼叫失敗時當 0，紅點行為與原本完全相同）
+      var extra = Promise.resolve(sb.rpc('coached_pending_count')).then(function (r) {
+        var n = r && !r.error ? Number(r.data) : 0; return n > 0 ? Math.floor(n) : 0;
+      }, function () { return 0; });
+      return Promise.resolve(sb.rpc('exam_req_badge')).then(function (r) {
+        if (!r || r.error) return;
+        return extra.then(function (n) { show((Number(r.data) > 0 ? Number(r.data) : 0) + n); });
+      }, function () {});
     } catch (e) { return Promise.resolve(); }
   }
   window.AppBadge = { refresh: refresh, set: show };

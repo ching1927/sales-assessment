@@ -105,6 +105,12 @@
       return wrap(sb.rpc('exam_req_candidates', { p_kind: kind })).then(function (r) { return r.data || []; });
     },
 
+    // 「已輔導但尚未約考」清單（資料庫依身分過濾：店長只有自己門市）；含預填用的情況 kind（可能是 null）。
+    // 資料庫還沒執行 coached_reminder_schema.sql 或呼叫失敗時回空清單，不影響頁面其他功能
+    coachedPending: function () {
+      return Promise.resolve(sb.rpc('coached_pending')).then(function (r) { return r && !r.error ? (r.data || []) : []; }, function () { return []; });
+    },
+
     // ---- 寫入（全部走資料庫函式）----
     create: function (kind, employeeId, dates, video, note, ticketId) {
       return wrap(sb.rpc('exam_req_create', {

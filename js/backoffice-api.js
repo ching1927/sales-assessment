@@ -107,6 +107,12 @@
       });
     },
 
+    // 「已輔導但尚未約考」清單（資料庫依身分過濾：客服部、主管全部，店長自己門市）。
+    // 資料庫還沒執行 coached_reminder_schema.sql 或呼叫失敗時回空清單，不影響改善單其他功能
+    coachedPending: function () {
+      return Promise.resolve(sb.rpc('coached_pending')).then(function (r) { return r && !r.error ? (r.data || []) : []; }, function () { return []; });
+    },
+
     // ---- 改善單操作（全部走資料庫函式）----
     updatePlan: function (ticketId, dims, dueDate) {
       return wrap(sb.rpc('improve_update_plan', { p_ticket_id: ticketId, p_target_dims: dims, p_due_date: dueDate }));
