@@ -294,10 +294,11 @@
 
     // ---- 成績單 ----
     // 列表：RLS 已依角色過濾，這裡分頁讀完
-    loadSummaries: function () {
+    // withExaminer 只有客服部傳 true：店長與主管不要求考官信箱欄位（網路回應也不帶）
+    loadSummaries: function (withExaminer) {
       return pageAll(function (from, to) {
         return sb.from('assessment_summaries')
-          .select('id,employee_id,employee_label,store_code,store_name,created_at,submitted_at,examiner_email,tenure,tenure_source,total_score,verdict,pass_line,weakest_dims,status,voided_at,void_reason,item_count,kind,checkup_year,checkup_quarter')
+          .select('id,employee_id,employee_label,store_code,store_name,created_at,submitted_at,' + (withExaminer ? 'examiner_email,' : '') + 'tenure,tenure_source,total_score,verdict,pass_line,weakest_dims,status,voided_at,void_reason,item_count,kind,checkup_year,checkup_quarter')
           .order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
@@ -311,6 +312,24 @@
           return items.map(function (i) {
             return { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels, isExtra: !!i.is_extra, item_score: i.item_score, dim_points: i.dim_points, note: i.note || '', note_url: i.note_url || '', imgs: imgs[i.id] || [] };
           });
+        });
+      });
+    },
+
+    // 總公司主管與店長用（成績單完整版）：在 loadItemsLimited 之上多帶「題目名稱」與「面向備註」。
+    // 這兩項存在機密表，前端不直接查表，只呼叫資料庫函式 fullreport_items（資料庫依角色與門市把關，不回傳考官信箱、步驟、考點；需先執行 supabase/fullreport_schema.sql）。
+    loadItemsFullReport: function (assessmentId) {
+      return Promise.all([
+        window.AssessApi.loadItemsLimited(assessmentId),
+        wrap(sb.rpc('fullreport_items', { p_assessment_ids: [assessmentId] }))
+      ]).then(function (res) {
+        var by = {};
+        (res[1].data || []).forEach(function (x) { by[x.item_id] = x; });
+        return res[0].map(function (it) {
+          var x = by[it.id] || {};
+          it.title = x.title || '';
+          it.dimNotes = x.dim_notes && typeof x.dim_notes === 'object' ? x.dim_notes : {};
+          return it;
         });
       });
     },

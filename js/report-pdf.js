@@ -186,7 +186,7 @@
         '<div>' + main + '<div class="code">' + sub + '</div></div>' +
         it.levels.map(function (lv) { return '<div class="lv lv-' + (LVCLS[lv] || 'x') + '">' + esc(lv) + '</div>'; }).join('') +
         '<div class="sc">' + (it.score == null ? '—' : fmt(it.score)) + '</div></div>' +
-        (it.notes ? '<div class="qnotes">' + it.notes.map(function (n) { return '<div><b>' + esc(n.dim) + '（' + esc(n.level) + '）考官備註：</b>' + esc(n.note) + '</div>'; }).join('') + '</div>' : ''));
+        ((it.notes || it.note) ? '<div class="qnotes">' + (it.note ? '<div><b>題組考官備註：</b>' + esc(it.note) + '</div>' : '') + (it.notes || []).map(function (n) { return '<div><b>' + esc(n.dim) + '（' + esc(n.level) + '）考官備註：</b>' + esc(n.note) + '</div>'; }).join('') + '</div>' : ''));
     });
     h += blk('blk', '<div class="qnote">等級：優良 100％、尚可 70％、待加強 40％（改制前的舊單照原等級顯示：優 100％、良 70％、待加強 40％、不及格 0％，不換算）；面向由左至右依序為資訊正確性、預設訊息運用、問題掌握、主動引導、風險意識、語氣與禮貌、文字品質。' +
       (m.hasExtra ? '<br><b>加考題（弱項追加題）不計入總分與判定，也不計入面向得分率。</b>' : '') + '</div>');
@@ -292,7 +292,7 @@
   }
 
   // ===== 取資料 =====
-  // opts: { person:{name,id,hire}, assessmentId, withTitle(只有客服部 true), storeName(code)->名稱 }
+  // opts: { person:{name,id,hire}, assessmentId, withTitle(完整版 true：客服部、店長、總公司主管), viaRpc(店長與主管 true：題名與備註走 fullreport_items，並多印題組備註), storeName(code)->名稱 }
   function loadModel(opts) {
     var Api = root.BackofficeApi;
     return Api.loadEmployeeAssessments(opts.person.id).then(function (rows) {
@@ -301,9 +301,9 @@
       if (idx < 0) { var e = new Error('找不到這張成績單，可能已作廢或尚未送出。'); e.userMessage = e.message; throw e; }
       var ids = [list[idx].id].concat(idx > 0 ? [list[idx - 1].id] : []);
       var raw = rows.filter(function (a) { return a.id === opts.assessmentId; })[0] || {};
-      return Api.loadReportItems(ids, !!opts.withTitle).then(function (itemsBy) {
+      return Api.loadReportItems(ids, !!opts.withTitle, !!opts.viaRpc).then(function (itemsBy) {
         var res = Core.buildReport({ person: opts.person, storeName: opts.storeName ? opts.storeName(raw.store_code) : '', assessments: rows,
-          currentId: opts.assessmentId, itemsByAssessment: itemsBy, showTitle: !!opts.withTitle, nowMs: Date.now() });
+          currentId: opts.assessmentId, itemsByAssessment: itemsBy, showTitle: !!opts.withTitle, showNote: !!opts.viaRpc, nowMs: Date.now() });
         if (!res.ok) { var e2 = new Error(res.error); e2.userMessage = res.error; throw e2; }
         return res.model;
       });

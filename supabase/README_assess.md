@@ -164,3 +164,21 @@
 6. 一切確認後，備份表可刪除。
 
 注意：既有的 *_verify_fake.sql 內部用舊等級字串送出成績單，執行 grade3_schema.sql 之後這些腳本裡「送出」的步驟會被擋（這是預期的）；要重跑它們請在 grade3 之前，或用 grade3_verify_fake.sql。
+
+
+## 成績單完整版給店長與主管（fullreport_schema.sql）
+
+> 狀態：**尚未在真實 Supabase 執行**，待老闆同意。只新增一個函式，可重複執行，不改任何資料。
+
+### 規則
+- 店長（只限自己門市）與總公司主管的成績單，多顯示：題目名稱、題組備註、面向備註。考官信箱、步驟、考點仍只有客服部。
+- 做法：機密表整表仍只有客服部能讀；新增函式 fullreport_items（查詢者角色與門市由資料庫判斷）。店長只拿到自己門市已送出的；主管拿到全部已送出的；草稿、作廢、他店一律回空；無帳號與未登入報「沒有權限」。回傳欄位只有 item_id、assessment_id、title、dim_notes。
+- 已知限制：資料庫沒有欄位層級權限，店長／主管若繞過網頁直接查 assessments 表，仍讀得到 examiner_email（既有狀態，本次網頁已不再要求該欄位）。
+
+### 老闆照這個順序在 Supabase SQL Editor 執行
+1. 前提：grade3_schema.sql 已執行。
+2. 備份：照 fullreport_schema.sql 檔頭貼上執行（含 enable row level security 那行）。
+3. 執行 fullreport_schema.sql（整份貼上 → Run）。
+4. 執行 fullreport_verify_fake.sql（假資料，結尾自動復原），最後一個結果表第一列應為「46/46 項通過」。
+5. 網頁在第 3 步之後才上線。上線後分別用店長、他店店長、主管帳號各開一張成績單詳情與下載 PDF 確認；他店店長看不到別店。
+6. 一切確認後，備份表可刪除。還原：drop function if exists public.fullreport_items(uuid[]);（網頁需一併還原）

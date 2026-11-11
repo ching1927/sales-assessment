@@ -149,14 +149,17 @@
         .then(function (r) { return r.data || null; });
     },
     // 指定考核的題組（等級、得分、分類、題號、是否加考）；回傳 { 考核id: [題組] }。
-    // withTitle 只有客服部才傳 true：才會去讀 assessment_item_secrets 取題名。其他角色絕不查機密表（資料庫也只放行客服部）。
-    loadReportItems: function (assessmentIds, withTitle) {
+    // withTitle 為 true 才取題名與面向備註：客服部直接讀 assessment_item_secrets；店長與主管（viaRpc）只呼叫 fullreport_items，前端絕不查機密表（資料庫也只放行客服部）。建議單傳 false，不取。
+    // viaRpc（店長與總公司主管的完整版 PDF 才傳 true）：題名與面向備註改走資料庫函式 fullreport_items（不直接查機密表），並多帶題組備註 note。
+    loadReportItems: function (assessmentIds, withTitle, viaRpc) {
       if (!assessmentIds.length) return Promise.resolve({});
-      return wrap(sb.from('assessment_items').select('id,assessment_id,seq,category,code,levels,item_score,is_extra')
+      return wrap(sb.from('assessment_items').select('id,assessment_id,seq,category,code,levels,item_score,is_extra' + (viaRpc ? ',note' : ''))
         .in('assessment_id', assessmentIds).order('assessment_id').order('seq')).then(function (r) {
         var rows = r.data || [], ids = rows.map(function (i) { return i.id; });
         var titles = (withTitle && ids.length)
-          ? wrap(sb.from('assessment_item_secrets').select('item_id,title,dim_notes').in('item_id', ids)).then(function (t) { return t.data || []; })
+          ? (viaRpc
+            ? wrap(sb.rpc('fullreport_items', { p_assessment_ids: assessmentIds })).then(function (t) { return t.data || []; })
+            : wrap(sb.from('assessment_item_secrets').select('item_id,title,dim_notes').in('item_id', ids)).then(function (t) { return t.data || []; }))
           : Promise.resolve([]);
         return titles.then(function (ts) {
           var tmap = {}, out = {};
@@ -165,6 +168,7 @@
           rows.forEach(function (i) {
             var it = { id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {}, item_score: i.item_score, isExtra: !!i.is_extra };
             if (withTitle) { it.title = tmap[i.id] || ''; it.dimNotes = nmap[i.id] || {}; }
+            if (viaRpc) it.note = i.note || '';
             (out[i.assessment_id] = out[i.assessment_id] || []).push(it);
           });
           return out;

@@ -323,4 +323,35 @@ eq(one.points[0].verdict, null, '沒有判定文字時不回傳判定位置');
   eq(oldRow.levels[0], '優', 'PDF 舊單：優');
   eq(oldRow.levels[3], '不及格', 'PDF 舊單：不及格原字串不換算');
 })();
+// ---- 完整版（店長／主管）：PDF 多帶題組備註 note（opts.showNote）；不帶就沒有；永遠不含信箱 ----
+(function () {
+  var lvNew = { '資訊正確性': '優良', '預設訊息運用': '尚可', '問題掌握': '待加強', '主動引導': '優良', '風險意識': '優良', '語氣與禮貌': '優良', '文字品質': '不適用' };
+  var it1 = { id: 'f1', seq: 1, category: '分類甲', code: 'ZZ1', levels: lvNew, item_score: Scoring.scoreItem(lvNew).score, isExtra: false, title: '假題名',
+    note: '  題組備註甲  ', dimNotes: { '預設訊息運用': '沒依客人狀況改寫' }, examiner_email: 'x@example.invalid' };
+  var full = C.itemRows([it1], { showTitle: true, showNote: true })[0];
+  eq(full.title, '假題名', '完整版：帶題名');
+  eq(full.note, '題組備註甲', '完整版：帶題組備註（去前後空白）');
+  eq(full.notes, [{ dim: '預設訊息運用', level: '尚可', note: '沒依客人狀況改寫' }], '完整版：帶面向備註');
+  ok(JSON.stringify(full).indexOf('example.invalid') < 0 && !Object.prototype.hasOwnProperty.call(full, 'examiner_email'), '完整版：列內容不含考官信箱');
+  var csRow = C.itemRows([it1], { showTitle: true })[0];
+  eq(Object.prototype.hasOwnProperty.call(csRow, 'note'), false, '沒傳 showNote（客服部 PDF）維持原樣：不帶題組備註');
+  var noTitle = C.itemRows([it1], { showTitle: false, showNote: true })[0];
+  eq(Object.prototype.hasOwnProperty.call(noTitle, 'note'), false, '沒有 showTitle（精簡）即使傳 showNote 也不帶備註');
+  eq(Object.prototype.hasOwnProperty.call(noTitle, 'title'), false, '精簡版仍不帶題名');
+  var blank = Object.assign({}, it1, { note: '   ' });
+  eq(Object.prototype.hasOwnProperty.call(C.itemRows([blank], { showTitle: true, showNote: true })[0], 'note'), false, '題組備註全空白不帶');
+  var legacy = Object.assign({}, it1, { levels: { '資訊正確性': '優', '預設訊息運用': '良', '問題掌握': '不及格', '主動引導': '優', '風險意識': '優', '語氣與禮貌': '優', '文字品質': '不適用' }, dimNotes: {}, note: '舊單整題一則備註' });
+  var lr = C.itemRows([legacy], { showTitle: true, showNote: true })[0];
+  eq(lr.note, '舊單整題一則備註', '舊單：沒有面向備註仍帶題組備註');
+  eq(Object.prototype.hasOwnProperty.call(lr, 'notes'), false, '舊單：沒有 notes 欄位、不報錯');
+  var noNote = Object.assign({}, it1); delete noNote.note;
+  eq(Object.prototype.hasOwnProperty.call(C.itemRows([noNote], { showTitle: true, showNote: true })[0], 'note'), false, '沒有 note 欄位也不報錯');
+  // buildReport 串接：showNote 一路傳到 model.items
+  var rowsFR = [{ id: 'fr1', employee_id: 'E', status: 'submitted', tenure: '正式', total_score: 90, verdict: '及格', pass_line: 85, created_at: '2026-11-01T01:00:00Z', submitted_at: '2026-11-01T01:00:00Z' }];
+  var bm = C.buildReport({ person: { name: 'x', id: 'x' }, assessments: rowsFR, currentId: 'fr1', itemsByAssessment: { fr1: [it1] }, showTitle: true, showNote: true, nowMs: NOW }).model;
+  eq(bm.items[0].note, '題組備註甲', 'buildReport 帶 showNote 時 model 列有題組備註');
+  var bm2 = C.buildReport({ person: { name: 'x', id: 'x' }, assessments: rowsFR, currentId: 'fr1', itemsByAssessment: { fr1: [it1] }, showTitle: true, nowMs: NOW }).model;
+  eq(Object.prototype.hasOwnProperty.call(bm2.items[0], 'note'), false, 'buildReport 沒傳 showNote 時沒有題組備註');
+  ok(JSON.stringify(bm).indexOf('example.invalid') < 0, 'buildReport 整個 model 不含考官信箱');
+})();
 console.log('通過 ' + passed + ' 項');

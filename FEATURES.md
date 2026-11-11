@@ -33,6 +33,7 @@
 - 新人考核面向備註必填｜`assess.html`、`js/assess-api.js`、`supabase/grade3_schema.sql`｜新人選尚可／待加強，該面向下方跳紅字必填備註（無字數下限，空白不算）；未填按「分析弱項」或送出會被擋並標紅面向；資料庫送出時也擋；正式、回考核期、健檢備註選填；驗證：`supabase/grade3_verify_fake.sql`（結尾復原）第一列「100/100 項通過」
 - 舊單相容（不換算、不修改）｜`supabase/grade3_schema.sql`（assess_level_pct 新舊都認得）、`js/recent-reports.js`、`js/report-pdf.js`｜舊單的優／良／不及格原樣顯示並借用綠／橘／紅；資料庫新資料只准新等級（觸發器擋舊字串）；驗證：grade3_verify_fake.sql 區段 1、5
 - 成績單面向備註（客服部視角）｜`backoffice.html` 近期考核詳情、成績單 PDF（`js/report-pdf.js`、`js/report-pdf-core.js`）｜非優良面向下方顯示「考官備註：…」；舊單沒有就不顯示；店長／主管精簡版不顯示也不查此欄（備註存機密表）；驗證：`node tests/report-pdf-core.test.js`
+- 成績單完整版（店長自己門市、總公司主管）｜`backoffice.html` 近期考核詳情與歷次成績單 PDF、`js/recent-reports.js`、`js/assess-api.js`（loadItemsFullReport）、`js/backoffice-api.js`（loadReportItems 第三參數）、`js/report-pdf*.js`、`supabase/fullreport_schema.sql`｜在精簡版上多顯示題目名稱、題組備註、面向備註（舊單照常）；考官信箱、步驟、考點仍只有客服部；題目名稱與面向備註走資料庫函式 fullreport_items（店長限自己門市、主管全部已送出、其他人與 anon 一律擋；機密表不開放）；店長與主管的列表查詢不再要求考官信箱欄位；驗證：`supabase/fullreport_verify_fake.sql`（結尾復原）第一列「46/46 項通過」、`node tests/fullreport-api.test.js`、`node tests/report-pdf-core.test.js`
 
 ### 正式版（已執行 SQL、已審查；客服部流程已用測試考生實測通過，店長與主管的真實登入尚未測）
 

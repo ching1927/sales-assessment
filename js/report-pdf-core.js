@@ -13,7 +13,7 @@
  *                                                -> { totalDiff, rows:[{name, cur, prev, diff}], best, worst }
  *                                                   best／worst = { names:[...], value } 或 null（沒有進步／退步面向）
  *   ReportPdfCore.trendSeries(list, currentId)   歷次走勢（全部歷次）-> { points:[...], curIdx }
- *   ReportPdfCore.itemRows(items, opts)          每題得分列；opts.showTitle 為 false（非客服部）時完全不帶題名
+ *   ReportPdfCore.itemRows(items, opts)          每題得分列；opts.showTitle 為 false 時完全不帶題名與面向備註；opts.showNote 為 true（店長／主管完整版）才多帶題組備註 note
  *   ReportPdfCore.buildReport(input)             把資料整理成 PDF 要畫的內容 -> { ok, model } 或 { ok:false, error }
  *   ReportPdfCore.layoutPages(blocks, contentH)  分頁分配：以區塊／表格列為單位，不切半；換頁處重印表頭；算各頁剩餘高度分配
  *   ReportPdfCore.trendLabelLayout(o)            走勢圖標籤避讓（合格線文字與資料點標籤互相、與折線、資料點都不重疊）-> { lines, points }
@@ -115,6 +115,9 @@
         // 三級制面向備註（只有客服部的資料才帶；舊單沒有就不加這個欄位）
         var notes = G3 ? G3.reportNotes(it.levels, it.dimNotes) : [];
         if (notes.length) row.notes = notes;
+        // 題組備註（整個題組一則；只有完整版的店長／主管 PDF 才帶，opts.showNote；沒有備註就沒有這個欄位）
+        var gnote = opts && opts.showNote && typeof it.note === 'string' ? it.note.trim() : '';
+        if (gnote) row.note = gnote;
       }
       return row;
     });
@@ -139,7 +142,7 @@
     }
     var passLine = raw.pass_line || Scoring.verdictFor(cur.total, cur.tenure).passLine;
     var coreN = items.filter(function (it) { return !it.isExtra; }).length;
-    var rows = itemRows(items, { showTitle: input.showTitle });
+    var rows = itemRows(items, { showTitle: input.showTitle, showNote: input.showNote });
     var model = {
       generated: taipeiToday(input.nowMs),
       person: {

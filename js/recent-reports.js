@@ -11,7 +11,7 @@
   var DIMS = Scoring.DIMENSIONS, NA = Scoring.NOT_APPLICABLE;
   var G3 = window.Grade3Core;
   var ROLE_NOTE_CS = '客服部可看全部成績單，包含暫存中與已作廢，並可作廢已送出的成績單。';
-  var ROLE_NOTE_OTHER = '只顯示已送出且未作廢的成績單；考官備註與備註附圖主管與店長也看得到；題組名稱、步驟與考點只有客服部看得到。';
+  var ROLE_NOTE_OTHER = '只顯示已送出且未作廢的成績單（店長只有自己門市）；題目名稱、考官備註（題組與面向）與備註附圖主管與店長也看得到；步驟、考點與考官信箱只有客服部看得到。';
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -66,7 +66,7 @@
   function resetAndRender() { shown = C.PAGE_SIZE; render(); }
 
   function reload() {
-    return api.loadSummaries().then(function (data) {
+    return api.loadSummaries(isCS()).then(function (data) {
       all = data;
       visible = C.visibleRows(all, me);
       render();
@@ -159,13 +159,13 @@
     });
     return h + '</div>';
   }
-  // 主管／店長版：不含題組名稱、步驟、考點
+  // 主管／店長版（完整版）：含題目名稱與考官備註，不含步驟、考點、考官信箱
   function extrasLimited(extras) {
     if (!extras.length) return '';
     var h = extraHead();
     extras.forEach(function (it, i) {
       h += '<div class="item"><span class="tag extra">追加題 ' + (i + 1) + '・不算總分</span> <span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
-        '<b style="float:right">追加題分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">得分</th></tr></thead><tbody>' + extraDimRows(it, false) + '</tbody></table></div>' +
+        '<b style="float:right">追加題分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><h4>追加題 ' + (i + 1) + '：' + esc(it.title || '（無題名）') + '</h4><div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' + extraDimRows(it, true) + '</tbody></table></div>' +
         remarkHtml(it) + '</div>';
     });
     return h + '</div>';
@@ -202,8 +202,9 @@
     return h;
   }
 
-  // 總公司主管／店長：只有日期、考生、身分、總分、判定、最弱面向、題組分類／代號／分數／七面向分數、考官備註與附圖
-  // （不產生題組名稱、步驟、考點、考官信箱、作廢鈕；也不查機密表；考官備註來自 assessment_items.note）
+  // 總公司主管／店長（完整版）：日期、考生、身分、總分、判定、最弱面向、題組分類／代號／題目名稱／分數／七面向等級與分數、
+  // 考官備註（題組備註 assessment_items.note＋面向備註）與附圖
+  // （不產生步驟、考點、考官信箱、作廢鈕；題目名稱與面向備註來自資料庫函式 fullreport_items，前端不直接查機密表）
   function detailLimited(r, items) {
     var core = items.filter(function (x) { return !x.isExtra; }), extras = items.filter(function (x) { return !!x.isExtra; });
     var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd>' +
@@ -212,14 +213,11 @@
       '<dt>總分</dt><dd>' + (r.total_score == null ? '—' : esc(C.fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (C.VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
       '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>' + radarBlock(core, r.weakest_dims);
-    core.forEach(function (it) {
-      var dp = it.dim_points || {};
+    core.forEach(function (it, i) {
       h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
-        '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">得分</th></tr></thead><tbody>' +
-        DIMS.map(function (d) {
-          var pt = dp[d.name];
-          return '<tr><td>' + esc(d.name) + '</td><td class="num">' + (pt == null ? '不適用' : esc(C.fmt(pt)) + ' / ' + d.weight) + '</td></tr>';
-        }).join('') + '</tbody></table></div>' + remarkHtml(it) + '</div>';
+        '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><h4>題組 ' + (i + 1) + '：' + esc(it.title || '（無題名）') + '</h4>' +
+        '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' +
+        extraDimRows(it, true) + '</tbody></table></div>' + remarkHtml(it) + '</div>';
     });
     h += extrasLimited(extras);
     h += '<div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
@@ -242,7 +240,7 @@
     dlg.innerHTML = '<div class="dlg"><h2>成績單詳細內容</h2><p role="status">載入中…</p><div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
     if (!dlg.open) dlg.showModal();
     var cs = isCS();
-    (cs ? api.loadItemsFull(r.id) : api.loadItemsLimited(r.id)).then(function (items) {
+    (cs ? api.loadItemsFull(r.id) : api.loadItemsFullReport(r.id)).then(function (items) {
       if (token !== openToken) return;
       dlg.innerHTML = cs ? detailCS(r, items) : detailLimited(r, items);
       hydrateImages(dlg);

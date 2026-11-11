@@ -904,13 +904,13 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     var b = e.target.closest('[data-tk]'); if (b) openTicket(b.dataset.tk);
   });
   $('dlgA').addEventListener('close', function () { openSid = null; $('dlgA').innerHTML = ''; });
-  // 歷次成績單「下載 PDF」：題名只有客服部查（withTitle），主管與店長的 PDF 不含題名；真正的權限在資料庫
+  // 歷次成績單「下載 PDF」：客服部、店長、主管都是完整版（含題名與考官備註）；客服部直接讀機密表，店長與主管走資料庫函式 fullreport_items（viaRpc，題組備註一併印出）；真正的權限在資料庫
   $('dlgA').addEventListener('click', function (e) {
     var b = e.target.closest('[data-pdf]'); if (!b) return;
     var p = peopleById[openSid], r = repById[b.dataset.pdf];
     if (!p || !r) return;
     if (!window.ReportPdf) { var m = $('pdfMsg'); m.textContent = 'PDF 功能沒有載入，請重新整理頁面後再試。'; m.hidden = false; return; }
-    window.ReportPdf.run({ btn: b, msgEl: $('pdfMsg'), person: { name: p.name, id: p.id, hire: p.hire }, assessmentId: r.id, withTitle: isCS(), storeName: sName });
+    window.ReportPdf.run({ btn: b, msgEl: $('pdfMsg'), person: { name: p.name, id: p.id, hire: p.hire }, assessmentId: r.id, withTitle: true, viaRpc: !isCS(), storeName: sName });
   });
   $('dlgB').addEventListener('close', function () { openTid = null; $('dlgB').innerHTML = ''; });
   $('dlgB').addEventListener('click', function (e) {
