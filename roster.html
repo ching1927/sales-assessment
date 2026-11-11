@@ -36,8 +36,8 @@ select,input{font-family:inherit;font-size:14px;color:var(--ink)}
 .count{margin-left:auto;color:var(--ink-2);font-size:13px}
 .tablebox{padding:0}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;min-width:1100px;border-collapse:collapse;font-size:14px}
-th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
+table{width:100%;min-width:960px;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
 th{font-size:12px;color:var(--ink-2);font-weight:600;background:rgba(255,255,255,0.8)}
 tbody tr:last-child td{border-bottom:none}
 tr.off td{color:var(--ink-3)}
@@ -55,7 +55,9 @@ tr.off td{color:var(--ink-3)}
 .tag.tech{background:rgba(245,184,0,.18);color:#8a6500}
 .tag.dev{background:#e2e8f0;color:#334155}
 td.linecell{white-space:normal;min-width:240px}
-.chip{display:inline-block;padding:2px 9px;margin:1px 3px 1px 0;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent-deep)}
+/* 操作欄固定在右側，表格太寬時不用左右拖就按得到 */
+th.ops,td.ops{position:sticky;right:0;background:#fff;box-shadow:-8px 0 8px -8px rgba(15,23,42,.18)}
+.chip{display:inline-block;padding:1px 9px;margin:1px 3px 1px 0;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:#fff;color:#1F3A5F;box-shadow:inset 0 0 0 1px #1F3A5F}
 .chip.all{background:var(--ink);color:#fff}
 .lines{border:0.5px solid var(--ink-line);border-radius:var(--r-ctrl);padding:var(--sp-3);margin:0 0 var(--sp-3);background:var(--glass-bg-strong)}
 .lines legend{font-size:13px;color:var(--ink-2);font-weight:600;padding:0 6px}
@@ -63,7 +65,6 @@ td.linecell{white-space:normal;min-width:240px}
 .lines label{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink);font-weight:400}
 .lines input{width:auto;margin:0}
 .lines[hidden]{display:none}
-.days{color:var(--ink-3);font-size:12px;margin-left:6px}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
 .sw{position:relative;width:46px;height:28px;border-radius:var(--r-pill);border:none;background:var(--track);transition:background var(--dur-micro) var(--ease);vertical-align:middle}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform var(--dur-micro) var(--ease)}
@@ -142,8 +143,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         <table>
           <thead>
             <tr>
-              <th>員工編號</th><th>姓名／暱稱</th><th>門市</th><th>職級</th><th>到職日</th>
-              <th>身分標籤</th><th>在職狀態</th><th>納入考核</th><th>官方 LINE 回覆權限</th><th id="thOps" hidden>操作</th>
+              <th>員工編號</th><th>姓名／暱稱</th><th>門市</th><th>職級</th>
+              <th>身分標籤</th><th>在職狀態</th><th>納入考核</th><th>官方 LINE 回覆權限</th><th id="thOps" class="ops" hidden>操作</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -246,13 +247,6 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('blocked').hidden = false;
   }
 
-  // 到職後第幾天（只供畫面顯示；新人／正式以資料庫的 tenure_group 為準），用台北時間的今天
-  function daysSince(dateStr) {
-    var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }).split('-');
-    var p = dateStr.split('-');
-    return Math.round((Date.UTC(+today[0], +today[1] - 1, +today[2]) - Date.UTC(+p[0], +p[1] - 1, +p[2])) / 86400000);
-  }
-
   // 身分標籤（規格 README_phase1.md 第一節第 2 點）：考核期者顯示「考核期」；到職 90 天內另顯示「新人」（只是辨認用）；其他顯示「已上線」。
   // 沒填到職日者另加「未填到職日」。只看 period_status（資料庫遷移與 spot_register 回考核期都會同步），不再看 probation_since。period_status 來自 employees_with_tenure，tenure_group 為資料庫判斷的新人／正式
   function statusTags(p) {
@@ -301,7 +295,6 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var cs = isCS();
     var rows = people.filter(function (p) { return LineCore.matchRow(p, f, access[p.id] || []); });
     $('tbody').innerHTML = rows.map(function (p) {
-      var noHire = !p.hire_date;
       var tg = p.tenure_group;
       var inc = cs
         ? '<button type="button" class="sw" role="switch" aria-checked="' + (p.include_in_assessment ? 'true' : 'false') + '" aria-label="納入考核：' + esc(p.nickname || p.full_name || p.id) + '" data-toggle="' + esc(p.id) + '"></button><span class="yn">' + esc(LineCore.assessText(p)) + '</span>'
@@ -311,12 +304,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         '<td>' + nameCell(p) + '</td>' +
         '<td>' + esc(storeName[p.store_code] || p.store_code) + '</td>' +
         '<td>' + titleCell(p.job_title) + '</td>' +
-        '<td class="mono">' + (noHire ? '未填' : esc(p.hire_date) + '<span class="days">第 ' + daysSince(p.hire_date) + ' 天</span>') + '</td>' +
         '<td>' + statusTags(p) + '</td>' +
         '<td><span class="tag ' + (p.status === '在職' ? 'on' : 'out') + '">' + esc(p.status) + '</span></td>' +
         '<td>' + inc + '</td>' +
         '<td class="linecell">' + lineCell(p.id) + '</td>' +
-        (cs ? '<td><button type="button" class="btn sm" data-edit="' + esc(p.id) + '">編輯</button></td>' : '') +
+        (cs ? '<td class="ops"><button type="button" class="btn sm" data-edit="' + esc(p.id) + '">編輯</button></td>' : '') +
         '</tr>';
     }).join('');
     $('empty').hidden = rows.length > 0;

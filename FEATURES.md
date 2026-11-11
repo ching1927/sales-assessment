@@ -157,3 +157,5 @@
 - 雷達圖（七面向得分率）｜`js/radar.js`、`backoffice.html`（近期考核的成績單詳情，客服部與主管/店長版都有；以及人員歷史）、`js/recent-reports.js`｜開一張成績單，標頭下方出現七面向雷達圖、最弱面向橘色，下方表格仍在；人員歷史的「七面向平均得分率」也是雷達圖
 - 名冊姓名連結｜`roster.html`、`backoffice.html`｜點名冊裡的姓名／暱稱，會跳到考核後台並直接打開那位同仁的歷史成績；沒有考核資料的人（離職或未納入考核且無成績單）顯示提示
 - PDF 走勢圖標籤避讓｜`js/report-pdf-core.js`（trendLabelLayout）、`js/report-pdf.js`、`js/advice-pdf.js`、`tests/report-pdf-core.test.js`｜成績單與建議單 PDF 的走勢折線圖：合格線文字與分數／判定標籤自動避開彼此、折線與圓點（例：74.5 夾在 85 與 70 兩線間、81.5 貼近 85）；跑 `node tests/report-pdf-core.test.js` 全過
+
+- 名冊表格版面調整（2026-11-11）：到職日欄不在表格顯示（編輯視窗仍可填、仍存資料庫，新人／正式標籤照常）；操作欄固定在右側；LINE 標籤改深藍外框｜`roster.html`｜客服部登入名冊：表格無到職日欄、窄螢幕也不用左右拖就看到「編輯」
