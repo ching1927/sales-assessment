@@ -240,7 +240,7 @@ begin
       end if;
       if new.tenure = '新人'
          and v_lv in ('尚可', '待加強')
-         and nullif(btrim(r.notes ->> d, E' \t\r\n' || chr(12288)), '') is null then
+         and nullif(btrim(r.notes ->> d, E' \t\r\n' || chr(12288) || chr(160) || chr(8203) || chr(65279)), '') is null then
         raise exception '新人考核：第 % 個題組的「%」評為「%」，必須寫下備註才能送出', r.seq, d, v_lv;
       end if;
     end loop;
