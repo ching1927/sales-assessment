@@ -73,7 +73,7 @@
 
 - 帳號管理頁（只有客服部）｜`accounts.html`、`js/accounts-api.js`｜列出帳號（信箱、角色、門市、對應員工），新增、編輯、移除（二次確認）；護欄由資料庫把關，訊息直接顯示；底部操作紀錄（新到舊、每次 50 筆、載入更多、只增不改）
 - 導覽「帳號管理」｜`roster.html`、`assess.html`、`backoffice.html`｜導覽分頁，只有客服部看得到
-- 職級「其他（自行輸入）」｜`roster.html`｜新增／編輯人員可自訂職級（必填、最長 20 字）；輸入框失焦或送出時，若恰好等於標準六種職稱就改用標準職級並套用納入考核預設；編輯時職級不在六種內自動選「其他」
+- 職級「其他（自行輸入）」｜`roster.html`｜新增／編輯人員可自訂職級（必填、最長 20 字）；輸入框失焦或送出時，若恰好等於標準八種職稱（含技師、公務機）就改用標準職級並套用納入考核預設；編輯時職級不在六種內自動選「其他」
 - 編輯帳號的保護｜`accounts.html`｜原門市不在清單、或找不到對應員編時，保留原值並提示，不會悄悄改掉
 
 ### 帳號管理（樣品，已被正式版取代）
@@ -107,6 +107,16 @@
 - 導覽「待考回報」｜`roster.html`、`assess.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`、`requests.html`｜所有已開通角色看得到，在「考核後台」之後、「抽查」之前
 - 導覽紅點｜`js/appbar.js`、`app.css`｜登入後呼叫 exam_req_badge()，大於 0 時在「待考回報」分頁文字旁顯示紅色數字（超過 99 顯示 99+）；只從 localStorage 讀目前 session 的 access_token（sb-專案代號-auth-token），建不存 session、不換 token、不監聽登入的 client 以 Authorization 標頭呼叫，絕不 refresh、不寫 storage；讀不到 token、JSON 壞掉、token 過期或任何失敗都安靜忽略；登入頁不載入；requests.html 做完動作會呼叫 window.AppBadge.refresh() 重抓
 - 選考生標記「已回報待考」｜`assess.html`、`js/assess-api.js`｜進行考核步驟 1 的清單，已有待處理／已排定回報的人排最前面並顯示黃底「已回報待考」（已排定者附排定時間）；讀取 exam_requests 失敗就照原樣，不擋考核
+
+## 名冊加技師、公務機與官方 LINE 回覆權限（網頁已寫好，尚未連真實資料庫；需先依 supabase/README_roster.md「LINE 權限與新類別」備份並執行 roster_line_schema.sql）
+
+- 技師、公務機類別｜`roster.html`、`js/line-core.js`｜新增人員選職級「技師」或「公務機」：納入考核預設否、回覆狀態預設已上線；列表職級顯示有色標籤，納入考核欄顯示「否（免健檢）」；員編公務機用 OF-0000（也接受 MI／PT）
+- 技師、公務機自動排除各名單｜`supabase/*.sql`（皆靠 `include_in_assessment`）、`supabase/roster_line_verify_fake.sql`｜驗證腳本區段 F：考核名單、抽查名單、待考回報候選、健檢資格都排除（即使被誤設成考核期）
+- 官方 LINE 回覆權限欄與篩選｜`roster.html`｜名冊多一欄：部分權限顯示一個個標籤、12 個全有顯示黑底「全部 12 個 LINE」、沒有顯示「—」；工具列多「類別」「LINE」「在職狀態（預設只看在職）」三個篩選
+- 客服部編輯 LINE 權限｜`roster.html`、`js/api.js`｜新增／編輯人員視窗有 12 個勾選框，存檔呼叫 `roster_set_line_access`（整批成功或不變）；LINE 權限沒改就不呼叫；主管與店長唯讀，店長只看到自己門市人員的 LINE 權限
+- LINE 權限資料庫｜`supabase/roster_line_schema.sql`、`supabase/roster_line_verify_fake.sql`｜新表 line_accounts（12 個）、line_access；員編約束放寬；驗證腳本結尾自動復原，結果表最後一個查詢顯示
+- LINE 純函式測試｜`js/line-core.js`、`tests/line-core.test.js`｜`node tests/line-core.test.js` 印出「通過 58 項」且結束碼 0
+- LINE 權限匯入產生器｜`supabase/import/gen_line_import.js`｜依賴 exceljs 與本機規則檔 line_rules.local.json；執行後產生 import_line.local.sql（含個資，不進倉庫），終端機只印數量彙總
 
 ## 階段 1 資料庫設計稿（尚未執行）
 

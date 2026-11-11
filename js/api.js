@@ -19,7 +19,7 @@
     }
     if (code === '23505') return '這個員工編號已經存在，請換一個編號。';
     if (code === '23503') return '所選的門市不存在，請重新整理頁面後再試。';
-    if (code === '23514') return '資料格式不符（員工編號須為 MI-0000 或 PT-0000，且暱稱與姓名至少填一個）。';
+    if (code === '23514') return '資料格式不符（員工編號須為 MI-0000、PT-0000 或 OF-0000，且暱稱與姓名至少填一個）。';
     if (code === '23502') return '有必填欄位沒填，請檢查後再儲存。';
     if (msg.indexOf('failed to fetch') >= 0 || msg.indexOf('networkerror') >= 0 || msg.indexOf('network') >= 0 || msg.indexOf('load failed') >= 0) {
       return '網路連線失敗，請檢查網路後再試一次。';
@@ -80,6 +80,25 @@
         });
       }
       return next(0);
+    },
+    // 官方 LINE 帳號清單與每個人的權限（資料表由 supabase/roster_line_schema.sql 建立）
+    loadLineAccounts: function () {
+      return wrap(sb.from('line_accounts').select('code,name,sort_order').order('sort_order')).then(function (r) { return r.data || []; });
+    },
+    loadLineAccess: function () {
+      var all = [];
+      function next(from) {
+        return wrap(sb.from('line_access').select('employee_id,line_code').order('employee_id').order('line_code').range(from, from + PAGE - 1)).then(function (r) {
+          var rows = r.data || [];
+          all = all.concat(rows);
+          return rows.length === PAGE ? next(from + PAGE) : all;
+        });
+      }
+      return next(0);
+    },
+    // 一次把某人的 LINE 權限換成指定清單（資料庫函式在同一個交易內完成，失敗不留半套；只有客服部能呼叫）
+    setLineAccess: function (employeeId, codes) {
+      return wrap(sb.rpc('roster_set_line_access', { p_employee_id: employeeId, p_codes: codes }));
     },
     insertEmployee: function (row) { return wrap(sb.from('employees').insert(row)); },
     // 回傳是否真的改到一列（RLS 擋掉時不會報錯而是 0 列）

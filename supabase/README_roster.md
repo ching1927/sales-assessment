@@ -12,6 +12,42 @@
 執行順序：先 schema、再 seed（只在測試時跑 seed；真名冊之後另外匯入，不進公開倉庫）。
 與考題抽選器共用同一個 Supabase 專案，但名稱不衝突，也不會動到它的任何東西。
 
+## LINE 權限與新類別（技師、公務機）
+
+檔案：`roster_line_schema.sql`（結構）、`roster_line_verify_fake.sql`（假資料驗證）、`import/gen_line_import.js`（產生匯入檔）、`import/import_line.local.sql`（匯入檔，含真實姓名，只放本機）。
+
+新增內容：職稱「技師」「公務機」（不納入考核、免健檢，各名單都靠 `include_in_assessment` 自動排除）、員編放寬為 MI／PT／OF（公務機 OF-0001 起）、新表 `line_accounts`（12 個官方 LINE）與 `line_access`（誰有哪個 LINE 的回覆權限）、函式 `roster_set_line_access`。權限：客服部讀增改刪；總公司主管只讀全部；店長只讀自己門市人員；其他人與未登入沒有權限。
+
+### 老闆照這個順序在 Supabase SQL Editor 執行（每一步貼上 → Run → 看到 Success 再做下一步）
+
+1. **備份**：貼上並執行下面兩行（把員工名冊整份複製成 bak_line_employees，原表不動）：
+
+```sql
+drop table if exists public.bak_line_employees;
+create table public.bak_line_employees as select * from public.employees;
+```
+
+   再執行 `select count(*) from public.bak_line_employees;`，數字應等於名冊人數。
+2. 執行 `roster_line_schema.sql`（整份貼上）。可重複執行。
+3. 執行 `import/import_line.local.sql`（本機產生；整份貼上）。整份是一個交易，名冊缺人會全部回復並列出缺的員編。可重複執行。
+4. **驗證查詢**（貼上執行，看結果）：
+
+```sql
+select count(*) as line_accounts_n from public.line_accounts;                        -- 預期 12
+select count(*) as line_access_n from public.line_access;                            -- 預期 237（以匯入檔彙總為準）
+select job_title, count(*) from public.employees
+ where job_title in ('技師','公務機') group by 1;                                    -- 預期 技師 6、公務機 6
+-- 另外：匯入檔指定改離職的 4 位（員編見本機匯入檔），到「人員名冊」頁把狀態篩選改成「含離職」確認是離職。
+-- employees 沒有離職日欄位，所以不會有日期。
+```
+
+5. 另可執行 `roster_line_verify_fake.sql`（假資料、結尾自動復原），最後一個結果表第一列應為「61/61 項通過」。
+6. 一切確認後，備份表可刪除：`drop table public.bak_line_employees;`
+
+產生匯入檔（工程師做）：`node supabase/import/gen_line_import.js [xlsx 路徑]`。依賴 exceljs（不在專案內，路徑見腳本開頭）與本機規則檔 `supabase/import/line_rules.local.json`（員編清單，含個資，不進倉庫）。
+
+匯入規則摘要：名冊已有的人只寫 LINE 權限、職稱門市納入考核維持名冊現況；總公司老闆與行銷不新增、不寫權限；新增一般人員 1 位、技師 6 位、公務機 6 台；4 位改離職（只改狀態，employees 沒有離職日欄位）；陳立寧、緣不做任何標記。
+
 ## 三張表是做什麼的
 
 | 表 | 白話 |

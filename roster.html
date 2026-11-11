@@ -36,7 +36,7 @@ select,input{font-family:inherit;font-size:14px;color:var(--ink)}
 .count{margin-left:auto;color:var(--ink-2);font-size:13px}
 .tablebox{padding:0}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;min-width:860px;border-collapse:collapse;font-size:14px}
+table{width:100%;min-width:1100px;border-collapse:collapse;font-size:14px}
 th,td{padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--ink-line)}
 th{font-size:12px;color:var(--ink-2);font-weight:600;background:rgba(255,255,255,0.8)}
 tbody tr:last-child td{border-bottom:none}
@@ -52,6 +52,17 @@ tr.off td{color:var(--ink-3)}
 .tag.on{background:var(--success-soft);color:var(--success)}
 .tag.out{background:var(--danger-soft);color:var(--danger)}
 .tag.period{background:var(--ci-black);color:var(--ci-yellow)}
+.tag.tech{background:rgba(245,184,0,.18);color:#8a6500}
+.tag.dev{background:#e2e8f0;color:#334155}
+td.linecell{white-space:normal;min-width:240px}
+.chip{display:inline-block;padding:2px 9px;margin:1px 3px 1px 0;border-radius:var(--r-pill);font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent-deep)}
+.chip.all{background:var(--ink);color:#fff}
+.lines{border:0.5px solid var(--ink-line);border-radius:var(--r-ctrl);padding:var(--sp-3);margin:0 0 var(--sp-3);background:var(--glass-bg-strong)}
+.lines legend{font-size:13px;color:var(--ink-2);font-weight:600;padding:0 6px}
+.lines .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2)}
+.lines label{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink);font-weight:400}
+.lines input{width:auto;margin:0}
+.lines[hidden]{display:none}
 .days{color:var(--ink-3);font-size:12px;margin-left:6px}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
 .sw{position:relative;width:46px;height:28px;border-radius:var(--r-pill);border:none;background:var(--track);transition:background var(--dur-micro) var(--ease);vertical-align:middle}
@@ -118,6 +129,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
     <section class="toolbar glass" aria-label="篩選">
       <select class="ctrl" id="storeFilter" aria-label="門市篩選"></select>
+      <select class="ctrl" id="catFilter" aria-label="類別篩選"></select>
+      <select class="ctrl" id="lineFilter" aria-label="官方 LINE 篩選"></select>
+      <select class="ctrl" id="statusFilter" aria-label="在職狀態篩選"><option value="在職">在職</option><option value="">含離職</option></select>
       <input class="ctrl grow" id="search" type="search" placeholder="搜尋編號、姓名或暱稱" aria-label="搜尋">
       <button class="btn primary" id="addBtn" type="button" hidden>新增人員</button>
       <span class="count" id="count" aria-live="polite"></span>
@@ -129,7 +143,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
           <thead>
             <tr>
               <th>員工編號</th><th>姓名／暱稱</th><th>門市</th><th>職級</th><th>到職日</th>
-              <th>身分標籤</th><th>在職狀態</th><th>納入考核</th><th id="thOps" hidden>操作</th>
+              <th>身分標籤</th><th>在職狀態</th><th>納入考核</th><th>官方 LINE 回覆權限</th><th id="thOps" hidden>操作</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -145,7 +159,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 <dialog id="dlg">
   <form class="dlg" id="form" method="dialog" novalidate>
     <h2 id="dlgTitle"></h2>
-    <label class="field">員工編號（MI-xxxx，工讀為 PT-xxxx）
+    <label class="field">員工編號（MI-xxxx，工讀為 PT-xxxx，公務機為 OF-xxxx）
       <input class="ctrl" id="fId" autocomplete="off" placeholder="例：MI-0123">
     </label>
     <label class="field">暱稱
@@ -176,6 +190,10 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     <label class="field" id="fPeriodWrap" hidden>回覆狀態（考核期不能回覆顧客；通過考核會自動轉已上線，特殊情況可手動調整）
       <select class="ctrl" id="fPeriod"><option value="考核期">考核期</option><option value="已上線">已上線</option></select>
     </label>
+    <fieldset class="lines" id="fLines" hidden>
+      <legend>官方 LINE 回覆權限</legend>
+      <div class="grid" id="fLinesGrid"></div>
+    </fieldset>
     <div class="err" id="fErr" role="alert"></div>
     <div class="actions">
       <button class="btn" type="button" id="fCancel">取消</button>
@@ -186,15 +204,16 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
+<script src="js/line-core.js"></script>
 <script src="js/api.js"></script>
 <script>
 (function () {
   var OTHER = '__other';
-  var POSITIONS = ['店長', '業務', '收車業務', '業務/助理', '助理', '工讀'];
-  var DEFAULT_INC = { '業務': true, '收車業務': true, '業務/助理': true, '店長': false, '助理': false, '工讀': false };
+  var POSITIONS = ['店長', '業務', '收車業務', '業務/助理', '助理', '工讀', '技師', '公務機'];
+  var DEFAULT_INC = { '業務': true, '收車業務': true, '業務/助理': true, '店長': false, '助理': false, '工讀': false, '技師': false, '公務機': false };
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
   var TAG = { '新人': 'new', '正式': 'reg', '未填到職日': 'unk' };
-  var ID_RE = /^(MI|PT)-[0-9]{4}$/;
+  var ID_RE = /^(MI|PT|OF)-[0-9]{4}$/;
 
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) {
@@ -206,6 +225,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var me = null;        // app_users 那一列
   var stores = [];      // [{code,name}]
   var people = [];
+  var lines = [];       // 官方 LINE 帳號 [{code,name,sort_order}]
+  var access = {};      // { 員編: [line_code] }
+  var lineOk = false;   // LINE 權限資料是否讀取成功（失敗時不顯示、也不允許改，避免存檔時蓋掉）
   var storeName = {};
   var busy = false;
   var editingId = null;
@@ -254,33 +276,46 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       items.map(function (s) { return '<option value="' + esc(s.code) + '">' + esc(s.name) + '</option>'; }).join('');
   }
 
+  function titleCell(title) {
+    var c = LineCore.titleClass(title);
+    return c ? '<span class="tag ' + c + '">' + esc(title) + '</span>' : esc(title);
+  }
+
+  // 官方 LINE 回覆權限欄：全部都有＝黑底「全部 N 個 LINE」；部分＝一個個標籤；沒有＝—
+  function lineCell(id) {
+    if (!lineOk) return '<span class="yn">—</span>';
+    var s = LineCore.lineSummary(access[id] || [], lines);
+    if (s.kind === 'all') return '<span class="chip all">全部 ' + lines.length + ' 個 LINE</span>';
+    if (s.kind === 'none') return '<span class="yn">—</span>';
+    return s.items.map(function (x) { return '<span class="chip">' + esc(x.name) + '</span>'; }).join('');
+  }
+
   function render() {
-    var q = $('search').value.trim().toLowerCase();
-    var storeSel = isManager() ? '' : $('storeFilter').value;
+    var f = {
+      store: isManager() ? '' : $('storeFilter').value,
+      q: $('search').value,
+      category: $('catFilter').value,
+      line: $('lineFilter').value,
+      status: $('statusFilter').value
+    };
     var cs = isCS();
-    var rows = people.filter(function (p) {
-      if (storeSel && p.store_code !== storeSel) return false;
-      if (q) {
-        var hay = (p.id + ' ' + (p.nickname || '') + ' ' + (p.full_name || '')).toLowerCase();
-        if (hay.indexOf(q) < 0) return false;
-      }
-      return true;
-    });
+    var rows = people.filter(function (p) { return LineCore.matchRow(p, f, access[p.id] || []); });
     $('tbody').innerHTML = rows.map(function (p) {
       var noHire = !p.hire_date;
       var tg = p.tenure_group;
       var inc = cs
-        ? '<button type="button" class="sw" role="switch" aria-checked="' + (p.include_in_assessment ? 'true' : 'false') + '" aria-label="納入考核：' + esc(p.nickname || p.full_name || p.id) + '" data-toggle="' + esc(p.id) + '"></button><span class="yn">' + (p.include_in_assessment ? '是' : '否') + '</span>'
-        : (p.include_in_assessment ? '是' : '否');
+        ? '<button type="button" class="sw" role="switch" aria-checked="' + (p.include_in_assessment ? 'true' : 'false') + '" aria-label="納入考核：' + esc(p.nickname || p.full_name || p.id) + '" data-toggle="' + esc(p.id) + '"></button><span class="yn">' + esc(LineCore.assessText(p)) + '</span>'
+        : esc(LineCore.assessText(p));
       return '<tr class="' + (p.status === '離職' ? 'off' : '') + '">' +
         '<td class="mono">' + esc(p.id) + '</td>' +
         '<td>' + nameCell(p) + '</td>' +
         '<td>' + esc(storeName[p.store_code] || p.store_code) + '</td>' +
-        '<td>' + esc(p.job_title) + '</td>' +
+        '<td>' + titleCell(p.job_title) + '</td>' +
         '<td class="mono">' + (noHire ? '未填' : esc(p.hire_date) + '<span class="days">第 ' + daysSince(p.hire_date) + ' 天</span>') + '</td>' +
         '<td>' + statusTags(p) + '</td>' +
         '<td><span class="tag ' + (p.status === '在職' ? 'on' : 'out') + '">' + esc(p.status) + '</span></td>' +
         '<td>' + inc + '</td>' +
+        '<td class="linecell">' + lineCell(p.id) + '</td>' +
         (cs ? '<td><button type="button" class="btn sm" data-edit="' + esc(p.id) + '">編輯</button></td>' : '') +
         '</tr>';
     }).join('');
@@ -289,8 +324,21 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   }
 
   function reload() {
-    return Promise.all([Api.loadStores(), Api.loadEmployees()]).then(function (r) {
+    // LINE 權限讀取失敗不影響名冊其他功能：該欄顯示「—」並提示，且不開放修改
+    var lineLoad = Promise.all([Api.loadLineAccounts(), Api.loadLineAccess()]).then(function (r) {
+      lines = r[0]; access = LineCore.groupAccess(r[1]); lineOk = true;
+    }, function () {
+      lines = []; access = {}; lineOk = false;
+      showMsg('官方 LINE 回覆權限讀取失敗（其他欄位正常），請重新整理頁面；若持續發生請聯絡客服部。');
+    });
+    return Promise.all([Api.loadStores(), Api.loadEmployees(), lineLoad]).then(function (r) {
       stores = r[0]; people = r[1];
+      var curLine = $('lineFilter').value;
+      $('lineFilter').innerHTML = '<option value="">全部 LINE</option>' + lines.map(function (l) {
+        return '<option value="' + esc(l.code) + '">' + esc(l.name) + '</option>';
+      }).join('');
+      if (lines.some(function (l) { return l.code === curLine; })) $('lineFilter').value = curLine;
+      $('lineFilter').hidden = !lineOk;
       storeName = {};
       stores.forEach(function (s) { storeName[s.code] = s.name; });
       var cur = $('storeFilter').value;
@@ -307,6 +355,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     if (isManager()) label += '・' + (storeName[me.store_code] || me.store_code || '');
     $('whoBadge').textContent = label;
     $('storeFilter').hidden = isManager();
+    $('catFilter').innerHTML = '<option value="">全部類別</option>' + LineCore.categoryOptions().map(function (c) {
+      return '<option>' + esc(c) + '</option>';
+    }).join('');
     $('toAssess').hidden = !isCS();
     $('toAccounts').hidden = !isCS();
     $('toQuestions').hidden = !isCS();
@@ -343,6 +394,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // 篩選、搜尋、登出
   $('storeFilter').addEventListener('change', render);
   $('search').addEventListener('input', render);
+  ['catFilter', 'lineFilter', 'statusFilter'].forEach(function (id) { $(id).addEventListener('change', render); });
   $('logout').addEventListener('click', doLogout);
   $('blockedLogout').addEventListener('click', doLogout);
   Api.onSignedOut(function () { goLogin(''); });
@@ -384,7 +436,13 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('fPosOther').value = '';
     $('fPosHint').textContent = '已改用標準職級：' + v;
     $('fPosHint').hidden = false;
-    if (!editingId) $('fInc').value = DEFAULT_INC[v] ? '1' : '0';
+    syncAddDefaults(v);
+  }
+  // 新增時，換職級會帶出預設的「納入考核」與「回覆狀態」（技師、公務機＝不納入、已上線）；編輯時不自動改
+  function syncAddDefaults(pos) {
+    if (editingId) return;
+    $('fInc').value = DEFAULT_INC[pos] ? '1' : '0';
+    $('fPeriod').value = LineCore.defaultPeriod(pos);
   }
   $('fPosOther').addEventListener('blur', applyStdPos);
   function openForm(id) {
@@ -406,13 +464,19 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('fInc').value = (p ? p.include_in_assessment : !!DEFAULT_INC[$('fPos').value]) ? '1' : '0';
     // 回覆狀態：只有客服部看得到；新增預設考核期，編輯顯示目前值（資料庫預設是已上線，所以新增一定要明確帶）
     $('fPeriodWrap').hidden = !isCS();
-    $('fPeriod').value = p ? (p.period_status === '考核期' ? '考核期' : '已上線') : '考核期';
+    $('fPeriod').value = p ? (p.period_status === '考核期' ? '考核期' : '已上線') : LineCore.defaultPeriod($('fPos').value);
+    // 官方 LINE 回覆權限：只有客服部、且資料讀取成功才顯示勾選框
+    $('fLines').hidden = !(isCS() && lineOk);
+    var have = (p && access[p.id]) || [];
+    $('fLinesGrid').innerHTML = lines.map(function (l) {
+      return '<label><input type="checkbox" name="fLine" value="' + esc(l.code) + '"' + (have.indexOf(l.code) >= 0 ? ' checked' : '') + '>' + esc(l.name) + '</label>';
+    }).join('');
     dlg.showModal();
   }
   // 新增時，換職級會帶出預設的納入考核（編輯時不自動改，避免蓋掉逐人調整）
   $('fPos').addEventListener('change', function () {
     syncPosOther();
-    if (!editingId) $('fInc').value = DEFAULT_INC[this.value] ? '1' : '0';
+    syncAddDefaults(this.value);
   });
   $('fCancel').addEventListener('click', function () { dlg.close(); });
   $('form').addEventListener('submit', function (e) {
@@ -424,7 +488,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var full = $('fFull').value.trim();
     var err = '';
     if (!editingId) {
-      if (!ID_RE.test(id)) err = '員工編號格式為 MI-0000（工讀為 PT-0000）';
+      if (!ID_RE.test(id)) err = '員工編號格式為 MI-0000（工讀為 PT-0000，公務機為 OF-0000）';
       else if (people.some(function (x) { return x.id === id; })) err = '這個員工編號已存在';
     }
     if (!err && !nick && !full) err = '暱稱與姓名至少要填一個';
@@ -445,11 +509,25 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     };
     if (isCS()) data.period_status = $('fPeriod').value;
     busy = true; $('fSave').disabled = true; $('fErr').textContent = '';
-    var job;
+    var job, empId = editingId || id;
     if (editingId) job = Api.updateEmployee(editingId, data);
     else { data.id = id; job = Api.insertEmployee(data); }
-    job.then(function () { dlg.close(); showMsg(''); return reload(); })
-      .catch(function (er) { $('fErr').textContent = er.userMessage || Api.explain(er); })
+    var saved = false;   // 人員資料已寫入（之後若 LINE 權限失敗，要重新整理畫面，且再按儲存視為編輯）
+    job.then(function () {
+      saved = true;
+      if (!(lineOk && !$('fLines').hidden)) return;
+      var want = Array.prototype.map.call(document.querySelectorAll('#fLinesGrid input:checked'), function (x) { return x.value; });
+      var had = access[empId] || [];
+      if (want.length === had.length && want.every(function (c) { return had.indexOf(c) >= 0; })) return;   // 沒變就不寫
+      return Api.setLineAccess(empId, want).catch(function (er) {
+        var e2 = new Error('人員資料已儲存，但官方 LINE 回覆權限沒有存成：' + (er.userMessage || Api.explain(er)));
+        e2.userMessage = e2.message; throw e2;
+      });
+    }).then(function () { dlg.close(); showMsg(''); return reload(); })
+      .catch(function (er) {
+        $('fErr').textContent = er.userMessage || Api.explain(er);
+        if (saved) { editingId = empId; $('fId').disabled = true; return reload().catch(function () {}); }
+      })
       .then(function () { busy = false; $('fSave').disabled = false; });
   });
 
