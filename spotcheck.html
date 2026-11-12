@@ -162,7 +162,7 @@ dialog::backdrop{background:var(--scrim)}
     <div class="tophead">
       <div class="pgtabs" role="tablist" aria-label="登記&amp;健檢分頁">
         <button type="button" class="pgtab" id="tabReg" role="tab" data-pane="paneReg" aria-selected="false" hidden>登記</button>
-        <button type="button" class="pgtab" role="tab" data-pane="paneRecords" aria-selected="false">抽查紀錄</button>
+        <button type="button" class="pgtab" role="tab" data-pane="paneRecords" aria-selected="false">登記歷程</button>
         <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#stores">門市季次表</a>
         <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#list">健檢名單</a>
       </div>
@@ -344,7 +344,8 @@ dialog::backdrop{background:var(--scrim)}
     });
     codes.sort(function (a, b) { return SpotApi.storeRank(a) - SpotApi.storeRank(b) || cmp(a, b); });
     sel.innerHTML = '<option value="">全部門市</option>' + codes.map(function (c) {
-      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>';
+      var n = statusRows.filter(function (r) { return r.store_code === c; }).length;
+      return '<option value="' + esc(c) + '">' + esc(sName(c)) + (n ? '（' + n + ' 人）' : '') + '</option>';
     }).join('');
     sel.value = seen[keep] ? keep : '';
     $('rcTool').hidden = isMgr() || codes.length < 2;
