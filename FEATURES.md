@@ -45,13 +45,13 @@
 
 ### 抽查系統（網頁已寫好，尚未連真實資料庫；需先執行 supabase/spotcheck_schema.sql，規格見 supabase/README_spotcheck.md）
 
-- 抽查頁｜`spotcheck.html`、`js/spotcheck-api.js`｜所有已開通角色可進；開頁見「人員抽查狀態」表（本月黃單／本季紅單計量格，可用門市下拉選單篩選；店長只有自己門市，不顯示下拉）與單據清單（可依門市、種類、人員、狀態篩選；選門市後人員下拉只列該門市；店長不顯示門市下拉）；寫入全走 RPC（spot_register／spot_void_ticket／spot_coach／spot_mark_executed／spot_cancel_probation）
-- 登記抽查（只有客服部）｜`spotcheck.html`｜「登記一次抽查」區塊在「人員抽查狀態」之前（警示列仍最上面；主管與店長沒有登記區塊，直接看狀態表）；選人員、日期、判定、七面向等級、原因（不適當必填）；「訊息抽檢-LINE聊天室網址」為必填單行網址（去空白、http／https 開頭、無空白、500 字內，否則顯示繁中提示不送出），以 p_message 傳送；登記後顯示開了黃單／紅單／回考核期；單據清單有「聊天室」欄（黃單用 inspection_id 對應 spot_inspections.message，http／https 開頭才顯示可點的「開啟 LINE 聊天室」連結，否則純文字；紅單顯示「—」；三種角色都看得到）
+- 抽查頁｜`spotcheck.html`、`js/spotcheck-api.js`｜所有已開通角色可進；開頁見「人員抽查狀態」表（本月黃單張數與狀態；紅單欄、回考核期欄已停用拿掉；可用門市下拉選單篩選；店長只有自己門市，不顯示下拉）與單據清單（只列黃單，已無種類篩選；可依門市、人員、狀態篩選；選門市後人員下拉只列該門市；店長不顯示門市下拉）；寫入全走 RPC（spot_register_dims／spot_void_ticket／spot_coach；原 spot_mark_executed／spot_cancel_probation 資料庫保留、頁面不再呼叫）
+- 登記抽查（只有客服部）｜`spotcheck.html`｜「登記一次抽查」區塊在「人員抽查狀態」之前（警示列仍最上面；主管與店長沒有登記區塊，直接看狀態表）；選人員、日期、判定、七面向等級、原因（不適當必填）；「訊息抽檢-LINE聊天室網址」為必填單行網址（去空白、http／https 開頭、無空白、500 字內，否則顯示繁中提示不送出），以 p_message 傳送；登記後顯示開了黃單（紅單／回考核期已停用）；單據清單有「聊天室」欄（黃單用 inspection_id 對應 spot_inspections.message，http／https 開頭才顯示可點的「開啟 LINE 聊天室」連結，否則純文字；紅單顯示「—」；三種角色都看得到）
 - 備註網址（非必填）｜`assess.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜考官備註下方多一個網址欄，隨題組自動暫存（assess_save_item 第四參數 p_note_url，空字串傳 null），草稿重開會帶回；格式不合（非 http／https、含空白、超過 500 字）顯示提示、該題組不暫存、無法送出；成績單詳情（客服部與主管／店長版）有網址時在備註旁顯示「備註網址」連結，只有 http／https 才成連結（javascript: 等不會）
-- 回考核期警示列｜`spotcheck.html`｜待執行時客服部見「標記已執行」與「取消回考核期」（取消原因必填）；已執行時只剩取消；主管與店長只看
+- 【已停用 2026-11】回考核期警示列｜`spotcheck.html`｜原：待執行時客服部見「標記已執行」與「取消回考核期」。現：警示列、已執行／取消回考核期按鈕與對話框全部拿掉；資料庫函式與資料表保留（見 `supabase/noredticket_schema.sql`）
 - 單據作廢與輔導回填｜`spotcheck.html`｜客服部可作廢（原因必填）；客服部與該門市店長可回填輔導（日期＋備註必填）；總公司主管無任何操作按鈕
 - 導覽「抽查」｜`roster.html`、`assess.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`｜所有已開通角色看得到，在「考核後台」之後（第二期起：此導覽分頁改為「健檢」，抽查頁改由健檢頁內的連結進入；第三期整併）
-- 考核期標籤｜`roster.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`assess.html`｜成績單與進行考核的「考核時身分」在 tenure_source 為「考核期」時顯示「考核期」標籤（名冊的標籤已改為第一期規則，見「第一期」一節）
+- 考核期標籤｜`roster.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`assess.html`｜（回考核期已停用：新成績單不會再產生 tenure_source「考核期」，此標籤只為舊成績單相容而保留顯示）成績單與進行考核的「考核時身分」在 tenure_source 為「考核期」時顯示「考核期」標籤（名冊的標籤已改為第一期規則，見「第一期」一節）
 
 ### 題庫管理（正式版；bank_schema.sql 已在 Supabase 執行，162 項驗證通過；老闆用測試分類實測通過）
 
@@ -115,7 +115,7 @@
 - 導覽「待考回報」｜`roster.html`、`assess.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`、`requests.html`｜所有已開通角色看得到，在「考核後台」之後、「抽查」之前
 - 導覽紅點｜`js/appbar.js`、`app.css`｜登入後呼叫 exam_req_badge()，大於 0 時在「待考回報」分頁文字旁顯示紅色數字（超過 99 顯示 99+）；只從 localStorage 讀目前 session 的 access_token（sb-專案代號-auth-token），建不存 session、不換 token、不監聽登入的 client 以 Authorization 標頭呼叫，絕不 refresh、不寫 storage；讀不到 token、JSON 壞掉、token 過期或任何失敗都安靜忽略；登入頁不載入；requests.html 做完動作會呼叫 window.AppBadge.refresh() 重抓
 - 選考生標記「已回報待考」｜`assess.html`、`js/assess-api.js`｜進行考核步驟 1 的清單，已有待處理／已排定回報的人排最前面並顯示黃底「已回報待考」（已排定者附排定時間）；讀取 exam_requests 失敗就照原樣，不擋考核
-- 已輔導後自動跳轉待考回報並預填（尚未連真實資料庫；需先執行 supabase/coached_reminder_schema.sql，說明見 supabase/README_exam_request.md 第六節）｜`backoffice.html`、`requests.html`、`js/coached-core.js`、`js/backoffice-api.js`、`js/requests-api.js`｜店長在考核後台改善單第一次按「回填已輔導」儲存成功，直接跳到 `requests.html?from_ticket=單號`，人員與情況（需複訓→複檢；不及格且在考核期→回考核期；其他留空）已預填並顯示「由改善單帶入」；非本店單號、亂寫參數、已約考的單一律忽略；編輯既有輔導紀錄不跳轉。驗證：`node tests/coached-core.test.js` 印出「通過 75 項」；資料庫驗證 `coached_reminder_verify_fake.sql` 第一列「77/77 項通過」
+- 已輔導後自動跳轉待考回報並預填（尚未連真實資料庫；需先執行 supabase/coached_reminder_schema.sql，說明見 supabase/README_exam_request.md 第六節）｜`backoffice.html`、`requests.html`、`js/coached-core.js`、`js/backoffice-api.js`、`js/requests-api.js`｜店長在考核後台改善單第一次按「回填已輔導」儲存成功，直接跳到 `requests.html?from_ticket=單號`，人員與情況（需複訓→複檢；不及格且在考核期→回考核期；其他留空）【2026-11 更新：回考核期已停用，不再預填，只剩需複訓→複檢】已預填並顯示「由改善單帶入」；非本店單號、亂寫參數、已約考的單一律忽略；編輯既有輔導紀錄不跳轉。驗證：`node tests/coached-core.test.js` 印出「通過 75 項」；資料庫驗證 `coached_reminder_verify_fake.sql` 第一列「77/77 項通過」
 - 尚未約考三處提醒｜`backoffice.html`（改善單黃色「尚未約考」標籤＋店長與客服部的「前往預約」按鈕）、`requests.html`（店長頂部黃色提醒條「○○ 已輔導完成，記得預約考核」＋「一鍵帶入」）、`js/appbar.js`（待考回報紅點＝`exam_req_badge()`＋`coached_pending_count()`，店長才會加；客服部、主管不變）｜驗證：假環境走一輪，沒送出時標籤、黃條、紅點都在，送出後消失（`coached_pending()` 資料庫函式依身分過濾）
 - 尚未約考提醒信（每兩天一封）｜`supabase/coached_reminder_schema.sql`（`coached_reminder_run()`、pg_cron 排程 `coached_reminder_daily`、改善單新增 `last_reminded_at`／`reminder_count`）、`supabase/coached_reminder_verify_fake.sql`｜按「已輔導」後第 2 天起每 2 天一封給該門市店長，台北時間 09:00；店長送出待考回報或改善單作廢／結案即停止；信件記在 `mail_outbox`（kind=coached_reminder），客服部在「寄信紀錄」看得到。驗證：SQL Editor 執行 `select public.coached_reminder_run();` 回傳整數（本次寫入的封數）
 
@@ -173,7 +173,7 @@
 
 ### 抽查登記改版（勾可改善面向＋截圖＋說明；網頁與資料庫腳本已寫好，尚未在真實 Supabase 執行；老闆已核可樣品 健檢改版樣品 A 分頁）
 
-- 抽查登記改版｜`spotcheck.html`（登記區）、`js/spotdims-core.js`、`js/spotcheck-api.js`、`supabase/spotdims_schema.sql`｜七面向打分拿掉，改成可改善面向（七選多，0～7 個，優良回覆也能勾）＋截圖（可多張，選檔／貼上／拖曳，縮圖後上傳）＋一句說明（選填）；判定與黃單／紅單／回考核期規則不變；LINE 網址仍必填、待加強回覆原因仍必填；按登記時鎖住按鈕、同一個抽查 id 只能登記一次（擋重複送出）；驗證：`node tests/spotdims-core.test.js` 通過 50 項、`supabase/spotdims_verify_fake.sql`（結尾復原）第一列「112/112 項通過」
+- 抽查登記改版｜`spotcheck.html`（登記區）、`js/spotdims-core.js`、`js/spotcheck-api.js`、`supabase/spotdims_schema.sql`｜七面向打分拿掉，改成可改善面向（七選多，0～7 個，優良回覆也能勾）＋截圖（可多張，選檔／貼上／拖曳，縮圖後上傳）＋一句說明（選填）；判定與黃單規則不變（紅單／回考核期已於 2026-11 停用，見文末「停用紅單與回考核期」）；LINE 網址仍必填、待加強回覆原因仍必填；按登記時鎖住按鈕、同一個抽查 id 只能登記一次（擋重複送出）；驗證：`node tests/spotdims-core.test.js` 通過 50 項、`supabase/spotdims_verify_fake.sql`（結尾復原）第一列「112/112 項通過」
 - 判定顯示改名（共用對照）｜`js/spotdims-core.js` 的 `verdictLabel`｜畫面「適當→優良回覆、不適當→待加強回覆」；資料庫存的判定值仍是適當／不適當，不改不遷移；驗證：`node tests/spotdims-core.test.js`
 - 抽查紀錄表（含優良回覆）與黃單列顯示面向／說明／截圖｜`spotcheck.html`（單據清單下方「抽查紀錄」）｜客服部、主管看全部，店長只看自己門市；可按門市與判定篩選；「查看截圖」開簽名網址視窗；舊紀錄照常顯示並標「舊制分數 N」；驗證：`supabase/spotdims_verify_fake.sql` 區段 4、5
 - 舊抽查紀錄不動｜`supabase/spotdims_schema.sql`（levels、total_score 放寬為可空；舊 spot_register 原封不動）｜舊列內容 md5 在新登記前後相同；驗證：spotdims_verify_fake.sql 區段 4
@@ -183,4 +183,6 @@
 
 - 導覽「登記&健檢」（原「健檢」）｜各頁 `ab-tab`，指向 `spotcheck.html`｜在 spotcheck.html 與 checkup.html 兩頁都亮黃底；375px 不爆版
 - 四個膠囊分頁（登記、登記歷程、門市季次表、健檢名單）｜`spotcheck.html`（登記、抽查紀錄，頁內切換）、`checkup.html`（門市季次表、健檢名單）｜另一頁的分頁是連結；網址 #reg、#records、#stores、#list 直接開啟；客服部預設進登記，店長與主管沒有登記分頁、預設進抽查紀錄；舊的「抽查（黃單／紅單）」連結已拿掉
-- 登記歷程分頁頂端「門市」下拉｜`spotcheck.html`｜同時篩選人員抽查狀態、單據清單、抽查紀錄三區塊（原三個區塊各自的門市下拉合併為這一個）；店長不顯示；其餘篩選、作廢、回填輔導、標記已執行、取消回考核期、截圖、LINE 網址照舊
+- 登記歷程分頁頂端「門市」下拉｜`spotcheck.html`｜同時篩選人員抽查狀態、單據清單、抽查紀錄三區塊（原三個區塊各自的門市下拉合併為這一個）；店長不顯示；其餘篩選、作廢、回填輔導、截圖、LINE 網址照舊（標記已執行、取消回考核期已於 2026-11 停用拿掉）
+- 停用紅單與回考核期（老闆 2026-11 定案）｜`supabase/noredticket_schema.sql`、`spotcheck.html`、`js/spotcheck-api.js`、`js/spotdims-core.js`、`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜黃單照開（待加強回覆）、可作廢、可回填輔導；不再有「滿 5 張黃單開紅單」「紅單滿 2 回考核期」「建議移除官方 LINE 權限」與「已執行／取消回考核期」；assess_start 不再依 probation_since 改身分、assess_submit 不再有「考核期成績單 >= 85 清除」；待考回報只剩「新人」「複檢」兩種情況（舊的「回考核期」回報仍可顯示）；資料表與欄位都保留｜驗證：`supabase/noredticket_verify_fake.sql`（PGlite 81/81）；網頁見 `tests/`
+- 待考回報的「回考核期」情況｜`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜【已停用 2026-11】不再提供選項，也不再預填；KIND_LABEL 保留「回考核期再考」只為舊紀錄顯示

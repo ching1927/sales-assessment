@@ -74,8 +74,8 @@ eq(S.resultLines('甲', '2026-11-11', '適當', { dims_count: 2, shots_count: 1 
 eq(S.resultLines('甲', '2026-11-11', '不適當', { dims_count: 0, shots_count: 0, yellow_id: 'y' }),
   ['已登記：甲，2026-11-11，判定「待加強回覆」；可改善面向 0 項、截圖 0 張。', '已開立一張黃單。'], '待加強回覆開黃單');
 var full = S.resultLines('甲', 'd', '不適當', { yellow_id: 'y', red_id: 'r', probation_id: 'p' });
-eq(full.length, 4, '黃、紅、回考核期三行都在');
-eq(/改善紅單/.test(full[2]) && /回到考核期/.test(full[3]), true, '紅單與回考核期的文字');
+eq(full.length, 2, '紅單與回考核期已停用：就算舊版資料庫回傳 red_id、probation_id，也只顯示登記與黃單兩行');
+eq(/紅單|考核期/.test(full.join('')), false, '結果文字不再出現紅單與回考核期');
 eq(S.resultLines('甲', 'd', '適當', [{ dims_count: 1 }])[0].indexOf('可改善面向 1 項') > 0, true, '陣列回傳取第一筆');
 eq(S.resultLines('甲', 'd', '適當', null).length, 1, 'null 回傳不報錯');
 // 畫面文字不再出現舊用字

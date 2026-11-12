@@ -3,7 +3,7 @@
  * 瀏覽器：window.RequestsCore；Node：module.exports。
  *
  * 用法：
- *   RequestsCore.KINDS / KIND_LABEL           三種情況（新人、回考核期、複檢）與顯示名稱
+ *   RequestsCore.KINDS / KIND_LABEL           可回報的兩種情況（新人、複檢）；KIND_LABEL 另保留已停用的「回考核期」名稱，只為舊紀錄顯示
  *   RequestsCore.taipeiToday(nowMs)           台北今天 'YYYY-MM-DD'
  *   RequestsCore.addDays(dateStr, n)          日期加減天數
  *   RequestsCore.validateDates(dates, today)  1～3 個、不重複、不早於 today -> { ok, error, dates(由早到晚) }
@@ -20,7 +20,7 @@
  *   RequestsCore.safeHttpUrl(u)               只接受 http／https 網址，否則回 ''
  */
 (function (root) {
-  var KINDS = ['新人', '回考核期', '複檢'];
+  var KINDS = ['新人', '複檢'];   // 「回考核期」已停用，不能再新增回報；舊紀錄仍用 KIND_LABEL 顯示
   var KIND_LABEL = { '新人': '新人考核', '回考核期': '回考核期再考', '複檢': '改善單複檢' };
   var MAX_DATES = 3;
   var MAX_NOTE = 500;

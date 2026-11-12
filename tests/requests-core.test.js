@@ -12,7 +12,8 @@ function eq(actual, expected, label) {
 var TODAY = '2026-11-03';
 
 // ---- 常數 ----
-eq(C.KINDS, ['新人', '回考核期', '複檢'], '三種情況');
+eq(C.KINDS, ['新人', '複檢'], '兩種情況（回考核期已停用）');
+eq(C.KIND_LABEL['回考核期'], '回考核期再考', '舊紀錄的「回考核期」仍有顯示名稱');
 eq(C.KIND_LABEL['複檢'], '改善單複檢', '複檢顯示名稱');
 eq(C.MAX_DATES, 3, '日期上限 3');
 eq(C.MAX_NOTE, 500, '備註上限 500');
@@ -93,13 +94,12 @@ eq(C.validateRequest(base({ dates: [] })).ok, false, '沒日期');
 eq(C.validateRequest(base({ video: false })).ok, false, '新人沒勾影片');
 eq(C.validateRequest(base({ note: '字'.repeat(501) })).ok, false, '備註太長');
 var rc = C.validateRequest(base({ kind: '回考核期', video: false }));
-eq(rc.ok, true, '回考核期不需影片');
-eq(rc.video, null, '回考核期 video 為 null');
+eq(rc.ok, false, '回考核期已停用，不能再新增回報');
+eq(rc.error, '請選擇回報情況。', '回考核期回報會被擋下並提示重新選擇');
 eq(C.validateRequest(base({ kind: '複檢', video: false })).ok, false, '複檢缺改善單');
 var rr = C.validateRequest(base({ kind: '複檢', video: false, ticketId: 'T-1' }));
 eq(rr.ok, true, '複檢帶改善單通過');
 eq(rr.ticketId, 'T-1', '複檢回傳改善單 id');
-eq(C.validateRequest(base({ kind: '回考核期', ticketId: 'T-1' })).ticketId, null, '回考核期不帶改善單');
 
 // ---- 台北時間 datetime-local <-> ISO ----
 eq(C.taipeiLocalToIso('2026-11-05T14:00'), '2026-11-05T14:00:00+08:00', 'local 轉 ISO');

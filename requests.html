@@ -129,7 +129,7 @@ dialog::backdrop{background:var(--scrim)}
     <div class="msg err" id="pageMsg" role="alert" hidden></div>
 
     <section class="glass intro">
-      <b>規則：</b>店長回報自己門市「準備好要考核」的人，客服部看到後排定線上考核的日期與時間，系統會通知並寄信給回報人。回報情況有三種：<b>新人</b>（需先看完「線上回覆實戰全攻略」影片）、<b>回考核期的人</b>、<b>改善單複檢</b>。同一人同一種情況已有未結案的回報時，不能重複回報。考核是線上進行，請同仁準時上線。
+      <b>規則：</b>店長回報自己門市「準備好要考核」的人，客服部看到後排定線上考核的日期與時間，系統會通知並寄信給回報人。回報情況有兩種：<b>新人</b>（需先看完「線上回覆實戰全攻略」影片）、<b>改善單複檢</b>。同一人同一種情況已有未結案的回報時，不能重複回報。考核是線上進行，請同仁準時上線。
     </section>
 
     <div id="mgrNotice" aria-live="polite"></div>
@@ -142,7 +142,7 @@ dialog::backdrop{background:var(--scrim)}
         <div class="grid">
           <div id="qStoreWrap" hidden><label class="lb" for="qStore">門市</label><select class="ctrl" id="qStore"></select></div>
           <div><label class="lb" for="qKind">回報情況<span class="tag src fromtk" id="fromK" hidden>由改善單帶入</span></label>
-            <select class="ctrl" id="qKind"><option value="新人">新人準備好了，要考核</option><option value="回考核期">回考核期的人，準備好再考</option><option value="複檢">改善單複檢考核</option></select></div>
+            <select class="ctrl" id="qKind"><option value="新人">新人準備好了，要考核</option><option value="複檢">改善單複檢考核</option></select></div>
           <div><label class="lb" for="qEmp">人員<span class="tag src fromtk" id="fromE" hidden>由改善單帶入</span></label><select class="ctrl" id="qEmp"></select></div>
         </div>
         <label class="lb">希望考核日期（可多選，最多 3 個，至少 1 個）</label>
@@ -189,7 +189,7 @@ dialog::backdrop{background:var(--scrim)}
         <thead><tr><th>人員</th><th>門市</th><th>通過日期</th><th>狀態</th><th></th></tr></thead>
         <tbody id="aBody"></tbody></table></div>
         <div class="empty" id="aEmpty" hidden>沒有符合條件的紀錄</div></section>
-      <p class="note" style="margin-top:var(--sp-2)">考核通過（新人 70 分；回考核期者 85 分）後，人員會自動出現在這裡。到 LINE 官方帳號開通回覆權限後，按「已開通」留下日期。</p>
+      <p class="note" style="margin-top:var(--sp-2)">考核通過（新人 70 分）後，人員會自動出現在這裡。到 LINE 官方帳號開通回覆權限後，按「已開通」留下日期。</p>
     </section>
 
     <section id="mailWrap" hidden>

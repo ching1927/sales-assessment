@@ -188,3 +188,40 @@ SELECT 權限（RLS）：客服部、總公司主管看全部；店長只看 `st
 - 截圖沿用私有 bucket `assess-notes`（2MB、jpeg／png／webp），新增三條 policy：讀＝客服部與主管全部、店長只讀自己門市；傳＝只有客服部且該抽查尚未登記；刪＝只有客服部且僅限沒有對應抽查的孤兒檔。既有備註附圖的三條 policy 不動。
 - 舊 `spot_register`（含七面向等級）**仍保留可呼叫**（為了舊網頁與既有驗證腳本）；新網頁不用它。要不要收回舊函式的執行權，請老闆決定。
 - 已知限制：登記失敗（例如網路斷）時，已上傳的截圖會留在儲存空間成為孤兒檔（重試用同一個抽查 id 與路徑，不會重傳；放棄的話需客服部以儲存空間管理頁清理）。
+
+---
+
+## 九、停用紅單與回考核期（noredticket_schema.sql）
+
+> ⚠️ 尚未在真實 Supabase 執行，待老闆同意後才執行。**本節優先於第一、三、四節中關於紅單、回考核期、考核期 85 分的敘述**（那幾節保留當歷史規格，不刪）。
+
+老闆決定（2026-11）：整串停掉「紅單」與「回考核期」。保留黃單（待加強回覆照開、寫原因）、黃單作廢、店長回填輔導、抽查登記、勾面向、截圖。資料表與函式都不 drop。
+
+### 老闆執行步驟
+
+0. 前提：前面各檔（含 `checkup_schema.sql`、`spotdims_schema.sql`）都已執行過。
+1. **備份**（SQL Editor 貼上執行，備份表必須啟用 row level security）：
+   ```
+   drop table if exists public.bak_noredticket_spot_tickets;
+   create table public.bak_noredticket_spot_tickets as select * from public.spot_tickets;
+   alter table public.bak_noredticket_spot_tickets enable row level security;
+   drop table if exists public.bak_noredticket_spot_probations;
+   create table public.bak_noredticket_spot_probations as select * from public.spot_probations;
+   alter table public.bak_noredticket_spot_probations enable row level security;
+   ```
+2. 貼上 `noredticket_schema.sql` 整份 → Run（可重複執行）。若目前有人還在回考核期（`employees.probation_since` 有值，或有「待執行／已執行」的回考核期紀錄），它會**直接停下並說明**，不會自動帶過；請回報工程師處理。執行完最後會出現 5 列驗證，「結果」都應是「通過」。
+3. 貼上 `noredticket_verify_fake.sql` 整份 → Run。預期最後一個結果第一列「總結」寫「81/81 項通過」，「通過」欄全是「通過」。
+4. 步驟 2、3 都過了，才上線網頁（`spotcheck.html`、`requests.html` 等）。
+5. **本檔之後不要重跑** `spotcheck_schema`、`url_patch`、`phase1_schema`、`checkup_schema`、`spotdims_schema`（會把舊規則蓋回來）；萬一重跑過，再執行一次 `noredticket_schema.sql`。
+
+### 改了什麼
+
+- `spot_register`（舊）與 `spot_register_dims`（新）：只開黃單；回傳的 `red_id`、`probation_id` 固定為 null。
+- `spot_month_yellow_ids`：單純計「本日曆月有效黃單」，不再以紅單切段（人員抽查狀態的「本月黃單」跟著變成單純計數）。
+- `assess_start`：不再因 `probation_since` 有值就改成「正式／考核期」；身分只看考核期新人（`period_status`）與到職日。
+- `assess_submit`：拿掉「考核期成績單 ≥ 85 → 清除 `probation_since`、回考核期紀錄改已通過」。
+- 網頁：抽查頁拿掉本季紅單欄、回考核期欄、警示列、已執行／取消回考核期；單據清單只剩黃單；待考回報不再有「回考核期」情況、不再預填。
+
+### 刻意不動（舊資料相容）
+
+資料表 `spot_tickets`（種類仍允許紅）、`spot_probations`、欄位 `employees.probation_since`、`exam_requests.kind` 的「回考核期」、`assessments.tenure_source` 的「考核期」；函式 `spot_status`、`spot_mark_executed`、`spot_cancel_probation`、`spot_candidates`、`exam_req_candidates`、`exam_req_create` 內容不改。舊紅單、舊回考核期紀錄、舊的「回考核期」待考回報、舊成績單的「考核期」標記若有，仍可讀。「新人考核期」（`period_status`，合格線 70）完全不受影響。

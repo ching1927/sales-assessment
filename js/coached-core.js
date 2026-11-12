@@ -7,7 +7,7 @@
  * 用法：
  *   CoachedCore.parseFromTicket(search)       網址 ?from_ticket=<單號> -> 單號（小寫 uuid）；格式不對或沒有回 ''
  *   CoachedCore.requestsUrl(ticketId)         導向待考回報頁的網址 'requests.html?from_ticket=<單號>'；單號格式不對回 'requests.html'
- *   CoachedCore.prefillKind(verdict, inProbation)  情況預填：需複訓 -> 複檢；不及格且在考核期 -> 回考核期；其他 -> ''（留空讓店長選）
+ *   CoachedCore.prefillKind(verdict, inProbation)  情況預填：需複訓 -> 複檢；其他 -> ''（留空讓店長選；「回考核期」已停用，不再預填，inProbation 保留參數但不使用）
  *   CoachedCore.isPendingBooking(ticket, reqs)     改善單是否「尚未約考」（見函式說明）
  *   CoachedCore.daysSince(coachedAt, nowMs)   已輔導幾天（台北日期差；輔導當天 0）；無法解析回 null
  *   CoachedCore.dueDay(days, lastRemindedDays) 提醒信第幾天要寄（days＝已輔導天數；lastRemindedDays＝上次寄信時的天數或 null）-> boolean
@@ -37,7 +37,6 @@
   // 情況預填（與資料庫 coached_pending_rows 的 kind 同一規則）
   function prefillKind(verdict, inProbation) {
     if (verdict === '需複訓') return '複檢';
-    if (verdict === '不及格' && inProbation === true) return '回考核期';
     return '';
   }
 

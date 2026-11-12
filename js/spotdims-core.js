@@ -76,8 +76,6 @@
     var lines = ['已登記：' + label + '，' + day + '，判定「' + verdictLabel(verdict) + '」；可改善面向 ' +
       (d.dims_count != null ? d.dims_count : 0) + ' 項、截圖 ' + (d.shots_count != null ? d.shots_count : 0) + ' 張。'];
     if (d.yellow_id) lines.push('已開立一張黃單。');
-    if (d.red_id) lines.push('本月累積滿 5 張黃單，已自動開立一張改善紅單，黃單重新從 0 算。');
-    if (d.probation_id) lines.push('本季累積 2 張紅單：建議移除官方 LINE 回覆權限，並已回到考核期。');
     return lines;
   }
 

@@ -33,7 +33,7 @@ eq(C.requestsUrl(ID).indexOf('姓名'), -1, '網址不含姓名');
 // ---- 情況預填 ----
 eq(C.prefillKind('需複訓', false), '複檢', '需複訓→複檢');
 eq(C.prefillKind('需複訓', true), '複檢', '需複訓且在考核期仍是複檢');
-eq(C.prefillKind('不及格', true), '回考核期', '不及格且在考核期→回考核期');
+eq(C.prefillKind('不及格', true), '', '不及格且在考核期→留空（回考核期已停用，不再預填）');
 eq(C.prefillKind('不及格', false), '', '不及格但不在考核期→留空（系統不允許以回考核期回報）');
 eq(C.prefillKind('不及格', null), '', '不及格、考核期未知→留空');
 eq(C.prefillKind('及格', true), '', '及格→留空');

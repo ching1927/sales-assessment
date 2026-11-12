@@ -79,7 +79,7 @@
     },
 
     // ---- 讀取（RLS 已依角色過濾）----
-    // 每位正式或考核期人員的當月黃單數、當季紅單數、回考核期狀態
+    // 每位正式人員的當月黃單數（資料庫仍回傳舊的紅單、回考核期欄位，畫面不用）
     loadStatus: function () {
       return wrap(sb.rpc('spot_status')).then(function (r) { return r.data || []; });
     },
@@ -101,13 +101,6 @@
         return sb.from('spot_inspections')
           .select('id,employee_id,employee_label,store_code,checked_on,message,verdict,reason,improve_dims,improve_note,shot_paths,total_score,created_at')
           .order('checked_on', { ascending: false }).order('created_at', { ascending: false }).order('id').range(from, to);
-      });
-    },
-    loadProbations: function () {
-      return pageAll(function (from, to) {
-        return sb.from('spot_probations')
-          .select('id,employee_id,employee_label,store_code,red_ticket_ids,triggered_on,status,executed_on,executed_by,passed_assessment_id,cancel_reason,created_at,updated_at')
-          .order('triggered_on', { ascending: false }).order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
 
@@ -152,11 +145,5 @@
     coach: function (ticketId, coachedOn, note) {
       return wrap(sb.rpc('spot_coach', { p_ticket_id: ticketId, p_coached_on: coachedOn, p_note: note }));
     },
-    markExecuted: function (probationId) {
-      return wrap(sb.rpc('spot_mark_executed', { p_probation_id: probationId }));
-    },
-    cancelProbation: function (probationId, reason) {
-      return wrap(sb.rpc('spot_cancel_probation', { p_probation_id: probationId, p_reason: reason }));
-    }
   };
 })();
