@@ -304,7 +304,7 @@ dialog::backdrop{background:var(--scrim)}
     }).then(function () {
       busy = false;
       if (failMsg) showMsg('storeErr', (done ? '已儲存 ' + done + ' 家；' : '') + failMsg);
-      else toast('門市季次已儲存。改的季次從下一次名單起算，不影響已排定的健檢。');
+      else toast('門市季次已儲存。這只是各門市的季次紀錄，不影響每季健檢單。');
       renderStores(); refreshStoreOptions();
     });
   });
@@ -375,7 +375,7 @@ dialog::backdrop{background:var(--scrim)}
     $('listStore').hidden = isMgr(); $('listStoreLb').hidden = isMgr();   // 店長固定自己門市（資料庫只給自己門市），不顯示門市篩選
     $('storeSumRo').hidden = isCS();
     $('storeHint').textContent = isCS()
-      ? '請為每家門市選擇它的健檢季；改完上方統計會即時更新，按「儲存」才會生效。改的季次從下一次名單起算，不影響已排定的健檢。'
+      ? '請為每家門市選擇它的健檢季；改完上方統計會即時更新，按「儲存」才會生效。這只是各門市的季次紀錄，不影響每季健檢單。'
       : me.role === 'store_manager' ? '這是你門市的健檢季；季次由客服部指定。' : '各門市的健檢季由客服部指定，這裡只能查看。';
     $('roleNote').textContent = isCS() ? '客服部可改門市季次；健檢單可下載 PDF（用該季抽查紀錄現算，不另存、不計分）。'
       : me.role === 'store_manager' ? '只顯示自己門市；門市季次只能查看，健檢單可下載 PDF。'
