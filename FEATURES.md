@@ -147,9 +147,9 @@
 
 ## 第二期：每年健檢（網頁已寫好，尚未連真實資料庫；需先執行 supabase/checkup_schema.sql，規格見 supabase/README_checkup.md）
 
-- 健檢頁｜`checkup.html`、`js/checkup-api.js`、`js/checkup-core.js`｜導覽列「登記&健檢」（現為四分頁之後兩個，見文末「登記&健檢整併」）；兩個頁籤：門市季次表（客服部可改 Q1～Q4，主管與店長唯讀，頂端四季統計即時更新）、健檢名單（選年度與季次、門市篩選；狀態待排定／已排定／已完成、首次健檢標籤；客服部可排定、取消排定、開始／繼續健檢；已完成者可查看建議單）；頁內有「抽查（黃單／紅單）」連結｜`node tests/checkup-core.test.js` 通過 77 項；開頁看兩個頁籤
+- 健檢頁｜`checkup.html`、`js/checkup-api.js`、`js/checkup-core.js`｜導覽列「登記&健檢」（現為四分頁之後兩個，見文末「登記&健檢整併」）；兩個頁籤：門市季次表（客服部可改 Q1～Q4，主管與店長唯讀，頂端四季統計即時更新）、健檢名單【已停用 2026-11：改為「健檢單」分頁，見文末「健檢單」；原功能——狀態待排定／已排定／已完成、首次健檢標籤、客服部排定／取消排定／開始／繼續健檢、已完成者查看建議單——介面已拿掉，資料庫函式 checkup_roster／checkup_schedule／checkup_unschedule 與歷史資料保留】；頁內有「抽查（黃單／紅單）」連結｜`node tests/checkup-core.test.js` 通過 77 項；開頁看兩個頁籤
 - 導覽列抽查換健檢｜各頁 html 的 `ab-tab`｜導覽列指向抽查的分頁改為「登記&健檢」（現指向 spotcheck.html）｜任一頁導覽列顯示「登記&健檢」且不再有「抽查」
-- 健檢考試流程｜`assess.html?mode=checkup&emp=<員編>&year=<年>&quarter=<季>`、`js/assess-api.js`、`js/assess-checkup-core.js`｜客服部由健檢名單進入，沿用現有核心 3 題組抽題與評分，身分正式、及格線 85；結果頁顯示總分、判定、「健檢結果只記錄在建議單」，連結建議單與健檢名單；非客服部只看到提示；一般考核流程不變｜`node tests/assess-checkup-core.test.js` 通過 37 項
+- 健檢考試流程【已停用 2026-11：入口（健檢名單的「開始健檢」）已拿掉，頁面與資料庫函式保留，歷史成績單照常可看】｜`assess.html?mode=checkup&emp=<員編>&year=<年>&quarter=<季>`、`js/assess-api.js`、`js/assess-checkup-core.js`｜客服部由健檢名單進入，沿用現有核心 3 題組抽題與評分，身分正式、及格線 85；結果頁顯示總分、判定、「健檢結果只記錄在建議單」，連結建議單與健檢名單；非客服部只看到提示；一般考核流程不變｜`node tests/assess-checkup-core.test.js` 通過 37 項
 - 一般考核草稿標示健檢｜`assess.html`｜進行中草稿含健檢者顯示「健檢 年 季」標籤，「繼續」連到健檢網址｜開一般考核頁，有健檢草稿時見標籤
 - 建議單｜`advice.html?assessment=<成績單 id>`、`js/advice-api.js`、`js/advice-core.js`、`js/advice-pdf.js`｜A4 一頁：考生資料、總分與判定（及格線 85）、七面向雷達圖（本次實線、上一次健檢虛線）、各面向得分率與差異、與上一次比較、歷年健檢走勢；首次健檢顯示「首次健檢，沒有上一次可比較」；「下載 PDF」直接下載（檔名 建議單_姓名_健檢日期.pdf）；客服部、主管、該店店長可看｜`node tests/advice-core.test.js` 通過 93 項；開頁按下載 PDF 為 1 頁
 - 成績單列表標示健檢｜`backoffice.html`（近期考核分頁與歷次成績單）、`js/recent-reports.js`、`js/backoffice-api.js`｜歷次成績單與成績單列表的健檢列顯示「健檢 年 Qn」標籤，操作改為「建議單」連結（一般考核列不變）；結案複檢候選排除健檢；成績單 PDF 的上一次與走勢只含一般考核｜開考核後台歷次成績單，健檢列有標籤與建議單連結
@@ -182,7 +182,14 @@
 ### 登記&健檢整併（導覽改名與四分頁；純前端，不動資料庫）
 
 - 導覽「登記&健檢」（原「健檢」）｜各頁 `ab-tab`，指向 `spotcheck.html`｜在 spotcheck.html 與 checkup.html 兩頁都亮黃底；375px 不爆版
-- 四個膠囊分頁（登記、登記歷程、門市季次表、健檢名單）｜`spotcheck.html`（登記、抽查紀錄，頁內切換）、`checkup.html`（門市季次表、健檢名單）｜另一頁的分頁是連結；網址 #reg、#records、#stores、#list 直接開啟；客服部預設進登記，店長與主管沒有登記分頁、預設進抽查紀錄；舊的「抽查（黃單／紅單）」連結已拿掉
+- 四個膠囊分頁（登記、登記歷程、門市季次表、健檢單；第四個原名「健檢名單」，已改名）｜`spotcheck.html`（登記、抽查紀錄，頁內切換）、`checkup.html`（門市季次表、健檢名單）｜另一頁的分頁是連結；網址 #reg、#records、#stores、#list 直接開啟；客服部預設進登記，店長與主管沒有登記分頁、預設進抽查紀錄；舊的「抽查（黃單／紅單）」連結已拿掉
 - 登記歷程分頁頂端「門市」下拉｜`spotcheck.html`｜同時篩選人員抽查狀態、單據清單、抽查紀錄三區塊（原三個區塊各自的門市下拉合併為這一個）；店長不顯示；其餘篩選、作廢、回填輔導、截圖、LINE 網址照舊（標記已執行、取消回考核期已於 2026-11 停用拿掉）
 - 停用紅單與回考核期（老闆 2026-11 定案）｜`supabase/noredticket_schema.sql`、`spotcheck.html`、`js/spotcheck-api.js`、`js/spotdims-core.js`、`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜黃單照開（待加強回覆）、可作廢、可回填輔導；不再有「滿 5 張黃單開紅單」「紅單滿 2 回考核期」「建議移除官方 LINE 權限」與「已執行／取消回考核期」；assess_start 不再依 probation_since 改身分、assess_submit 不再有「考核期成績單 >= 85 清除」；待考回報只剩「新人」「複檢」兩種情況（舊的「回考核期」回報仍可顯示）；資料表與欄位都保留｜驗證：`supabase/noredticket_verify_fake.sql`（PGlite 81/81）；網頁見 `tests/`
 - 待考回報的「回考核期」情況｜`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜【已停用 2026-11】不再提供選項，也不再預填；KIND_LABEL 保留「回考核期再考」只為舊紀錄顯示
+
+### 健檢單（D 健檢改版第 2 段，2026-11；純前端，不動資料庫；尚未連真實 Supabase 實測）
+
+- 健檢單清單｜`checkup.html#list`（第四個膠囊分頁「健檢單」，取代原「健檢名單」）、`js/checkup-sheet-core.js`、`js/checkup-api.js`（sheetInspections、signedUrl）、`tests/checkup-sheet-core.test.js`｜篩選：年度、季次（日曆季：Q1＝1–3 月…，以抽查日 checked_on 計）、門市（店長固定自己門市、不顯示篩選）；列出該季有抽查紀錄的業務，沒紀錄的不出現；欄位：姓名與員編、門市、本季抽查次數、待加強回覆次數、被勾最多的面向（並列全列）、下載 PDF；不另存，用 spot_inspections 該季資料現算，RLS 決定可見範圍｜`node tests/checkup-sheet-core.test.js`；客服部／主管看全部、店長只看自己門市
+- 健檢單 PDF｜`js/checkup-sheet-pdf.js`（沿用成績單 PDF 的 html2canvas／jsPDF 載入與 layoutPages 分頁）、`js/checkup-sheet-core.js`｜A4：標題（姓名／門市／年度季）、抽查次數與優良回覆／待加強回覆次數、七面向被勾次數星狀圖（水平置中、標籤完整不裁切、外圈刻度下限 3，被勾最多者加粗並附「被勾最多：…」）、逐筆抽查紀錄（日期、判定顯示名、面向、說明）；每張截圖一張一列、接近內容欄全寬、等比不裁切，整張不會切在兩頁中間；截圖用 storage 簽名網址，取不到的在 PDF 內標「截圖無法載入」；頁尾「本單由系統自動彙整，僅供改善參考，不計分」｜客服部、店長（限自己門市）、總公司主管都可下載；清單按「下載 PDF」
+- 舊成績型健檢介面停用｜`checkup.html`｜【已停用】排定、取消排定、開始／繼續健檢、分數與判定、待排定／首次健檢標籤；assess.html 的健檢模式、advice.html、checkup_* 資料表與函式、歷史成績單（近期考核等處）全部保留不動｜開 checkup.html 不再有上述按鈕與欄位；門市季次表分頁原樣
+- 寄給業務（副本店長）【暫緩，未做】｜—｜老闆尚未決定業務信箱來源與副本做法；本次沒有寄信按鈕、checkup_sheet_sends 表、mail_outbox 寫入｜—

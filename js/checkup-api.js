@@ -8,6 +8,9 @@
   var cfg = window.APP_CONFIG;
   var sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY);
 
+  var PAGE = 1000;
+  var BUCKET = 'assess-notes', URL_TTL = 3600;     // 抽查截圖放私有 bucket，路徑 spot/{抽查id}/{uuid}.jpg
+
   var NO_PERM = '你沒有這個操作的權限，或登入已過期，請重新登入後再試。';
 
   // 把錯誤換成白話繁體中文（資料庫函式自己丟的中文訊息直接顯示）
@@ -53,6 +56,31 @@
     },
     roster: function (year, quarter) {
       return wrap(sb.rpc('checkup_roster', { p_year: year, p_quarter: quarter })).then(function (r) { return r.data || []; });
+    },
+
+    // ---- 健檢單（每季抽查彙整）：直接讀 spot_inspections，RLS 已依角色過濾（店長只有自己門市）----
+    // 讀 [start, end]（YYYY-MM-DD，含頭尾）內的抽查紀錄；分頁讀完，排序固定
+    sheetInspections: function (start, end) {
+      var all = [];
+      function next(from) {
+        return wrap(sb.from('spot_inspections')
+          .select('id,employee_id,employee_label,store_code,checked_on,verdict,improve_dims,improve_note,shot_paths,total_score,created_at')
+          .gte('checked_on', start).lte('checked_on', end)
+          .order('checked_on').order('created_at').order('id').range(from, from + PAGE - 1)).then(function (r) {
+          var rows = r.data || [];
+          all = all.concat(rows);
+          return rows.length === PAGE ? next(from + PAGE) : all;
+        });
+      }
+      return next(0);
+    },
+    // 截圖簽名網址（私有 bucket assess-notes；storage 的 RLS 決定誰讀得到：店長只有自己門市）
+    signedUrl: function (path) {
+      return wrap(sb.storage.from(BUCKET).createSignedUrl(path, URL_TTL)).then(function (r) {
+        var u = r.data && (r.data.signedUrl || r.data.signedURL);
+        if (!u) { var e = new Error('圖片暫時無法顯示，請稍後再試。'); e.userMessage = e.message; throw e; }
+        return u;
+      });
     },
 
     // ---- 寫入（只有客服部）----

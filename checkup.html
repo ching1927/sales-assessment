@@ -33,7 +33,7 @@ table.list tbody tr:last-child td{border-bottom:none}
 table.list th{font-size:12px;color:var(--ink-2)}
 table.list td.num,table.list th.num{text-align:right;font-family:var(--mono)}
 th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-shadow:-6px 0 8px -6px rgba(15,23,42,.18)}
-#rosterTable{min-width:980px}
+#rosterTable{min-width:760px}
 .tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;background:var(--info-soft);color:var(--accent-deep)}
 .tag.new{background:var(--info-soft);color:var(--accent-deep)}
 .tag.reg{background:var(--track);color:var(--ink-2)}
@@ -139,7 +139,7 @@ dialog::backdrop{background:var(--scrim)}
         <a class="pgtab" id="tabReg" role="tab" aria-selected="false" href="spotcheck.html#reg" hidden>登記</a>
         <a class="pgtab" role="tab" aria-selected="false" href="spotcheck.html#records">登記歷程</a>
         <button type="button" class="pgtab on" role="tab" data-pane="paneStores" aria-selected="true">門市季次表</button>
-        <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢名單</button>
+        <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢單</button>
       </div>
     </div>
 
@@ -156,18 +156,20 @@ dialog::backdrop{background:var(--scrim)}
       </section>
     </section>
 
-    <!-- ② 健檢名單 -->
+    <!-- ② 健檢單：該季有抽查紀錄的業務（用 spot_inspections 現算，不另存） -->
     <section class="pane" id="paneList" role="tabpanel" hidden>
       <section class="glass panel">
         <div class="prevhead">
           <label for="listYear" class="sub">年度</label><select id="listYear" class="ctrl"></select>
           <label for="listQ" class="sub">季次</label><select id="listQ" class="ctrl"></select>
           <span class="grow sub" id="listInfo" aria-live="polite"></span>
-          <label for="listStore" class="sub">門市</label><select id="listStore" class="ctrl"></select>
+          <label for="listStore" class="sub" id="listStoreLb">門市</label><select id="listStore" class="ctrl"></select>
         </div>
+        <p class="sub" style="margin-bottom:var(--sp-3)">季次是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以抽查日期計；這一季沒有抽查紀錄的人不會出現。</p>
         <div class="msg err" id="listMsg" role="alert" hidden></div>
-        <div class="scroll" tabindex="0" aria-label="健檢名單，可左右捲動"><table class="list" id="rosterTable"><thead><tr><th>人員</th><th>門市</th><th>到職日</th><th>標籤</th><th>狀態</th><th>排定時間</th><th>分數與判定</th><th class="stick">操作</th></tr></thead><tbody id="listBody"></tbody></table></div>
-        <div class="empty" id="listEmpty" hidden>這一季沒有應健檢的人員。</div>
+        <div class="msg info" id="pdfMsg" role="status" hidden></div>
+        <div class="scroll" tabindex="0" aria-label="健檢單清單，可左右捲動"><table class="list" id="rosterTable"><thead><tr><th>人員</th><th>門市</th><th class="num">本季抽查次數</th><th class="num">待加強回覆次數</th><th>被勾最多的面向</th><th class="stick">操作</th></tr></thead><tbody id="listBody"></tbody></table></div>
+        <div class="empty" id="listEmpty" hidden>這一季沒有抽查紀錄。</div>
       </section>
     </section>
 
@@ -182,10 +184,16 @@ dialog::backdrop{background:var(--scrim)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/checkup-core.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/grade3-core.js"></script>
+<script src="js/report-pdf-core.js"></script>
+<script src="js/spotdims-core.js"></script>
+<script src="js/checkup-sheet-core.js"></script>
 <script src="js/checkup-api.js"></script>
+<script src="js/checkup-sheet-pdf.js"></script>
 <script>
 (function () {
-  var C = CheckupCore;
+  var C = CheckupCore, SC = CheckupSheetCore;
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -199,11 +207,12 @@ dialog::backdrop{background:var(--scrim)}
   var me = null;
   var qrows = [];          // checkup_quarters_list 的結果
   var pending = {};        // 客服部尚未儲存的選擇 { 門市代碼: 季次 }
-  var roster = [], rosterKey = '', rosterSeq = 0, rosterLoaded = false;
-  var busy = false, dyn = [];
+  var sheets = [], sheetSeq = 0, sheetsLoaded = false;   // 健檢單清單（現算自抽查紀錄）
+  var busy = false;
   var now = C.taipeiYearQuarter();
 
   function isCS() { return !!me && me.role === 'cs_admin'; }
+  function isMgr() { return !!me && me.role === 'store_manager'; }
   function errText(e) { return (e && e.userMessage) || CheckupApi.explain(e); }
   function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
   function doLogout() { CheckupApi.signOut().then(function () { goLogin(''); }); }
@@ -227,7 +236,7 @@ dialog::backdrop{background:var(--scrim)}
     Array.prototype.forEach.call(document.querySelectorAll('.pgtab'), function (b) {
       var on = b.getAttribute('data-pane') === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
-    if (id === 'paneList' && !rosterLoaded) loadRoster();
+    if (id === 'paneList' && !sheetsLoaded) loadSheets();
   }
   var HASH_PANE = { stores: 'paneStores', list: 'paneList' };
   var PANE_HASH = { paneStores: 'stores', paneList: 'list' };
@@ -297,132 +306,64 @@ dialog::backdrop{background:var(--scrim)}
       if (failMsg) showMsg('storeErr', (done ? '已儲存 ' + done + ' 家；' : '') + failMsg);
       else toast('門市季次已儲存。改的季次從下一次名單起算，不影響已排定的健檢。');
       renderStores(); refreshStoreOptions();
-      // 季次變了，名單頁下次要重讀
-      if (done) rosterLoaded = false;
-      if (done && !$('paneList').hidden) loadRoster();
     });
   });
 
-  // ====== ② 健檢名單 ======
+  // ====== ② 健檢單（每季抽查彙整；清單與 PDF 都用 spot_inspections 該季資料現算，RLS 已限制可見範圍）======
   function selYear() { return Number($('listYear').value); }
   function selQ() { return Number($('listQ').value); }
   function refreshStoreOptions() {
-    var keep = $('listStore').value;
-    var opts = C.rosterStoreOptions(roster, qrows, selQ());
+    var keep = $('listStore').value, seen = {}, opts = [];
+    function add(code, name) { if (code && !seen[code]) { seen[code] = true; opts.push({ store_code: code, store_name: name || code }); } }
+    qrows.forEach(function (r) { add(r.store_code, r.store_name); });
+    sheets.forEach(function (s) { add(s.store_code, sName(s.store_code)); });
+    opts = C.sortStores(opts, 'store_code');
     $('listStore').innerHTML = '<option value="">全部門市</option>' + opts.map(function (o) {
       return '<option value="' + esc(o.store_code) + '">' + esc(o.store_name) + '</option>';
     }).join('');
     $('listStore').value = opts.some(function (o) { return o.store_code === keep; }) ? keep : '';
   }
-  function loadRoster() {
-    var y = selYear(), q = selQ(), seq = ++rosterSeq;
-    rosterKey = y + '-' + q; rosterLoaded = true;
-    showMsg('listMsg', '');
-    roster = []; renderRoster(true);
-    CheckupApi.roster(y, q).then(function (rows) {
-      if (seq !== rosterSeq) return;      // 已切換年度或季次，舊回應不採用
-      roster = rows; refreshStoreOptions(); renderRoster(false);
+  function loadSheets() {
+    var y = selYear(), q = selQ(), seq = ++sheetSeq, rg = SC.quarterRange(y, q);
+    sheetsLoaded = true;
+    showMsg('listMsg', ''); showMsg('pdfMsg', '');
+    sheets = []; renderSheets(true);
+    CheckupApi.sheetInspections(rg.start, rg.end).then(function (rows) {
+      if (seq !== sheetSeq) return;      // 已切換年度或季次，舊回應不採用
+      sheets = SC.summarize(rows); refreshStoreOptions(); renderSheets(false);
     }, function (e) {
-      if (seq !== rosterSeq) return;
-      showMsg('listMsg', '讀取健檢名單失敗：' + errText(e));
-      roster = []; refreshStoreOptions(); renderRoster(false);
-      rosterLoaded = false;
+      if (seq !== sheetSeq) return;
+      showMsg('listMsg', '讀取健檢單失敗：' + errText(e));
+      sheets = []; refreshStoreOptions(); renderSheets(false);
+      sheetsLoaded = false;
     });
   }
-  function opsHtml(r, y, q) {
-    var o = C.rosterActions(r, me && me.role, y, q);
-    var html = o.buttons.map(function (b) {
-      if (b.href) return '<a class="btn sm' + (b.kind === 'begin' || b.kind === 'continue' || b.kind === 'advice' ? ' primary' : '') + '" href="' + esc(b.href) + '">' + esc(b.label) + '</a>';
-      return '<button type="button" class="btn sm' + (b.kind === 'schedule' ? ' primary' : ' danger') + '" data-k="' + b.kind + '" data-e="' + esc(r.employee_id) + '"' + (busy ? ' disabled' : '') + '>' + esc(b.label) + '</button>';
-    }).join('');
-    if (!html) html = '<span class="sub">—</span>';
-    return '<div class="opwrap">' + html + '</div>' + (o.hint ? '<span class="ophint">' + esc(o.hint) + '</span>' : '');
-  }
-  function renderRoster(loading) {
+  function renderSheets(loading) {
     var y = selYear(), q = selQ();
-    var sel = $('listStore').value;
-    var rows = C.sortRoster(C.filterRoster(roster, sel));
-    var stores = C.rosterStoreOptions(roster, qrows, q).map(function (o) { return o.store_name; });
-    $('listInfo').textContent = loading ? '載入中…' : y + ' Q' + q + '：' + (stores.length ? stores.join('、') : '沒有門市') + '　共 ' + rows.length + ' 人';
+    var rows = SC.filterByStore(sheets, isMgr() ? '' : $('listStore').value);
+    $('listInfo').textContent = loading ? '載入中…' : SC.quarterLabel(y, q) + '　共 ' + rows.length + ' 人有抽查紀錄';
     $('listEmpty').hidden = loading || rows.length > 0 || !!$('listMsg').textContent;
     $('listBody').innerHTML = rows.map(function (r) {
-      var st = C.statusInfo(r.status);
-      var done = r.status === '已完成';
       return '<tr>' +
-        '<td class="who"><b>' + esc(r.display_name || r.employee_id) + '</b><small class="mono">' + esc(r.employee_id) + '</small></td>' +
-        '<td>' + esc(r.store_name || r.store_code) + '</td>' +
-        '<td class="mono">' + esc(r.hire_date || '—') + '</td>' +
-        '<td>' + (r.is_first ? '<span class="tag first">首次健檢</span>' : '') + '</td>' +
-        '<td><span class="tag ' + st.cls + '">' + esc(st.label) + '</span></td>' +
-        '<td class="mono">' + esc(C.formatScheduled(r.scheduled_at)) + '</td>' +
-        '<td>' + (done ? '<b>' + esc(C.formatScore(r.score)) + '</b> <span class="tag ' + C.verdictCls(r.verdict) + '">' + esc(r.verdict || '—') + '</span>' : '<span class="sub">—</span>') + '</td>' +
-        '<td class="stick">' + opsHtml(r, y, q) + '</td></tr>';
+        '<td class="who"><b>' + esc(r.name) + '</b><small class="mono">' + esc(r.employee_id) + '</small></td>' +
+        '<td>' + esc(sName(r.store_code)) + '</td>' +
+        '<td class="num">' + r.total + '</td>' +
+        '<td class="num">' + r.weak + '</td>' +
+        '<td>' + (r.top.length ? r.top.map(function (d) { return '<span class="tag">' + esc(d) + '</span>'; }).join(' ') : '<span class="sub">—</span>') + '</td>' +
+        '<td class="stick"><button type="button" class="btn sm primary" data-e="' + esc(r.employee_id) + '">下載 PDF</button></td></tr>';
     }).join('');
   }
-  ['listYear', 'listQ'].forEach(function (id) { $(id).addEventListener('change', loadRoster); });
-  $('listStore').addEventListener('change', function () { renderRoster(false); });
+  ['listYear', 'listQ'].forEach(function (id) { $(id).addEventListener('change', loadSheets); });
+  $('listStore').addEventListener('change', function () { renderSheets(false); });
 
   $('listBody').addEventListener('click', function (e) {
-    var b = e.target.closest('button'); if (!b || !isCS() || busy) return;
+    var b = e.target.closest('button'); if (!b) return;
     var r = null;
-    for (var i = 0; i < roster.length; i++) if (roster[i].employee_id === b.dataset.e) { r = roster[i]; break; }
+    for (var i = 0; i < sheets.length; i++) if (sheets[i].employee_id === b.dataset.e) { r = sheets[i]; break; }
     if (!r) return;
-    if (b.dataset.k === 'schedule') actSchedule(r);
-    else if (b.dataset.k === 'unschedule') actUnschedule(r);
+    showMsg('pdfMsg', '');
+    CheckupSheetPdf.run({ sum: r, year: selYear(), quarter: selQ(), storeName: sName(r.store_code), btn: b, msgEl: $('pdfMsg') });
   });
-
-  // ====== 對話框與寫入動作（寫法同待考回報頁） ======
-  function makeDlg(html) {
-    var d = document.createElement('dialog'); d.innerHTML = '<form class="dlg" novalidate>' + html + '</form>';
-    document.body.appendChild(d); dyn.push(d);
-    function rm() { if (d.open) d.close(); d.remove(); dyn = dyn.filter(function (x) { return x !== d; }); }
-    d.addEventListener('cancel', function () { setTimeout(rm, 0); });
-    d.querySelector('[data-no]').addEventListener('click', rm);
-    d.showModal();
-    return { el: d, rm: rm, q: function (sel) { return d.querySelector(sel); } };
-  }
-  // 送出一個寫入：成功才關對話框並重讀名單；失敗把函式回傳的訊息顯示在對話框內
-  function submitAct(D, btn, errSel, job, okMsg) {
-    var err = D.q(errSel);
-    if (busy) return;
-    busy = true; btn.disabled = true; err.hidden = true;
-    job().then(function () {
-      D.rm(); toast(okMsg);
-      loadRoster();
-    }, function (e) { err.textContent = errText(e); err.hidden = false; })
-      .then(function () { busy = false; btn.disabled = false; });
-  }
-  function who(r) { return esc(r.display_name || r.employee_id) + '（' + esc(r.employee_id) + '，' + esc(r.store_name || r.store_code) + '）'; }
-
-  function actSchedule(r) {
-    if (r.status !== '待排定') return;
-    var y = selYear(), q = selQ();
-    var D = makeDlg('<h2>排定健檢</h2><p>' + who(r) + '<br>' + y + ' 年第 ' + q + ' 季</p>' +
-      '<div class="fieldrow"><label class="field">日期（台北時間）<input class="ctrl" type="date" id="sDate"></label>' +
-      '<label class="field">時間<input class="ctrl" type="time" id="sTime"></label></div>' +
-      '<label class="field">備註（選填，500 字內）<textarea class="ctrl" id="sNote"></textarea></label>' +
-      '<div class="msg err" id="sErr" role="alert" hidden></div>' +
-      '<div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="sOk">確認排定</button></div>');
-    D.el.querySelector('form').addEventListener('submit', function (ev) {
-      ev.preventDefault();
-      var err = D.q('#sErr'), note = D.q('#sNote').value.trim();
-      var iso = C.scheduleToIso(D.q('#sDate').value, D.q('#sTime').value);
-      if (!iso) { err.textContent = '請選擇健檢日期與時間。'; err.hidden = false; return; }
-      var m = C.noteError(note);
-      if (m) { err.textContent = m; err.hidden = false; return; }
-      submitAct(D, D.q('#sOk'), '#sErr', function () { return CheckupApi.schedule(r.employee_id, y, q, iso, note); }, '已排定。');
-    });
-  }
-  function actUnschedule(r) {
-    if (r.status !== '已排定' || r.assessment_status === 'draft' || !r.checkup_id) return;
-    var D = makeDlg('<h2>取消排定</h2><p>' + who(r) + '，原排定時間 ' + esc(C.formatScheduled(r.scheduled_at)) + '。取消後這位人員回到「待排定」，可以重新排定。</p>' +
-      '<div class="msg err" id="uErr" role="alert" hidden></div>' +
-      '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn primary" type="submit" id="uOk">確認取消排定</button></div>');
-    D.el.querySelector('form').addEventListener('submit', function (ev) {
-      ev.preventDefault();
-      submitAct(D, D.q('#uOk'), '#uErr', function () { return CheckupApi.unschedule(r.checkup_id); }, '已取消排定。');
-    });
-  }
 
   // ====== 載入與角色 ======
   function applyRole() {
@@ -431,13 +372,14 @@ dialog::backdrop{background:var(--scrim)}
     $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
     $('tabReg').hidden = !isCS();      // 登記分頁只有客服部看得到（在 spotcheck.html）
     $('saveBar').hidden = !isCS();
+    $('listStore').hidden = isMgr(); $('listStoreLb').hidden = isMgr();   // 店長固定自己門市（資料庫只給自己門市），不顯示門市篩選
     $('storeSumRo').hidden = isCS();
     $('storeHint').textContent = isCS()
       ? '請為每家門市選擇它的健檢季；改完上方統計會即時更新，按「儲存」才會生效。改的季次從下一次名單起算，不影響已排定的健檢。'
       : me.role === 'store_manager' ? '這是你門市的健檢季；季次由客服部指定。' : '各門市的健檢季由客服部指定，這裡只能查看。';
-    $('roleNote').textContent = isCS() ? '客服部可改門市季次、排定與取消排定健檢、開始健檢（進入考核頁）。'
-      : me.role === 'store_manager' ? '只顯示自己門市；只能查看，已完成的健檢可查看建議單。'
-      : '總公司主管只能查看；已完成的健檢可查看建議單。';
+    $('roleNote').textContent = isCS() ? '客服部可改門市季次；健檢單可下載 PDF（用該季抽查紀錄現算，不另存、不計分）。'
+      : me.role === 'store_manager' ? '只顯示自己門市；門市季次只能查看，健檢單可下載 PDF。'
+      : '總公司主管門市季次只能查看；健檢單可查看與下載 PDF。';
   }
 
   $('logout').addEventListener('click', doLogout);
@@ -464,6 +406,7 @@ dialog::backdrop{background:var(--scrim)}
       applyRole(); openByHash();
       return CheckupApi.quarters().then(function (rows) {
         qrows = rows; applyRole(); renderStores(); refreshStoreOptions();
+        if (sheets.length) renderSheets(false);   // 門市名稱晚到時，把已顯示的清單重畫一次
       }, function (e) {
         showMsg('pageMsg', '讀取門市季次失敗：' + errText(e));
         renderStores();
