@@ -1,5 +1,5 @@
 /*
- * 抽查系統資料層（只給 spotcheck.html 用）：登入檢查、讀取、七個抽查函式。
+ * 抽查系統資料層（只給 spotcheck.html 用）：登入檢查、讀取、七個抽查函式、截圖的 Storage 存取。
  * 資料表、函式、參數名稱以 supabase/README_spotcheck.md 為準。
  * 寫入一律走 sb.rpc，不直接對資料表 insert／update／delete；權限由資料庫把關。
  * 資料庫函式丟的繁中訊息（P0001）直接顯示。不把 session／token 寫進 console 或網址列。
@@ -8,6 +8,8 @@
   var cfg = window.APP_CONFIG;
   var sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_KEY);
   var PAGE = 1000;
+  var BUCKET = 'assess-notes';        // 抽查截圖沿用備註附圖的私有 bucket，路徑 spot/{抽查id}/{uuid}.jpg
+  var URL_TTL = 3600, URL_REUSE_MS = 3000 * 1000;
   var STORE_ORDER = ['總公司', '中和', '新莊', '樹林', '桃園中壢', '新竹', '旗艦', '南台中', '太平', '台南', '高雄', '花蓮'];
   function storeRank(code) {
     var i = STORE_ORDER.indexOf(code);
@@ -52,6 +54,8 @@
     return next(0);
   }
 
+  var urlCache = {};
+
   window.SpotApi = {
     explain: explain,
     storeRank: storeRank,
@@ -90,10 +94,13 @@
           .order('issued_on', { ascending: false }).order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
-    // 抽查紀錄只取 id 與訊息（LINE 聊天室網址），用來對應黃單的 inspection_id；RLS 已依角色過濾
-    loadInspectionMessages: function () {
+    // 抽查紀錄：訊息（LINE 聊天室網址）用來對應黃單的 inspection_id；面向、說明、截圖路徑給畫面顯示；
+    // total_score 只有舊紀錄有值（舊制七面向分數）；RLS 已依角色過濾（店長只有自己門市）。不讀 levels、不讀考官信箱。
+    loadInspections: function () {
       return pageAll(function (from, to) {
-        return sb.from('spot_inspections').select('id,message').order('id').range(from, to);
+        return sb.from('spot_inspections')
+          .select('id,employee_id,employee_label,store_code,checked_on,message,verdict,reason,improve_dims,improve_note,shot_paths,total_score,created_at')
+          .order('checked_on', { ascending: false }).order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
     loadProbations: function () {
@@ -105,12 +112,40 @@
     },
 
     // ---- 寫入（全部走資料庫函式）----
-    register: function (employeeId, checkedOn, message, levels, verdict, reason) {
-      return wrap(sb.rpc('spot_register', {
-        p_employee_id: employeeId, p_checked_on: checkedOn, p_message: message,
-        p_levels: levels, p_verdict: verdict, p_reason: reason || null
+    // 登記一次抽查：regId 是前端先產生的抽查 id（截圖路徑的資料夾；同一個 id 只能登記一次，擋重複送出）；
+    // verdict 送資料庫的值（適當／不適當）；dims 勾的面向；shotPaths 已上傳的截圖路徑
+    register: function (regId, employeeId, checkedOn, message, verdict, reason, dims, note, shotPaths) {
+      return wrap(sb.rpc('spot_register_dims', {
+        p_inspection_id: regId, p_employee_id: employeeId, p_checked_on: checkedOn, p_message: message,
+        p_verdict: verdict, p_reason: reason || null, p_dims: dims || [], p_note: note || null, p_shot_paths: shotPaths || []
       })).then(function (r) { return r.data; });
     },
+    // 截圖上傳：檔案已存在（重試時）視為成功
+    uploadShot: function (path, blob, mime) {
+      return sb.storage.from(BUCKET).upload(path, blob, { contentType: mime, upsert: false }).then(function (r) {
+        if (!r.error) return true;
+        var m = String(r.error.message || '').toLowerCase(), st = String(r.error.statusCode || r.error.status || '');
+        if (st === '409' || m.indexOf('already exists') >= 0 || m.indexOf('duplicate') >= 0) return true;
+        fail(r.error);
+      }, function (e) { fail(e); });
+    },
+    // 刪除還沒登記的截圖（永不拋例外）
+    removeShots: function (paths) {
+      if (!paths || !paths.length) return Promise.resolve(true);
+      return sb.storage.from(BUCKET).remove(paths).then(function (r) { return !r.error; }, function () { return false; });
+    },
+    // 簽名網址（快取；storage 的 RLS 決定誰讀得到：店長只有自己門市）
+    signedUrl: function (path) {
+      var c = urlCache[path];
+      if (c && Date.now() - c.at < URL_REUSE_MS) return Promise.resolve(c.url);
+      return wrap(sb.storage.from(BUCKET).createSignedUrl(path, URL_TTL)).then(function (r) {
+        var u = r.data && (r.data.signedUrl || r.data.signedURL);
+        if (!u) { var e = new Error('圖片暫時無法顯示，請稍後再試。'); e.userMessage = e.message; throw e; }
+        urlCache[path] = { url: u, at: Date.now() };
+        return u;
+      });
+    },
+    forgetUrl: function (path) { delete urlCache[path]; },
     voidTicket: function (ticketId, reason) {
       return wrap(sb.rpc('spot_void_ticket', { p_ticket_id: ticketId, p_reason: reason }));
     },

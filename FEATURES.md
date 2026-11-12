@@ -170,3 +170,11 @@
 - PDF 走勢圖標籤避讓｜`js/report-pdf-core.js`（trendLabelLayout）、`js/report-pdf.js`、`js/advice-pdf.js`、`tests/report-pdf-core.test.js`｜成績單與建議單 PDF 的走勢折線圖：合格線文字與分數／判定標籤自動避開彼此、折線與圓點（例：74.5 夾在 85 與 70 兩線間、81.5 貼近 85）；跑 `node tests/report-pdf-core.test.js` 全過
 
 - 名冊表格版面調整（2026-11-11）：到職日欄不在表格顯示（編輯視窗仍可填、仍存資料庫，新人／正式標籤照常）；操作欄固定在右側；LINE 標籤改深藍外框｜`roster.html`｜客服部登入名冊：表格無到職日欄、窄螢幕也不用左右拖就看到「編輯」
+
+### 抽查登記改版（勾可改善面向＋截圖＋說明；網頁與資料庫腳本已寫好，尚未在真實 Supabase 執行；老闆已核可樣品 健檢改版樣品 A 分頁）
+
+- 抽查登記改版｜`spotcheck.html`（登記區）、`js/spotdims-core.js`、`js/spotcheck-api.js`、`supabase/spotdims_schema.sql`｜七面向打分拿掉，改成可改善面向（七選多，0～7 個，優良回覆也能勾）＋截圖（可多張，選檔／貼上／拖曳，縮圖後上傳）＋一句說明（選填）；判定與黃單／紅單／回考核期規則不變；LINE 網址仍必填、待加強回覆原因仍必填；按登記時鎖住按鈕、同一個抽查 id 只能登記一次（擋重複送出）；驗證：`node tests/spotdims-core.test.js` 通過 50 項、`supabase/spotdims_verify_fake.sql`（結尾復原）第一列「112/112 項通過」
+- 判定顯示改名（共用對照）｜`js/spotdims-core.js` 的 `verdictLabel`｜畫面「適當→優良回覆、不適當→待加強回覆」；資料庫存的判定值仍是適當／不適當，不改不遷移；驗證：`node tests/spotdims-core.test.js`
+- 抽查紀錄表（含優良回覆）與黃單列顯示面向／說明／截圖｜`spotcheck.html`（單據清單下方「抽查紀錄」）｜客服部、主管看全部，店長只看自己門市；可按門市與判定篩選；「查看截圖」開簽名網址視窗；舊紀錄照常顯示並標「舊制分數 N」；驗證：`supabase/spotdims_verify_fake.sql` 區段 4、5
+- 舊抽查紀錄不動｜`supabase/spotdims_schema.sql`（levels、total_score 放寬為可空；舊 spot_register 原封不動）｜舊列內容 md5 在新登記前後相同；驗證：spotdims_verify_fake.sql 區段 4
+- 抽查截圖儲存與權限｜`supabase/spotdims_schema.sql`（沿用私有 bucket assess-notes，路徑 spot/{抽查id}/{uuid}.jpg，新增 3 條 assess_spot_shots_* policy）｜讀：客服部、主管全部，店長只讀自己門市；傳：只有客服部且抽查尚未登記；刪：只有客服部且僅限孤兒檔；驗證：spotdims_verify_fake.sql 區段 5

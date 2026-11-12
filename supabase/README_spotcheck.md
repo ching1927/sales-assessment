@@ -148,3 +148,43 @@ SELECT 權限（RLS）：客服部、總公司主管看全部；店長只看 `st
 - **整份取代**：`assess_save_item` 每次呼叫會整份取代評分、備註與備註網址（與備註一樣：沒傳＝清除）。**舊的三參數呼叫（例如尚未更新的前端 `js/assess-api.js`，它只傳 `p_item_id／p_levels／p_note`）仍可運作，但每次存檔都會把 `note_url` 清成 null**；前端存檔時必須一併傳 `p_note_url`。
 - **舊驗證腳本受影響**：`notes_visible_verify_fake.sql` 區段 4 以三參數簽名 `'public.assess_save_item(uuid, jsonb, text)'::regprocedure` 查函式（並確認只有一個版本）；`url_patch.sql` 執行後該簽名已不存在，那一段會失敗，需另行更新（本次依指示未動該檔）。其餘舊腳本中的三參數「呼叫」寫法照舊可用（`url_patch_verify_fake.sql` 區段 5 用同樣寫法驗證）。
 - 網址驗證用的 `[[:space:]]` 是否涵蓋全形空白取決於資料庫的 locale；函式對「頭尾」的全形空白用 `btrim` 另外處理（去除），但網址「中間」夾全形空白不一定會被擋。
+
+---
+
+## 八、抽查登記改版（spotdims_schema.sql）
+
+> ⚠️ 尚未在真實 Supabase 執行，待老闆同意後才執行。
+
+老闆決定（2026-11-12）：抽查登記的七面向「打分」拿掉，改成「可改善面向」（七面向可複選，0～7 個）＋截圖（可多張）＋說明（選填）。判定與黃單／紅單／回考核期規則完全不變。畫面把「適當／不適當」顯示為「優良回覆／待加強回覆」，**資料庫存的判定值仍是適當／不適當**。舊抽查紀錄一筆不改。
+
+### 老闆執行步驟
+
+0. 前提：已執行過 `grade3_schema.sql`（及前面各檔，順序見 spotdims_schema.sql 檔頭）。
+1. **備份**（SQL Editor 貼上執行，備份表必須啟用 row level security）：
+   ```
+   drop table if exists public.bak_spotdims_inspections;
+   create table public.bak_spotdims_inspections as select * from public.spot_inspections;
+   alter table public.bak_spotdims_inspections enable row level security;
+   ```
+2. 貼上 `spotdims_schema.sql` 整份 → Run（可重複執行）。
+3. 貼上 `spotdims_verify_fake.sql` 整份 → Run。預期最後一個結果第一列「總結」寫「112/112 項通過」、「通過」欄全是「通過」；有任何「失敗」就停下回報。
+4. 驗證查詢（貼給工程師看）：
+   ```
+   select count(*) as 抽查筆數,
+          count(*) filter (where levels is not null) as 舊制有等級,
+          count(*) filter (where levels is null) as 新制,
+          count(*) filter (where improve_dims <> '{}') as 有勾面向,
+          count(*) filter (where cardinality(shot_paths) > 0) as 有截圖
+   from public.spot_inspections;
+   select policyname, cmd from pg_policies where schemaname='storage' and tablename='objects' and policyname like 'assess_spot_shots_%' order by 1;
+   ```
+   「舊制有等級」應等於備份表當時的筆數。
+5. 步驟 2、3 都過了，才上線網頁（舊網頁呼叫舊 spot_register，仍可用；新網頁呼叫 spot_register_dims）。
+
+### 設計要點
+
+- 新欄位（spot_inspections）：`improve_dims text[]`（只准七面向名稱）、`improve_note text`（500 字內）、`shot_paths text[]`（最多 10 張）；`levels`、`total_score` 放寬為可空，新登記存 null。
+- 新函式 `spot_register_dims(p_inspection_id, p_employee_id, p_checked_on, p_message, p_verdict, p_reason, p_dims, p_note, p_shot_paths)`：只有客服部；資格、日期、判定、不適當必填原因、網址、黃單→紅單→回考核期都與舊 `spot_register`（phase1 版）相同；抽查 id 由前端先產生，同一個 id 只能登記一次（擋重複送出）；每個截圖路徑必須是 `spot/{抽查id}/{uuid}.jpg|png|webp` 且檔案真的已上傳。
+- 截圖沿用私有 bucket `assess-notes`（2MB、jpeg／png／webp），新增三條 policy：讀＝客服部與主管全部、店長只讀自己門市；傳＝只有客服部且該抽查尚未登記；刪＝只有客服部且僅限沒有對應抽查的孤兒檔。既有備註附圖的三條 policy 不動。
+- 舊 `spot_register`（含七面向等級）**仍保留可呼叫**（為了舊網頁與既有驗證腳本）；新網頁不用它。要不要收回舊函式的執行權，請老闆決定。
+- 已知限制：登記失敗（例如網路斷）時，已上傳的截圖會留在儲存空間成為孤兒檔（重試用同一個抽查 id 與路徑，不會重傳；放棄的話需客服部以儲存空間管理頁清理）。
