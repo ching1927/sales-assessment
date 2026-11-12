@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>每年健檢</title>
+<title>登記&amp;健檢</title>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -58,11 +58,11 @@ th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-sh
 .tophead{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin:0 0 var(--sp-4)}
 .pgtabs{display:flex;gap:6px;padding:5px;border-radius:var(--r-pill);background:var(--track);width:max-content;max-width:100%;overflow-x:auto}
 .pgtab{padding:9px 22px;border-radius:var(--r-pill);border:0;background:transparent;font-size:15px;font-weight:700;color:var(--ink-2);cursor:pointer;font-family:inherit;white-space:nowrap}
+.pgtab{text-decoration:none;display:inline-block}
 .pgtab:hover{color:var(--ink)}
 .pgtab.on{background:var(--ci-black);color:var(--ci-yellow);box-shadow:0 2px 10px rgba(10,10,10,.25)}
 .pane[hidden]{display:none}
-.spotlink{font-weight:700;color:var(--accent-deep);text-decoration:none;font-size:14px}
-.spotlink:hover{text-decoration:underline}
+@media (max-width:480px){.pgtab{padding:9px 12px;font-size:14px}}
 
 /* 季次統計卡 */
 .qcards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-3);margin-bottom:var(--sp-4)}
@@ -116,7 +116,7 @@ dialog::backdrop{background:var(--scrim)}
         <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
         <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>成績單&amp;考核後台</a>
         <a class="ab-tab" href="requests.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
-        <a class="ab-tab on" href="checkup.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>健檢</a>
+        <a class="ab-tab on" href="spotcheck.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>登記&amp;健檢</a>
         <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
         <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
         </nav>
@@ -128,18 +128,19 @@ dialog::backdrop{background:var(--scrim)}
       </div>
     </header>
     <section class="ab-hero">
-      <div class="ab-crumb">考核　/　每年健檢</div>
-      <h1>每年健檢：門市季次與健檢名單</h1>
+      <div class="ab-crumb">考核　/　登記&amp;健檢</div>
+      <h1>登記&amp;健檢</h1>
     </section>
 
     <div class="msg err" id="pageMsg" role="alert" hidden></div>
 
     <div class="tophead">
-      <div class="pgtabs" role="tablist" aria-label="健檢功能分頁">
+      <div class="pgtabs" role="tablist" aria-label="登記&amp;健檢分頁">
+        <a class="pgtab" id="tabReg" role="tab" aria-selected="false" href="spotcheck.html#reg" hidden>登記</a>
+        <a class="pgtab" role="tab" aria-selected="false" href="spotcheck.html#records">抽查紀錄</a>
         <button type="button" class="pgtab on" role="tab" data-pane="paneStores" aria-selected="true">門市季次表</button>
         <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢名單</button>
       </div>
-      <a class="spotlink" id="spotLink" href="spotcheck.html" hidden>抽查（黃單／紅單）</a>
     </div>
 
     <!-- ① 門市季次表 -->
@@ -228,9 +229,15 @@ dialog::backdrop{background:var(--scrim)}
     });
     if (id === 'paneList' && !rosterLoaded) loadRoster();
   }
+  var HASH_PANE = { stores: 'paneStores', list: 'paneList' };
+  var PANE_HASH = { paneStores: 'stores', paneList: 'list' };
   document.querySelector('.pgtabs').addEventListener('click', function (e) {
-    var b = e.target.closest('.pgtab'); if (b) showPane(b.getAttribute('data-pane'));
+    var b = e.target.closest('button.pgtab'); if (!b) return;
+    var id = b.getAttribute('data-pane'); showPane(id);
+    try { history.replaceState(null, '', '#' + PANE_HASH[id]); } catch (x) {}
   });
+  function openByHash() { showPane(HASH_PANE[(location.hash || '').replace('#', '')] || 'paneStores'); }
+  window.addEventListener('hashchange', openByHash);
 
   // ====== ① 門市季次表 ======
   function renderStores() {
@@ -422,7 +429,7 @@ dialog::backdrop{background:var(--scrim)}
     var lab = ROLE_LABEL[me.role] + (me.role === 'store_manager' ? '・' + sName(me.store_code) : '');
     $('whoBadge').textContent = lab;
     $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
-    $('spotLink').hidden = false;      // 原本看得到抽查的角色＝所有已開通角色；第三期整併後這個連結會拿掉
+    $('tabReg').hidden = !isCS();      // 登記分頁只有客服部看得到（在 spotcheck.html）
     $('saveBar').hidden = !isCS();
     $('storeSumRo').hidden = isCS();
     $('storeHint').textContent = isCS()
@@ -454,7 +461,7 @@ dialog::backdrop{background:var(--scrim)}
       $('listQ').innerHTML = C.QUARTERS.map(function (n) { return '<option value="' + n + '">Q' + n + '</option>'; }).join('');
       $('listYear').value = String(now.year); $('listQ').value = String(now.quarter);
       $('loading').hidden = true; $('app').hidden = false;
-      applyRole();
+      applyRole(); openByHash();
       return CheckupApi.quarters().then(function (rows) {
         qrows = rows; applyRole(); renderStores(); refreshStoreOptions();
       }, function (e) {

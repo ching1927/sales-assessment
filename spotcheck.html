@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>抽查</title>
+<title>登記&amp;健檢</title>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="app.css">
 <style>
@@ -85,6 +85,14 @@ label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-
 .regfoot{display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3);flex-wrap:wrap}
 .log{font-size:13px;color:var(--ink-2);margin-top:var(--sp-3);line-height:1.7}
 .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+/* 頁內分頁（與 checkup.html 同一組四個膠囊：登記、抽查紀錄在本頁切換，門市季次表、健檢名單是連結） */
+.tophead{margin:0 0 var(--sp-4)}
+.pgtabs{display:flex;gap:6px;padding:5px;border-radius:var(--r-pill);background:var(--track);width:max-content;max-width:100%;overflow-x:auto}
+.pgtab{padding:9px 22px;border-radius:var(--r-pill);border:0;background:transparent;font-size:15px;font-weight:700;color:var(--ink-2);cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none;display:inline-block}
+.pgtab:hover{color:var(--ink)}
+.pgtab.on{background:var(--ci-black);color:var(--ci-yellow);box-shadow:0 2px 10px rgba(10,10,10,.25)}
+.pane[hidden]{display:none}
+@media (max-width:480px){.pgtab{padding:9px 12px;font-size:14px}}
 .loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
 .blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
 .blocked p{font-size:15px;line-height:1.6;margin-bottom:var(--sp-4)}
@@ -131,7 +139,7 @@ dialog::backdrop{background:var(--scrim)}
         <a class="ab-tab" id="toAssess" hidden href="assess.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
         <a class="ab-tab" href="backoffice.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>成績單&amp;考核後台</a>
         <a class="ab-tab" href="requests.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
-        <a class="ab-tab on" href="checkup.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>健檢</a>
+        <a class="ab-tab on" href="spotcheck.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>登記&amp;健檢</a>
         <a class="ab-tab" id="toQuestions" hidden href="questions.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
         <a class="ab-tab" id="toAccounts" hidden href="accounts.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>帳號管理</a>
         </nav>
@@ -143,19 +151,25 @@ dialog::backdrop{background:var(--scrim)}
       </div>
     </header>
     <section class="ab-hero">
-      <div class="ab-crumb">考核　/　抽查</div>
-      <h1>抽查</h1>
+      <div class="ab-crumb">考核　/　登記&amp;健檢</div>
+      <h1>登記&amp;健檢</h1>
     </section>
 
     <div class="msg err" id="pageMsg" role="alert" hidden></div>
 
-    <section class="glass intro">
-      <b>規則：</b>抽查對象是「正式業務」。客服部每次抽查判定「優良回覆／待加強回覆」，並勾選<b>可改善面向</b>（可複選、不打分數）、附上截圖與說明；判定<b>待加強回覆</b>就開一張<b>黃單</b>（觀察單）。
-      同一人當月（日曆月）紅單之後累積 <b>5</b> 張有效黃單，自動開<b>紅單</b>（改善紅單），黃單重新從 0 算。同一人日曆季內有效紅單滿 <b>2</b> 張，標示「建議移除官方 LINE 回覆權限」並<b>回到考核期</b>，要通過<b>正式員工 85 分</b>才算過。評錯的單可作廢（寫原因、不刪除），但作廢不會倒回已開出的紅單或回考核期。
-    </section>
-
     <div id="alerts"></div>
 
+    <div class="tophead">
+      <div class="pgtabs" role="tablist" aria-label="登記&amp;健檢分頁">
+        <button type="button" class="pgtab" id="tabReg" role="tab" data-pane="paneReg" aria-selected="false" hidden>登記</button>
+        <button type="button" class="pgtab" role="tab" data-pane="paneRecords" aria-selected="false">抽查紀錄</button>
+        <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#stores">門市季次表</a>
+        <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#list">健檢名單</a>
+      </div>
+    </div>
+
+    <!-- ① 登記（客服部） -->
+    <section class="pane" id="paneReg" role="tabpanel" hidden>
     <div id="regWrap" hidden>
       <h2 class="sec">登記一次抽查（客服部）</h2>
       <form class="glass panel" id="regForm" novalidate>
@@ -188,10 +202,22 @@ dialog::backdrop{background:var(--scrim)}
         <div class="log" id="rLog" role="status" aria-live="polite"></div>
       </form>
     </div>
+    </section>
+
+    <!-- ② 抽查紀錄：頂端「門市」下拉同時篩選下面三個區塊 -->
+    <section class="pane" id="paneRecords" role="tabpanel" hidden>
+    <section class="glass intro">
+      <b>規則：</b>抽查對象是「正式業務」。客服部每次抽查判定「優良回覆／待加強回覆」，並勾選<b>可改善面向</b>（可複選、不打分數）、附上截圖與說明；判定<b>待加強回覆</b>就開一張<b>黃單</b>（觀察單）。
+      同一人當月（日曆月）紅單之後累積 <b>5</b> 張有效黃單，自動開<b>紅單</b>（改善紅單），黃單重新從 0 算。同一人日曆季內有效紅單滿 <b>2</b> 張，標示「建議移除官方 LINE 回覆權限」並<b>回到考核期</b>，要通過<b>正式員工 85 分</b>才算過。評錯的單可作廢（寫原因、不刪除），但作廢不會倒回已開出的紅單或回考核期。
+    </section>
+
+    <section class="toolbar glass" id="rcTool" aria-label="門市篩選（套用到下面三個區塊）">
+      <label class="lb" for="rcStore" style="margin:0">門市</label>
+      <select class="ctrl" id="rcStore"><option value="">全部門市</option></select>
+    </section>
 
     <h2 class="sec">人員抽查狀態</h2>
-    <section class="toolbar glass" id="stTool" aria-label="人員抽查狀態篩選">
-      <select class="ctrl" id="stStore" aria-label="門市篩選"><option value="">全部門市</option></select>
+    <section class="toolbar glass" id="stTool" aria-label="人員抽查狀態">
       <span class="count" id="stCount"></span>
     </section>
     <section class="tablebox glass">
@@ -206,7 +232,6 @@ dialog::backdrop{background:var(--scrim)}
 
     <h2 class="sec">單據清單（黃單、紅單）</h2>
     <section class="toolbar glass" aria-label="篩選">
-      <select class="ctrl" id="fStore" aria-label="門市篩選"><option value="">全部門市</option></select>
       <select class="ctrl" id="fKind" aria-label="種類篩選"><option value="">全部種類</option><option value="黃">黃單</option><option value="紅">紅單</option></select>
       <select class="ctrl grow" id="fEmp" aria-label="人員篩選"></select>
       <select class="ctrl" id="fStatus" aria-label="狀態篩選"><option value="">全部狀態</option><option value="有效">有效</option><option value="作廢">已作廢</option></select>
@@ -223,7 +248,6 @@ dialog::backdrop{background:var(--scrim)}
     </section>
     <h2 class="sec">抽查紀錄（含優良回覆）</h2>
     <section class="toolbar glass" aria-label="抽查紀錄篩選">
-      <select class="ctrl" id="iStore" aria-label="門市篩選"><option value="">全部門市</option></select>
       <select class="ctrl" id="iVerdict" aria-label="判定篩選"></select>
       <span class="count" id="iCount" aria-live="polite"></span>
     </section>
@@ -236,6 +260,7 @@ dialog::backdrop{background:var(--scrim)}
       </div>
       <div class="empty" id="iEmpty" hidden>目前沒有抽查紀錄</div>
       <div class="empty" id="iMoreWrap" hidden style="padding:var(--sp-3)"><button class="btn sm" id="iMore" type="button">顯示更多</button></div>
+    </section>
     </section>
     <p class="note" id="roleNote"></p>
   </div>
@@ -310,21 +335,22 @@ dialog::backdrop{background:var(--scrim)}
     for (var i = 0; i < max; i++) s += '<i class="' + (i < n ? 'on' : '') + '"></i>';
     return s + '</span>' + n + ' / ' + max;
   }
-  // 門市下拉：只列有人員資料的門市，重新載入後保留原本選的；店長只有自己門市，不顯示篩選
-  function fillStatusStores() {
-    var sel = $("stStore"), keep = sel.value, seen = {}, codes = [];
-    statusRows.forEach(function (r) { if (!seen[r.store_code]) { seen[r.store_code] = 1; codes.push(r.store_code); } });
+  // 頂端「門市」下拉（抽查紀錄分頁）：同時篩選人員抽查狀態、單據清單、抽查紀錄三個區塊；
+  // 只列有資料的門市，重新載入後保留原本選的；店長只有自己門市，不顯示
+  function fillStoreFilter() {
+    var sel = $('rcStore'), keep = sel.value, seen = {}, codes = [];
+    [statusRows, tickets, insList].forEach(function (arr) {
+      arr.forEach(function (r) { if (!seen[r.store_code]) { seen[r.store_code] = 1; codes.push(r.store_code); } });
+    });
     codes.sort(function (a, b) { return SpotApi.storeRank(a) - SpotApi.storeRank(b) || cmp(a, b); });
-    sel.innerHTML = '<option value="">全部門市（' + statusRows.length + ' 人）</option>' + codes.map(function (c) {
-      var n = statusRows.filter(function (r) { return r.store_code === c; }).length;
-      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '（' + n + ' 人）</option>';
-    }).join("");
-    sel.value = seen[keep] ? keep : "";
-    $("stTool").hidden = isMgr() || codes.length < 2;
+    sel.innerHTML = '<option value="">全部門市</option>' + codes.map(function (c) {
+      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>';
+    }).join('');
+    sel.value = seen[keep] ? keep : '';
+    $('rcTool').hidden = isMgr() || codes.length < 2;
   }
   function renderStatus() {
-    fillStatusStores();
-    var pick = $("stStore").value;
+    var pick = $("rcStore").value;
     var rows = statusRows.filter(function (r) { return !pick || r.store_code === pick; }).sort(function (a, b) {
       return SpotApi.storeRank(a.store_code) - SpotApi.storeRank(b.store_code) || cmp(a.employee_id, b.employee_id);
     });
@@ -493,20 +519,8 @@ dialog::backdrop{background:var(--scrim)}
   }
 
   // ====== 畫面：單據清單 ======
-  // 單據的門市下拉：只列有單據的門市，重新載入後保留原選擇；店長只有自己門市，不顯示
-  function fillTicketStores() {
-    var sel = $('fStore'), keep = sel.value, seen = {}, codes = [];
-    tickets.forEach(function (t) { if (!seen[t.store_code]) { seen[t.store_code] = 1; codes.push(t.store_code); } });
-    codes.sort(function (a, b) { return SpotApi.storeRank(a) - SpotApi.storeRank(b) || cmp(a, b); });
-    sel.innerHTML = '<option value="">全部門市</option>' + codes.map(function (c) {
-      return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>';
-    }).join('');
-    sel.value = seen[keep] ? keep : '';
-    sel.hidden = isMgr() || codes.length < 2;
-  }
   function fillEmpFilter() {
-    fillTicketStores();
-    var st = $('fStore').value;
+    var st = $('rcStore').value;
     var cur = $('fEmp').value, seen = {}, arr = [];
     tickets.forEach(function (t) { if (st && t.store_code !== st) return; if (!seen[t.employee_id]) { seen[t.employee_id] = 1; arr.push({ id: t.employee_id, label: t.employee_label || t.employee_id }); } });
     arr.sort(function (a, b) { return cmp(a.id, b.id); });
@@ -524,7 +538,7 @@ dialog::backdrop{background:var(--scrim)}
       : '<span class="sub">—</span>';
   }
   function renderTickets() {
-    var st = $('fStore').value, k = $('fKind').value, e = $('fEmp').value, s = $('fStatus').value;
+    var st = $('rcStore').value, k = $('fKind').value, e = $('fEmp').value, s = $('fStatus').value;
     var showOps = isCS() || isMgr();
     $('thOps').hidden = !showOps;
     var list = tickets.filter(function (t) {
@@ -569,17 +583,8 @@ dialog::backdrop{background:var(--scrim)}
     if (n) h += '<button class="btn sm" type="button" data-shots="' + esc(ins.id) + '">查看截圖（' + n + '）</button>';
     return h;
   }
-  function fillInsStores() {
-    var sel = $('iStore'), keep = sel.value, seen = {}, codes = [];
-    insList.forEach(function (r) { if (!seen[r.store_code]) { seen[r.store_code] = 1; codes.push(r.store_code); } });
-    codes.sort(function (a, b) { return SpotApi.storeRank(a) - SpotApi.storeRank(b) || cmp(a, b); });
-    sel.innerHTML = '<option value="">全部門市</option>' + codes.map(function (c) { return '<option value="' + esc(c) + '">' + esc(sName(c)) + '</option>'; }).join('');
-    sel.value = seen[keep] ? keep : '';
-    sel.hidden = isMgr() || codes.length < 2;
-  }
   function renderInspections() {
-    fillInsStores();
-    var st = $('iStore').value, v = $('iVerdict').value;
+    var st = $('rcStore').value, v = $('iVerdict').value;
     var list = insList.filter(function (r) { return (!st || r.store_code === st) && (!v || r.verdict === v); });
     var shown = list.slice(0, insShown);
     $('iBody').innerHTML = shown.map(function (r) {
@@ -698,7 +703,7 @@ dialog::backdrop{background:var(--scrim)}
 
   // ====== 載入 ======
   function renderAll() {
-    applyRole(); renderAlerts(); renderStatus(); fillEmpFilter(); renderTickets(); renderInspections();
+    applyRole(); renderAlerts(); fillStoreFilter(); renderStatus(); fillEmpFilter(); renderTickets(); renderInspections();
   }
   function reloadAll(withCands) {
     var jobs = [SpotApi.loadStatus(), SpotApi.loadTickets(), SpotApi.loadProbations(), SpotApi.loadInspections()];
@@ -716,14 +721,32 @@ dialog::backdrop{background:var(--scrim)}
     var lab = ROLE_LABEL[me.role] + (isMgr() ? '・' + sName(me.store_code) : '');
     $('whoBadge').textContent = lab;
     $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
-    $('regWrap').hidden = !isCS();
+    $('regWrap').hidden = !isCS(); $('tabReg').hidden = !isCS();
     $('roleNote').textContent = isCS() ? '客服部可登記抽查、作廢單據、回填輔導，並處理回考核期。'
       : isMgr() ? '只顯示自己門市的人員與單據；可為單據回填輔導紀錄，其餘唯讀。'
       : '總公司主管只能查看，不能登記、作廢或回填輔導。';
   }
 
+  // ====== 頁內分頁（登記、抽查紀錄）；網址 #reg、#records 直接開啟；非客服部沒有登記，預設與 #reg 都落到抽查紀錄 ======
+  function showPane(id) {
+    if (id === 'paneReg' && !isCS()) id = 'paneRecords';
+    Array.prototype.forEach.call(document.querySelectorAll('.pane'), function (p) { p.hidden = p.id !== id; });
+    Array.prototype.forEach.call(document.querySelectorAll('button.pgtab'), function (b) {
+      var on = b.getAttribute('data-pane') === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+  var HASH_PANE = { reg: 'paneReg', records: 'paneRecords' };
+  var PANE_HASH = { paneReg: 'reg', paneRecords: 'records' };
+  function openByHash() { showPane(HASH_PANE[(location.hash || '').replace('#', '')] || (isCS() ? 'paneReg' : 'paneRecords')); }
+  document.querySelector('.pgtabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button.pgtab'); if (!b) return;
+    var id = b.getAttribute('data-pane'); showPane(id);
+    try { history.replaceState(null, '', '#' + PANE_HASH[id]); } catch (x) {}
+  });
+  window.addEventListener('hashchange', function () { if (me) openByHash(); });
+
   $('logout').addEventListener('click', doLogout);
-  $('stStore').addEventListener('change', renderStatus);
+  $('rcStore').addEventListener('change', function () { insShown = INS_PAGE; renderStatus(); fillEmpFilter(); renderTickets(); renderInspections(); });
   $('blockedLogout').addEventListener('click', doLogout);
   $('regForm').addEventListener('submit', submitReg);
   $('rDims').addEventListener('change', showCounts);
@@ -745,11 +768,9 @@ dialog::backdrop{background:var(--scrim)}
   $('rZone').addEventListener('dragover', function (e) { if (!hasFiles(e)) return; e.preventDefault(); this.classList.add('drag'); });
   $('rZone').addEventListener('dragleave', function () { this.classList.remove('drag'); });
   $('rZone').addEventListener('drop', function (e) { this.classList.remove('drag'); if (!hasFiles(e)) return; e.preventDefault(); addFiles(e.dataTransfer.files); });
-  $('iStore').addEventListener('change', function () { insShown = INS_PAGE; renderInspections(); });
   $('iVerdict').addEventListener('change', function () { insShown = INS_PAGE; renderInspections(); });
   $('iMore').addEventListener('click', function () { insShown += INS_PAGE; renderInspections(); });
   document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-shots]'); if (b) showShots(b.dataset.shots); });
-  $('fStore').addEventListener('change', function () { fillEmpFilter(); renderTickets(); });
   $('fKind').addEventListener('change', renderTickets);
   $('fEmp').addEventListener('change', renderTickets);
   $('fStatus').addEventListener('change', renderTickets);
@@ -785,7 +806,7 @@ dialog::backdrop{background:var(--scrim)}
         buildForm();
         return reloadAll(true);
       }).then(function () {
-        $('loading').hidden = true; $('app').hidden = false;
+        $('loading').hidden = true; $('app').hidden = false; openByHash();
       });
     });
   }).catch(function (e) {

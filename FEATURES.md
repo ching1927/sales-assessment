@@ -147,8 +147,8 @@
 
 ## 第二期：每年健檢（網頁已寫好，尚未連真實資料庫；需先執行 supabase/checkup_schema.sql，規格見 supabase/README_checkup.md）
 
-- 健檢頁｜`checkup.html`、`js/checkup-api.js`、`js/checkup-core.js`｜導覽列「健檢」；兩個頁籤：門市季次表（客服部可改 Q1～Q4，主管與店長唯讀，頂端四季統計即時更新）、健檢名單（選年度與季次、門市篩選；狀態待排定／已排定／已完成、首次健檢標籤；客服部可排定、取消排定、開始／繼續健檢；已完成者可查看建議單）；頁內有「抽查（黃單／紅單）」連結｜`node tests/checkup-core.test.js` 通過 77 項；開頁看兩個頁籤
-- 導覽列抽查換健檢｜各頁 html 的 `ab-tab`｜導覽列指向抽查的分頁改為「健檢」（checkup.html）；抽查頁 spotcheck.html 仍可由健檢頁內連結進入｜任一頁導覽列顯示「健檢」且不再有「抽查」
+- 健檢頁｜`checkup.html`、`js/checkup-api.js`、`js/checkup-core.js`｜導覽列「登記&健檢」（現為四分頁之後兩個，見文末「登記&健檢整併」）；兩個頁籤：門市季次表（客服部可改 Q1～Q4，主管與店長唯讀，頂端四季統計即時更新）、健檢名單（選年度與季次、門市篩選；狀態待排定／已排定／已完成、首次健檢標籤；客服部可排定、取消排定、開始／繼續健檢；已完成者可查看建議單）；頁內有「抽查（黃單／紅單）」連結｜`node tests/checkup-core.test.js` 通過 77 項；開頁看兩個頁籤
+- 導覽列抽查換健檢｜各頁 html 的 `ab-tab`｜導覽列指向抽查的分頁改為「登記&健檢」（現指向 spotcheck.html）｜任一頁導覽列顯示「登記&健檢」且不再有「抽查」
 - 健檢考試流程｜`assess.html?mode=checkup&emp=<員編>&year=<年>&quarter=<季>`、`js/assess-api.js`、`js/assess-checkup-core.js`｜客服部由健檢名單進入，沿用現有核心 3 題組抽題與評分，身分正式、及格線 85；結果頁顯示總分、判定、「健檢結果只記錄在建議單」，連結建議單與健檢名單；非客服部只看到提示；一般考核流程不變｜`node tests/assess-checkup-core.test.js` 通過 37 項
 - 一般考核草稿標示健檢｜`assess.html`｜進行中草稿含健檢者顯示「健檢 年 季」標籤，「繼續」連到健檢網址｜開一般考核頁，有健檢草稿時見標籤
 - 建議單｜`advice.html?assessment=<成績單 id>`、`js/advice-api.js`、`js/advice-core.js`、`js/advice-pdf.js`｜A4 一頁：考生資料、總分與判定（及格線 85）、七面向雷達圖（本次實線、上一次健檢虛線）、各面向得分率與差異、與上一次比較、歷年健檢走勢；首次健檢顯示「首次健檢，沒有上一次可比較」；「下載 PDF」直接下載（檔名 建議單_姓名_健檢日期.pdf）；客服部、主管、該店店長可看｜`node tests/advice-core.test.js` 通過 93 項；開頁按下載 PDF 為 1 頁
@@ -178,3 +178,9 @@
 - 抽查紀錄表（含優良回覆）與黃單列顯示面向／說明／截圖｜`spotcheck.html`（單據清單下方「抽查紀錄」）｜客服部、主管看全部，店長只看自己門市；可按門市與判定篩選；「查看截圖」開簽名網址視窗；舊紀錄照常顯示並標「舊制分數 N」；驗證：`supabase/spotdims_verify_fake.sql` 區段 4、5
 - 舊抽查紀錄不動｜`supabase/spotdims_schema.sql`（levels、total_score 放寬為可空；舊 spot_register 原封不動）｜舊列內容 md5 在新登記前後相同；驗證：spotdims_verify_fake.sql 區段 4
 - 抽查截圖儲存與權限｜`supabase/spotdims_schema.sql`（沿用私有 bucket assess-notes，路徑 spot/{抽查id}/{uuid}.jpg，新增 3 條 assess_spot_shots_* policy）｜讀：客服部、主管全部，店長只讀自己門市；傳：只有客服部且抽查尚未登記；刪：只有客服部且僅限孤兒檔；驗證：spotdims_verify_fake.sql 區段 5
+
+### 登記&健檢整併（導覽改名與四分頁；純前端，不動資料庫）
+
+- 導覽「登記&健檢」（原「健檢」）｜各頁 `ab-tab`，指向 `spotcheck.html`｜在 spotcheck.html 與 checkup.html 兩頁都亮黃底；375px 不爆版
+- 四個膠囊分頁（登記、抽查紀錄、門市季次表、健檢名單）｜`spotcheck.html`（登記、抽查紀錄，頁內切換）、`checkup.html`（門市季次表、健檢名單）｜另一頁的分頁是連結；網址 #reg、#records、#stores、#list 直接開啟；客服部預設進登記，店長與主管沒有登記分頁、預設進抽查紀錄；舊的「抽查（黃單／紅單）」連結已拿掉
+- 抽查紀錄分頁頂端「門市」下拉｜`spotcheck.html`｜同時篩選人員抽查狀態、單據清單、抽查紀錄三區塊（原三個區塊各自的門市下拉合併為這一個）；店長不顯示；其餘篩選、作廢、回填輔導、標記已執行、取消回考核期、截圖、LINE 網址照舊
