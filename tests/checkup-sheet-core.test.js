@@ -453,4 +453,48 @@ eq(cardPart.split('data-break="1"').length - 1, 2, '第一張卡片之後每頁�
 ok(cardPart.indexOf('抽查') < 0, '卡片區沒有「抽查」');
 ok(hy.indexOf('ccard') < 0, '年度頁沒有登記卡片');
 
+// ---- 小結後的「往下滑」提醒顯示條件 ----
+eq(S.HINT_MIN_GAP, 260, '提醒門檻常數');
+eq(S.HINT_TEXT, '往下滑看本季登記詳細紀錄', '提醒文字');
+eq(S.showScrollHint(500, 3), true, '有卡片、空白大：顯示');
+eq(S.showScrollHint(261, 1), true, '空白剛好超過門檻：顯示');
+eq(S.showScrollHint(260, 1), false, '空白剛好等於門檻：不顯示（要大於）');
+eq(S.showScrollHint(120, 5), false, '空白小：不顯示');
+eq(S.showScrollHint(800, 0), false, '沒有任何卡片：不顯示');
+eq(S.showScrollHint(800, undefined), false, '沒有卡片資料：不顯示');
+ok(PDF._buildHtml(mQ, {}, 'year').indexOf('往下滑') < 0, '年度頁沒有提醒');
+
+// ---- 第 1 頁固定＝頁首＋摘要卡＋星狀圖＋本季小結（版面預算）----
+eq(S.SUMMARY_MAX_ROWS, 5, '小結最多 5 列');
+var seven = [{ tag: '感謝', text: 'a' }, { tag: '進步', text: 'b' }, { tag: '留意', text: 'c' }, { tag: '待加強', text: 'd', advice: 'x' }, { tag: '待加強', text: 'e', advice: 'x' }, { tag: '強項', text: 'f' }, { tag: '待加強', text: 'g', advice: 'x' }];
+eq(S.capItems(seven).map(function (it) { return it.text; }), ['b', 'd', 'e', 'f', 'g'], '超過 5 列：依優先序（強項、待加強、進步、留意、感謝）留前 5 名，留意與感謝被捨棄，原順序不變');
+eq(S.capItems(seven.slice(0, 4)).length, 4, '不超過 5 列不動');
+var seed = 7; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+var maxChartH = 0, maxRows = 0;
+for (var ti = 0; ti < 60; ti++) {
+  var cc = [], pc = [];
+  for (var di = 0; di < 7; di++) { cc.push(Math.floor(rnd() * 11)); pc.push(Math.floor(rnd() * 11)); }
+  var curM = { checks: 10, weak: 3, counts: cc }, prevM2 = rnd() < 0.7 ? { checks: 10, weak: 3, counts: pc } : null;
+  var chH = S.chartHeight(S.quarterCompareSvg(curM, prevM2));
+  maxChartH = Math.max(maxChartH, chH);
+  var its = S.quarterItems(curM, prevM2);
+  maxRows = Math.max(maxRows, its.length);
+  ok(its.length <= S.SUMMARY_MAX_ROWS, '小結列數不超過上限 #' + ti);
+  ok(S.summaryHeight(its) <= S.summaryBudget(chH), '小結高度排得進第 1 頁預算 #' + ti);
+}
+ok(maxRows >= 3, '亂數情況涵蓋 3 列以上：' + maxRows);
+var longest = Object.keys(S.DIM_ADVICE).reduce(function (a, k) { return S.DIM_ADVICE[k].length > a.length ? S.DIM_ADVICE[k] : a; }, '');
+var worst = []; for (var wi = 0; wi < 5; wi++) worst.push({ tag: '待加強', text: '「問題掌握」還有進步空間', advice: longest });
+ok(longest.length <= 40, '最長建議句不超過 40 字（單行放得下）：' + longest.length);
+ok(S.summaryHeight(worst) <= S.summaryBudget(maxChartH), '最壞情況（5 列、每列都有最長建議）高度 ' + S.summaryHeight(worst) + ' ≤ 預算 ' + S.summaryBudget(maxChartH) + '（最高的圖 ' + maxChartH + '）');
+ok(S.summaryHeight([{ tag: '強項', text: 'a' }]) < S.summaryHeight(worst), '只有 1 列時高度小很多');
+eq(S.QCHART_W, 555, '單季星狀圖固定寬度');
+// 沒有登記卡片：不產生「登記紀錄」標題、不強制換頁（第 1 頁後不會多出空白頁）
+var noCardHtml = PDF._buildHtml(S.buildModel(cardSum, { year: 2026, quarter: 4, nowMs: NOW }) && Object.assign({}, S.buildModel(cardSum, { year: 2026, quarter: 4, nowMs: NOW }), { records: [] }), {}, 'quarter');
+ok(noCardHtml.indexOf('登記紀錄') < 0 && noCardHtml.indexOf('data-break') < 0 && noCardHtml.indexOf('class="ccard') < 0, '沒有卡片：沒有標題、沒有強制換頁');
+ok(noCardHtml.indexOf('本季小結') > 0, '沒有卡片仍有小結');
+ok(cardsHtml.indexOf('data-type="title" data-break="1"') > 0, '有卡片：登記紀錄標題強制換頁（從第 2 頁開始）');
+var iT = cardsHtml.indexOf('data-type="title"'), iS = cardsHtml.indexOf('本季小結'), iC = cardsHtml.indexOf('class="ccard');
+ok(iS > 0 && iS < iT && iT < iC, '順序：小結在標題之前、卡片在標題之後');
+
 console.log('健檢單 core 測試通過：' + passed + ' 項');

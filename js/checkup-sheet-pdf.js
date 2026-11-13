@@ -24,36 +24,39 @@
 '#csDoc *{box-sizing:border-box;margin:0}' +
 '#csDoc .blk{padding:4px 40px 12px}' +
 '#csDoc .blk[data-type=row]{padding-top:0;padding-bottom:0}' +
-'#csDoc .ph{background:#0A0A0A;color:#fff;padding:20px 28px;position:relative;border-radius:6px;overflow:hidden}' +
+'#csDoc .ph{background:#0A0A0A;color:#fff;padding:10px 28px;position:relative;border-radius:6px;overflow:hidden}' +
 '#csDoc .ph::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:#D9FF00}' +
 '#csDoc .ph small{color:#D9FF00;font-weight:700;letter-spacing:1.5px;font-size:11px}' +
-'#csDoc .ph h3{font-size:22px;margin:4px 0 2px;line-height:1.3;font-weight:800}' +
+'#csDoc .ph h3{font-size:22px;margin:2px 0 0;line-height:1.3;font-weight:800}' +
 '#csDoc .ph p{font-size:13px;color:rgba(255,255,255,.75)}' +
-'#csDoc .ph .logo{position:absolute;right:24px;top:18px;height:34px;width:auto}' +
+'#csDoc .ph .logo{position:absolute;right:24px;top:11px;height:34px;width:auto}' +
 '#csDoc .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}' +
-'#csDoc .stat{border:1px solid #E3E7ED;border-radius:14px;padding:12px 14px}' +
-'#csDoc .stat b{display:block;font-size:26px;font-weight:800;line-height:1.2}' +
+'#csDoc .stat{border:1px solid #E3E7ED;border-radius:14px;padding:5px 14px}' +
+'#csDoc .stat b{display:block;font-size:24px;font-weight:800;line-height:1.2}' +
 '#csDoc .stat span{font-size:12px;color:#4A4F5A;font-weight:600}' +
 '#csDoc .stat.ok b{color:#16A34A}#csDoc .stat.bad b{color:#DC2626}' +
 '#csDoc .ptitle{font-size:14px;font-weight:800;margin:0 0 6px;padding-left:8px;border-left:4px solid #D9FF00;line-height:1.3}' +
 '#csDoc .chart svg,#csDoc .line svg{display:block}' +
 '#csDoc .line{padding-left:78px}' +   /* (內容欄 714 − 圖寬 557) / 2 */
-'#csDoc .legend{text-align:center;font-size:13px;color:#4A4F5A;margin-top:4px}' +
+'#csDoc .legend{text-align:center;font-size:13px;color:#4A4F5A;margin-top:20px}' +
 '#csDoc .legend span{display:inline-block;margin:0 11px;vertical-align:middle}' +
 '#csDoc .legend svg{display:inline-block;vertical-align:middle;margin-right:7px}' +
 '#csDoc .legend .tag0{padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#F3F5F8}' +
 '#csDoc .hint{font-size:13px;color:#4A4F5A;text-align:center;margin-top:4px}' +
+'#csDoc .chart + .hint{margin-top:20px}' +
+'#csDoc .scrollhint{font-size:15px;color:#5B6270;text-align:center;padding-top:8px}' +
+'#csDoc .scrollhint svg{display:inline-block;vertical-align:middle;margin-right:6px}' +
 '#csDoc .hint b{color:#0A0A0A}' +
-'#csDoc .analysis{border:1px solid #E3E7ED;border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.75;background:#FAFBFC}' +
+'#csDoc .analysis{border:1px solid #E3E7ED;border-radius:14px;padding:8px 16px;font-size:14px;line-height:1.75;background:#FAFBFC}' +
 '#csDoc .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}' +
 '#csDoc .card{border-radius:8px;padding:10px 12px;min-height:74px}' +
 '#csDoc .card small{display:block;font-size:11px;font-weight:800;margin-bottom:4px}' +
 '#csDoc .card b{display:block;font-size:15px;line-height:1.4}' +
-'#csDoc .chips{text-align:center;margin-top:6px}' +
+'#csDoc .chips{text-align:center;margin-top:20px}' +
 '#csDoc .chip{display:inline-block;border:1.5px solid #C3CAD5;border-radius:999px;padding:3px 11px;margin:3px 3px;font-size:12px;font-weight:700;background:#fff}' +
 '#csDoc .chip svg{display:inline-block;vertical-align:middle;margin-right:5px}' +
 '#csDoc .chip.on{background:#0A0A0A;color:#D9FF00;border-color:#0A0A0A}' +
-'#csDoc .alist .arow{display:grid;grid-template-columns:56px 1fr;gap:12px;padding:8px 0;border-bottom:1px dashed #E3E7ED;font-size:14px;line-height:1.7}' +
+'#csDoc .alist .arow{display:grid;grid-template-columns:56px 1fr;gap:12px;padding:5px 0;border-bottom:1px dashed #E3E7ED;font-size:14px;line-height:1.6}' +
 '#csDoc .alist .arow:last-child{border-bottom:none}' +
 '#csDoc .atag{display:block;height:24px;line-height:24px;border-radius:4px;color:#fff;font-size:12px;font-weight:800;text-align:center;margin-top:2px}' +
 '#csDoc .adv{color:#4A4F5A;font-size:13px;margin-top:2px}' +
@@ -101,10 +104,11 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   // ===== 版面 HTML：回傳一串 .blk 區塊（#csDoc 的直接子元素）；imgs 是 { 路徑: { src: 圖檔資料網址, w, h } | null }（null 代表載入失敗）=====
+  var QCHART_W = Core.QCHART_W;   // 單季星狀圖寬度：固定值，預算見 core 的 summaryBudget
   var CHART_W = 714;   // 圖寬＝內容欄全寬（單季與全年綜合星狀圖）
   var LINE_W = 557;    // 折線圖寬度（內容欄 714 的約 78%）；用固定留白置中，不靠 margin:auto（html2canvas 轉圖時會偏移）
   var C = Core.COLORS;
-  var SCALE_HINT = '圖的算法：分數 ＝ 1 − 被勾次數 ÷ 登記次數。<b>越外圈越好</b>（外圈 100％＝整季沒被勾；圓心 0％＝每次紀錄都被勾），越往內縮越需要加強。';
+  var SCALE_HINT = '分數 ＝ 1 − 被勾次數 ÷ 登記次數。<b>越外圈越好</b>（外圈 100％＝整季沒被勾），越往內縮越需要加強。';
   function sized(L, w) {   // 依寬度縮放 SVG 的顯示大小（viewBox 不變）
     return L.svg.replace(' width="' + L.width + '" height="' + L.height + '"', ' width="' + w + '" height="' + Math.round(L.height * w / L.width) + '"');
   }
@@ -186,15 +190,16 @@
       esc(m.store) + '　／　' + esc(m.quarterText) + '　／　員編 ' + esc(m.id) + '</p></div>');
     h += blk('blk', '<div class="stats"><div class="stat"><b>' + m.total + '</b><span>本季登記次數</span></div>' +
       '<div class="stat ok"><b>' + m.good + '</b><span>優良回覆</span></div><div class="stat bad"><b>' + m.weak + '</b><span>待加強回覆</span></div></div>');
-    h += blk('blk', '<div class="ptitle">面向分數星狀圖（越外圈越好）' + (hasPrev ? '　對比：' + esc(m.prevName) : '') + '</div><div class="chart">' + sized(Core.quarterCompareSvg(m.cur, hasPrev ? m.prev : null), CHART_W) + '</div>' +
+    h += blk('blk', '<div class="ptitle">面向分數星狀圖（越外圈越好）' + (hasPrev ? '　對比：' + esc(m.prevName) : '') + '</div><div class="chart">' + sized(Core.quarterCompareSvg(m.cur, hasPrev ? m.prev : null), QCHART_W) + '</div>' +
       '<div class="legend"><span>' + curSwatch() + '實線＝本季（' + m.cur.checks + ' 次紀錄）</span>' +
       (hasPrev ? '<span>' + lineSwatch('#0669EB', 2.2, '8 5') + '虛線＝上一季，對比：' + esc(m.prevName) + '（' + m.prev.checks + ' 次紀錄）</span>' : '<span class="tag0">上季無紀錄，只畫本季實線</span>') +
       '<span>' + lineSwatch(C.red, 1.8, '6 4') + '紅色虛線＝60% 待加強線</span></div>' +
       '<div class="hint">' + SCALE_HINT + '</div>');
     h += blk('blk', '<div class="ptitle">本季小結</div><div class="analysis">' + itemsHtml(m.items) + '</div>');
-    h += blk('title', '<div class="ptitle" style="margin-top:4px">登記紀錄（共 ' + m.total + ' 筆）</div>', ' data-break="1"');
-    // 登記紀錄：一張截圖一張卡片；分頁由 Core.paginateCards 決定（每頁第一張卡片強制換頁，一頁 2 張，卡片不會被切半）
+    // 登記紀錄一律從第 2 頁開始（沒有任何卡片時連標題都不產生，第 1 頁後不會多出空白頁）
     var CARDS = Core.paginateCards(Core.buildCards(m.records), { pageH: CONTENT_H, firstOffset: CARD_TITLE_H, footH: CARD_FOOT_H });
+    if (CARDS.length) h += blk('title', '<div class="ptitle" style="margin-top:4px">登記紀錄（共 ' + m.total + ' 筆）</div>', ' data-break="1"');
+    // 登記紀錄：一張截圖一張卡片；分頁由 Core.paginateCards 決定（每頁第一張卡片強制換頁，一頁 2 張，卡片不會被切半）
     CARDS.forEach(function (pg, pi) {
       pg.forEach(function (c, ci) { h += cardHtml(c, imgs, pi > 0 && ci === 0); });
     });
@@ -241,8 +246,36 @@
       im.style.left = Math.round((fw - W) / 2) + 'px'; im.style.top = Math.round(M + (fh - 2 * M - CAP - H) / 2) + 'px';
     });
   }
+  // 小結之後的提醒：登記紀錄卡片一律從新的一頁開始，若第一頁小結之後的空白夠大（Core.HINT_MIN_GAP），在空白處加一行提醒
+  function addScrollHint(docEl) {
+    var br = docEl.querySelector(':scope > .blk[data-type=title][data-break]'), n = docEl.querySelectorAll('.ccard').length;
+    if (!br || !n) return;
+    var all = measure(docEl), idx = -1;
+    all.forEach(function (b, i) { if (b.el === br) idx = i; });
+    var lay = PageCore.layoutPages(all.slice(0, idx), CONTENT_H), last = lay.pages[lay.pages.length - 1];
+    if (!last || !Core.showScrollHint(CONTENT_H - last.used, n)) return;
+    var d = root.document.createElement('div');
+    d.className = 'blk'; d.setAttribute('data-type', 'blk');
+    d.innerHTML = '<div class="scrollhint"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 4l5 6 5-6z" fill="#5B6270"/></svg>' + esc(Core.HINT_TEXT) + '</div>';
+    docEl.insertBefore(d, br);
+  }
+  // 第 1 頁（強制換頁之前的區塊）一定要排得進一頁：超過時把星狀圖再縮小一點（保險；正常情況由 core 的預算保證不會觸發）
+  function fitPage1(docEl) {
+    var blks = Array.prototype.slice.call(docEl.querySelectorAll(':scope > .blk')), first = [];
+    for (var i = 0; i < blks.length && !blks[i].hasAttribute('data-break'); i++) first.push(blks[i]);
+    var svg = docEl.querySelector('.chart svg');
+    if (!svg || first.length === blks.length) return;
+    for (var n = 0; n < 6; n++) {
+      var total = first.reduce(function (a, el) { return a + el.getBoundingClientRect().height; }, 0), excess = total - CONTENT_H;
+      if (excess <= 0) return;
+      var rc = svg.getBoundingClientRect(), k = Math.max(0.55, (rc.height - excess - 2) / rc.height);
+      svg.setAttribute('width', Math.round(rc.width * k)); svg.setAttribute('height', Math.round(rc.height * k));
+    }
+  }
   function paginate(docEl) {
     fitCards(docEl);
+    fitPage1(docEl);
+    addScrollHint(docEl);
     var bl = measure(docEl);
     var lay = PageCore.layoutPages(bl, CONTENT_H);
     return {

@@ -253,7 +253,7 @@
     return radarSvg([
       p ? { scores: p, color: '#0669EB', fill: 'rgba(6,105,235,.05)', width: 2.2, dash: '8 5' } : null,
       { scores: scoreOf(cur), color: CUR.color, fill: CUR.fill, width: CUR.width, dots: true, dotColors: dotColorsOf(em) }
-    ], { labelIdx: 1, weakLine: WEAK_LINE, emph: em, tagMode: 'append' });
+    ], { labelIdx: 1, weakLine: WEAK_LINE, emph: em, tagMode: 'append', R: 116 });   // 半徑 116（原 130）：單季圖縮小，讓小結排得進第一頁
   }
   function totalSvg(qs) {
     var ts = scoreOf(totalModel(qs)), em = ts ? emphOf(ts) : {};
@@ -292,6 +292,22 @@
   // 小結／分析的列：{ tag: 感謝|強項|待加強|進步|留意, text, advice? }；網頁與 PDF 用色塊標籤顯示
   function itemsText(items, sep) { return items.map(function (it) { return it.text + (it.advice ? sep + it.advice : ''); }).join(''); }
 
+  // ---- 第 1 頁版面預算：第 1 頁固定＝頁首＋摘要卡＋星狀圖＋本季小結；登記卡片從第 2 頁開始 ----
+  // 小結最多 SUMMARY_MAX_ROWS 列（優先序：強項、待加強、進步、留意；超出者捨棄後面的）；每列＝一行文字，需建議的多一行建議句
+  var SUMMARY_MAX_ROWS = 5, SUMMARY_ROW_H = 34, SUMMARY_ADV_H = 23, SUMMARY_FIXED_H = 58;   // 單位 px（A4 794 寬版面）；FIXED＝小標題＋外框上下內距＋區塊內距
+  var QCHART_W = 555;                      // 單季星狀圖顯示寬度（固定一個值，讓小結最壞情況也排得進第 1 頁）
+  var PAGE1 = { content: 1045, head: 105, stats: 75, chartExtra: 132 };   // 第 1 頁可用高度、頁首、摘要卡、圖的標題＋圖例＋說明列所佔高度
+  var ITEM_RANK = { '強項': 0, '待加強': 1, '進步': 2, '留意': 3, '感謝': 4 };
+  function capItems(items) {
+    if (items.length <= SUMMARY_MAX_ROWS) return items;
+    var keep = items.map(function (it, i) { return { i: i, r: ITEM_RANK[it.tag] == null ? 9 : ITEM_RANK[it.tag] }; })
+      .sort(function (a, b) { return a.r - b.r || a.i - b.i; }).slice(0, SUMMARY_MAX_ROWS).map(function (x) { return x.i; });
+    return items.filter(function (_, i) { return keep.indexOf(i) >= 0; });
+  }
+  function summaryHeight(items) { return SUMMARY_FIXED_H + (items || []).reduce(function (a, it) { return a + SUMMARY_ROW_H + (it.advice ? SUMMARY_ADV_H : 0); }, 0); }
+  function chartHeight(L) { return Math.round(L.height * QCHART_W / L.width); }   // 單季星狀圖實際顯示高度
+  function summaryBudget(chartH) { return PAGE1.content - PAGE1.head - PAGE1.stats - PAGE1.chartExtra - chartH; }   // 第 1 頁留給小結的高度
+
   // 單季小結：優秀面向（進步或高分，最多 3 個）鼓勵；不足面向（分數最低，最多 2 個，90% 以上不算）給具體建議；不提次數、不用括號
   function quarterItems(cur, prev) {
     var cs = scoreOf(cur), ps = scoreOf(prev), out = [];
@@ -310,7 +326,7 @@
       if (!out.length) out.push({ tag: '感謝', text: '這季有認真在做，每一步都算數，繼續加油！' });
       weak.forEach(function (i) { out.push({ tag: '待加強', text: '「' + DIMS[i] + '」還有進步空間', advice: DIM_ADVICE[DIMS[i]] }); });
     }
-    return out;
+    return capItems(out);
   }
   function quarterAnalysis(cur, prev) { return itemsText(quarterItems(cur, prev), '，建議：'); }
 
@@ -482,6 +498,9 @@
   };
   var CARD_H = 470, CARD_GAP = 10;         // 有截圖的卡片固定高度（一頁放 2 張）與卡片間距
   var NOTE_MAX = 72;                       // 說明最多約 2 行，超過截成「…」（html2canvas 不支援 line-clamp，所以用字數截）
+  // 小結之後的「往下滑看本季登記詳細紀錄」提醒：有卡片頁、且第一頁小結之後剩餘空白高度大於門檻才顯示
+  var HINT_MIN_GAP = 260, HINT_TEXT = '往下滑看本季登記詳細紀錄';
+  function showScrollHint(gapPx, cardCount) { return Number(cardCount) > 0 && Number(gapPx) > HINT_MIN_GAP; }
   var WK = ['日', '一', '二', '三', '四', '五', '六'];
   function clampNote(t, max) {
     t = String(t == null ? '' : t).replace(/\s+/g, ' ').replace(/^ | $/g, '');
@@ -542,7 +561,7 @@
 
   var api = {
     quarterRange: quarterRange, quarterLabel: quarterLabel, dimCounts: dimCounts, topDims: topDims,
-    summarize: summarize, filterByStore: filterByStore, buildModel: buildModel, fileName: fileName, fileNameYear: fileNameYear, buildCards: buildCards, paginateCards: paginateCards, cardHeight: cardHeight, cardDate: cardDate, clampNote: clampNote, CARD: CARD, CARD_H: CARD_H, CARD_GAP: CARD_GAP, NOTE_MAX: NOTE_MAX, yearRange: yearRange,
+    summarize: summarize, filterByStore: filterByStore, buildModel: buildModel, fileName: fileName, fileNameYear: fileNameYear, buildCards: buildCards, capItems: capItems, summaryHeight: summaryHeight, summaryBudget: summaryBudget, chartHeight: chartHeight, SUMMARY_MAX_ROWS: SUMMARY_MAX_ROWS, QCHART_W: QCHART_W, PAGE1: PAGE1, showScrollHint: showScrollHint, HINT_MIN_GAP: HINT_MIN_GAP, HINT_TEXT: HINT_TEXT, paginateCards: paginateCards, cardHeight: cardHeight, cardDate: cardDate, clampNote: clampNote, CARD: CARD, CARD_H: CARD_H, CARD_GAP: CARD_GAP, NOTE_MAX: NOTE_MAX, yearRange: yearRange,
     quarterModel: quarterModel, sumModel: sumModel, prevQuarterOf: prevQuarterOf, modelFromRows: modelFromRows, contextRange: contextRange, DIMS: DIMS, scoreOf: scoreOf, totalModel: totalModel,
     radarSvg: radarSvg, quarterCompareSvg: quarterCompareSvg, totalSvg: totalSvg, lineChartSvg: lineChartSvg, markerSvg: markerSvg,
     quarterAnalysis: quarterAnalysis, yearAnalysis: yearAnalysis, quarterItems: quarterItems, yearItems: yearItems, yearInsights: yearInsights, yearCards: yearCards, yearTableModel: yearTableModel, emphOf: emphOf, COLORS: COLORS, TAG_COLOR: TAG_COLOR, STRONG_MIN: STRONG_MIN, WEAK_LINE: WEAK_LINE, DIFF_MIN: DIFF_MIN, DIM_ADVICE: DIM_ADVICE, DIM_SUBTITLE: DIM_SUB, DIM_COLORS: DIM_COLORS, DIM_DASH: DIM_DASH, Q_NAMES: Q_NAMES, pct: pct
