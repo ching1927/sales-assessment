@@ -165,11 +165,12 @@ dialog::backdrop{background:var(--scrim)}
           <span class="grow sub" id="listInfo" aria-live="polite"></span>
           <label for="listStore" class="sub" id="listStoreLb">門市</label><select id="listStore" class="ctrl"></select>
         </div>
-        <p class="sub" style="margin-bottom:var(--sp-3)">季次是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以抽查日期計；這一季沒有抽查紀錄的人不會出現。</p>
+        <p class="sub" style="margin-bottom:var(--sp-3)">季次是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以登記日期計；這一季沒有登記紀錄的人不會出現。</p>
         <div class="msg err" id="listMsg" role="alert" hidden></div>
         <div class="msg info" id="pdfMsg" role="status" hidden></div>
-        <div class="scroll" tabindex="0" aria-label="健檢單清單，可左右捲動"><table class="list" id="rosterTable"><thead><tr><th>人員</th><th>門市</th><th class="num">本季抽查次數</th><th class="num">待加強回覆次數</th><th>被勾最多的面向</th><th class="stick">操作</th></tr></thead><tbody id="listBody"></tbody></table></div>
-        <div class="empty" id="listEmpty" hidden>這一季沒有抽查紀錄。</div>
+        <div class="msg info" id="pdfMsgYear" role="status" hidden></div>
+        <div class="scroll" tabindex="0" aria-label="健檢單清單，可左右捲動"><table class="list" id="rosterTable"><thead><tr><th>人員</th><th>門市</th><th class="num">本季登記次數</th><th class="num">待加強回覆次數</th><th>被勾最多的面向</th><th class="stick">操作</th></tr></thead><tbody id="listBody"></tbody></table></div>
+        <div class="empty" id="listEmpty" hidden>這一季沒有登記紀錄。</div>
       </section>
     </section>
 
@@ -326,7 +327,7 @@ dialog::backdrop{background:var(--scrim)}
   function loadSheets() {
     var y = selYear(), q = selQ(), seq = ++sheetSeq, rg = SC.quarterRange(y, q);
     sheetsLoaded = true;
-    showMsg('listMsg', ''); showMsg('pdfMsg', '');
+    showMsg('listMsg', ''); showMsg('pdfMsg', ''); showMsg('pdfMsgYear', '');
     sheets = []; renderSheets(true);
     CheckupApi.sheetInspections(rg.start, rg.end).then(function (rows) {
       if (seq !== sheetSeq) return;      // 已切換年度或季次，舊回應不採用
@@ -338,10 +339,13 @@ dialog::backdrop{background:var(--scrim)}
       sheetsLoaded = false;
     });
   }
+  function pdfBtn(r, kind, label) {
+    return '<button type="button" class="btn sm primary" data-e="' + esc(r.employee_id) + '" data-kind="' + kind + '">' + label + '</button>';
+  }
   function renderSheets(loading) {
     var y = selYear(), q = selQ();
     var rows = SC.filterByStore(sheets, isMgr() ? '' : $('listStore').value);
-    $('listInfo').textContent = loading ? '載入中…' : SC.quarterLabel(y, q) + '　共 ' + rows.length + ' 人有抽查紀錄';
+    $('listInfo').textContent = loading ? '載入中…' : SC.quarterLabel(y, q) + '　共 ' + rows.length + ' 人有登記紀錄';
     $('listEmpty').hidden = loading || rows.length > 0 || !!$('listMsg').textContent;
     $('listBody').innerHTML = rows.map(function (r) {
       return '<tr>' +
@@ -350,7 +354,9 @@ dialog::backdrop{background:var(--scrim)}
         '<td class="num">' + r.total + '</td>' +
         '<td class="num">' + r.weak + '</td>' +
         '<td>' + (r.top.length ? r.top.map(function (d) { return '<span class="tag">' + esc(d) + '</span>'; }).join(' ') : '<span class="sub">—</span>') + '</td>' +
-        '<td class="stick"><button type="button" class="btn sm primary" data-e="' + esc(r.employee_id) + '">下載 PDF</button></td></tr>';
+        '<td class="stick">' + (q === 4
+          ? pdfBtn(r, 'quarter', '下載季度健檢單') + ' ' + pdfBtn(r, 'year', '下載年度健檢單')   // 第四季：季度與年度是兩份獨立的 PDF
+          : pdfBtn(r, 'quarter', '下載健檢單')) + '</td></tr>';
     }).join('');
   }
   ['listYear', 'listQ'].forEach(function (id) { $(id).addEventListener('change', loadSheets); });
@@ -361,8 +367,9 @@ dialog::backdrop{background:var(--scrim)}
     var r = null;
     for (var i = 0; i < sheets.length; i++) if (sheets[i].employee_id === b.dataset.e) { r = sheets[i]; break; }
     if (!r) return;
-    showMsg('pdfMsg', '');
-    CheckupSheetPdf.run({ sum: r, year: selYear(), quarter: selQ(), storeName: sName(r.store_code), btn: b, msgEl: $('pdfMsg') });
+    var kind = b.dataset.kind === 'year' ? 'year' : 'quarter', msgId = kind === 'year' ? 'pdfMsgYear' : 'pdfMsg';
+    showMsg(msgId, '');   // 季度與年度的訊息各自顯示、互不影響
+    CheckupSheetPdf.run({ sum: r, year: selYear(), quarter: selQ(), storeName: sName(r.store_code), kind: kind, btn: b, msgEl: $(msgId) });
   });
 
   // ====== 載入與角色 ======
@@ -377,7 +384,7 @@ dialog::backdrop{background:var(--scrim)}
     $('storeHint').textContent = isCS()
       ? '請為每家門市選擇它的健檢季；改完上方統計會即時更新，按「儲存」才會生效。這只是各門市的季次紀錄，不影響每季健檢單。'
       : me.role === 'store_manager' ? '這是你門市的健檢季；季次由客服部指定。' : '各門市的健檢季由客服部指定，這裡只能查看。';
-    $('roleNote').textContent = isCS() ? '客服部可改門市季次；健檢單可下載 PDF（用該季抽查紀錄現算，不另存、不計分）。'
+    $('roleNote').textContent = isCS() ? '客服部可改門市季次；健檢單可下載 PDF（用該季登記紀錄現算，不另存、不計分）。'
       : me.role === 'store_manager' ? '只顯示自己門市；門市季次只能查看，健檢單可下載 PDF。'
       : '總公司主管門市季次只能查看；健檢單可查看與下載 PDF。';
   }

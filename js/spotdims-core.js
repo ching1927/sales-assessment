@@ -12,6 +12,7 @@
  *   SpotDims.verdictLabel('適當')            // '優良回覆'；'不適當' → '待加強回覆'；不認得的原樣回傳；null 回 ''
  *   SpotDims.VERDICTS                        // [{value:'適當', label:'優良回覆'}, {value:'不適當', label:'待加強回覆'}]
  *   SpotDims.DIMS                            // 七面向名稱（固定順序）
+ *   SpotDims.DIM_SUBTITLE                    // 七面向副標 { 面向名稱: 一句白話說明 }
  *   SpotDims.normalizeDims(['問題掌握','亂寫','問題掌握'])  // ['問題掌握']：去不認得、去重、依七面向順序
  *   SpotDims.shotPath(regId, fileId, 'image/jpeg')           // 'spot/{regId}/{fileId}.jpg'（Storage 路徑）
  *   SpotDims.legacyScore(row)                // 舊制分數（數字）；新制紀錄回 null
@@ -21,6 +22,16 @@
 (function (root) {
   var DIMS = ['資訊正確性', '預設訊息運用', '問題掌握', '主動引導', '風險意識', '語氣與禮貌', '文字品質'];
   var VERDICTS = [{ value: '適當', label: '優良回覆' }, { value: '不適當', label: '待加強回覆' }];
+  // 七面向副標（老闆提供原文）：健檢單星狀圖軸標籤、年度數值表都引用這一處
+  var DIM_SUBTITLE = {
+    '資訊正確性': '提供正確資訊及相關流程',
+    '預設訊息運用': '適時運用公司預設訊息',
+    '問題掌握': '聽懂客戶需求，針對問題提供重點回答',
+    '主動引導': '延伸客戶需求，增加成交機會',
+    '風險意識': '預先評估客訴風險，避免不當承諾及爭議',
+    '語氣與禮貌': '用詞親切有禮貌',
+    '文字品質': '文字正確通順，排版方便易讀'
+  };
   var MAX_SHOTS = 10;
   var MAX_NOTE = 500;
   var EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
@@ -80,7 +91,7 @@
   }
 
   var api = {
-    DIMS: DIMS, VERDICTS: VERDICTS, MAX_SHOTS: MAX_SHOTS, MAX_NOTE: MAX_NOTE,
+    DIMS: DIMS, DIM_SUBTITLE: DIM_SUBTITLE, VERDICTS: VERDICTS, MAX_SHOTS: MAX_SHOTS, MAX_NOTE: MAX_NOTE,
     verdictLabel: verdictLabel, normalizeDims: normalizeDims, shotPath: shotPath,
     legacyScore: legacyScore, validateReg: validateReg, resultLines: resultLines
   };
