@@ -207,7 +207,6 @@ eq(INS.ts.map(S.pct), [64, 82, 45, 94, 76, 94, 67], '全年綜合分數（手算
 eq(INS.strong.map(function (i) { return DIMS[i]; }), ['主動引導', '語氣與禮貌'], '全年強項：最高且 ≥ 85%，並列全列');
 eq(INS.weakest.map(function (i) { return DIMS[i]; }), ['問題掌握'], '全年最低');
 eq([INS.improve.i, INS.improve.diff, INS.decline.i, INS.decline.diff], [0, 20, 6, 15], 'Q4 進步最多 ▲20、退步最多 ▼15');
-eq(INS.key.map(function (k) { return [DIMS[k.i], k.kind]; }), [['問題掌握', 'weak'], ['資訊正確性', 'improve'], ['文字品質', 'decline']], '重點三條');
 eq(S.yearCards(YQS).map(function (c) { return c.title + '：' + c.text; }), ['全年強項：主動引導、語氣與禮貌 94%', '最需要加強：問題掌握 45%', 'Q4 進步最多：資訊正確性 ▲20', 'Q4 需要留意：文字品質 ▼15'], '四張摘要卡');
 // 沒有符合者：卡片 text 為 null、不報錯
 var noImp = S.yearCards([null, null, null, M8]);
@@ -219,12 +218,6 @@ eq(lowAll[1].text, null, '全部相同：沒有最弱');
 // 強項門檻 85%
 eq(S.yearInsights([null, null, null, { checks: 20, weak: 3, counts: [3, 5, 5, 5, 5, 5, 5] }]).strong, [0], '85% 剛好算強項');
 eq(S.yearInsights([null, null, null, { checks: 20, weak: 3, counts: [4, 5, 5, 5, 5, 5, 5] }]).strong, [], '80% 不算強項');
-// 重點三條去重：同一面向不畫兩次，重複的改取次要者
-var dupDec = S.yearInsights([null, null, { checks: 10, weak: 0, counts: [0, 0, 0, 0, 0, 0, 0] }, { checks: 10, weak: 5, counts: [6, 1, 1, 1, 1, 1, 1] }]);
-eq(dupDec.key.map(function (k) { return [k.i, k.kind]; }), [[0, 'weak'], [1, 'decline']], '最低同時是退步最多：退步改取次要者（資訊正確性）');
-var dupImp = S.yearInsights([null, null, { checks: 10, weak: 5, counts: [8, 0, 0, 0, 0, 0, 0] }, { checks: 10, weak: 5, counts: [5, 0, 0, 0, 0, 0, 0] }]);
-eq(dupImp.key.map(function (k) { return [k.i, k.kind]; }), [[0, 'weak']], '最低同時是進步最多：沒有次要者就不補');
-ok(INS.key.every(function (k, i, a) { return a.filter(function (x) { return x.i === k.i; }).length === 1; }), '重點三條沒有重複面向');
 
 // ---- 星狀圖：60% 待加強線、強項（綠）／最弱（紅）、副標單行截斷 ----
 var TS = S.totalSvg(YQS);
@@ -246,26 +239,7 @@ eq(Object.keys(S.emphOf([0.9, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])).length, 7, '強項
 eq(S.emphOf([0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9])[0].tag, '★ 全年強項', '全部一樣：只有強項、沒有最弱');
 eq(Object.keys(S.emphOf([0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7])).length, 0, '全部 70%：沒有強項也沒有最弱');
 
-// ---- 折線圖：預設重點三條彩色、其餘灰色 ----
-var LCH = S.lineChartSvg(YQS);
-ok(LCH.svg.indexOf('<title>') < 0, '折線圖沒有 tooltip');
-['（全年最低）', '（Q4 進步最多）', '（Q4 退步最多）'].forEach(function (nt) { eq(LCH.svg.split(nt).length - 1, 1, '重點標註只出現一次：' + nt); });
-ok(LCH.svg.indexOf('問題掌握 40%（全年最低）') > 0 && LCH.svg.indexOf('資訊正確性 70%（Q4 進步最多）') > 0 && LCH.svg.indexOf('文字品質 60%（Q4 退步最多）') > 0, '重點線尾標籤文字（面向＋百分比＋註記）');
-ok(LCH.svg.indexOf('stroke="' + S.COLORS.red + '"') > 0 && LCH.svg.indexOf('stroke="' + S.COLORS.blue + '"') > 0 && LCH.svg.indexOf('stroke="' + S.COLORS.gold + '"') > 0, '重點三條用紅、藍、金');
-eq(LCH.svg.split('stroke="' + S.COLORS.gray + '" stroke-width="2"').length - 1, 4 * 3, '其餘四條灰色細線（每條 3 段）');
-DIMS.forEach(function (d) { ok(LCH.svg.indexOf('>' + d + ' ') > 0, '折線圖線尾標籤：' + d); });
-ok(LCH.svg.indexOf('Q1') > 0 && LCH.svg.indexOf('Q4') > 0, '橫軸 Q1~Q4');
-ok(LCH.lo >= 0 && LCH.lo < 1, '縱軸下限動態：' + LCH.lo);
-function endLabels(svg) { return texts(svg).filter(function (t) { return t.fs >= 16 && t.fs <= 17 && /\d%/.test(t.txt) && t.txt.indexOf('縱軸') < 0; }); }
-eq(endLabels(LCH.svg).length, 7, '七條線尾各一個標籤');
-var eys = endLabels(LCH.svg).map(function (t) { return t.y; }).sort(function (a, b) { return a - b; });
-for (var ei = 1; ei < eys.length; ei++) ok(eys[ei] - eys[ei - 1] >= 20, '線尾標籤不重疊（相隔 ' + Math.round(eys[ei] - eys[ei - 1]) + '）');
-texts(LCH.svg).forEach(function (t) { ok(t.r <= LCH.width + 0.5 && t.l >= 0, '折線圖文字不被裁切：' + t.txt); });
-var L1 = S.lineChartSvg(YQS, 2);
-eq(endLabels(L1.svg).length, 1, '單選一個面向：只畫那一條');
-ok(L1.svg.indexOf('stroke="' + S.DIM_COLORS[2] + '"') > 0 && L1.svg.indexOf('（全年最低）') < 0, '單選用該面向自己的顏色、沒有重點註記');
-ok(S.lineChartSvg([null, null, null, null]).svg.indexOf('</svg>') > 0, '折線圖全無資料不壞');
-ok(S.lineChartSvg([null, null, null, M8]).svg.indexOf('Q1（無）') > 0, '沒有紀錄的季標示（無）');
+
 
 // ---- 全年數值表：色階與 ▲▼ ----
 var TM = S.yearTableModel(YQS);
@@ -325,13 +299,20 @@ var mQ = S.buildModel(q4sum, { year: 2026, quarter: 4, nowMs: NOW, ctxRows: CTX,
 var hq = PDF._buildHtml(mQ, {}, 'quarter'), hy = PDF._buildHtml(mQ, {}, 'year');
 ok(hq.indexOf('本季小結') > 0 && hq.indexOf('登記紀錄（共 2 筆）') > 0 && hq.indexOf('對比：第三季') > 0, '季度頁：小結、登記紀錄、對比第三季');
 ok(hq.indexOf('年度') < 0 && hq.indexOf('全年') < 0, '季度頁（含第四季）完全沒有年度內容或字樣');
-ok(hy.indexOf('年度健檢單') > 0 && hy.indexOf('class="cards"') > 0 && hy.indexOf('全年數值表') > 0 && hy.indexOf('年度分析') > 0 && hy.indexOf('各面向四季變化') > 0, '年度頁：頁首、摘要卡、折線圖、數值表、年度分析');
+ok(hy.indexOf('年度健檢單') > 0 && hy.indexOf('class="cards"') > 0 && hy.indexOf('各面向四季變化') > 0 && hy.indexOf('年度分析') > 0 && hy.indexOf('class="yt"') > 0, '年度頁：頁首、摘要卡、年度分析、第 2 頁總表');
 ok(hy.indexOf('登記紀錄') < 0 && hy.indexOf('data-type="row"') < 0 && hy.indexOf('<img alt="截圖') < 0, '年度頁沒有登記紀錄與截圖');
 ok(hy.indexOf('本季小結') < 0 && hy.indexOf('stat ok') < 0, '年度頁沒有單季小結與次數卡');
 ok(hy.split('class="card"').length - 1 === 4, '年度頁 4 張摘要卡');
 ok(hy.indexOf('▼17') > 0 || hy.indexOf('▲') > 0, '年度表有 ▲▼ 文字符號');
-ok(hy.indexOf('85% 以上（綠底）') > 0 && hy.indexOf('低於 60%（紅底）') > 0 && hy.indexOf('▲▼ 為與上一季相比') > 0, '年度表圖例說明');
-ok(hy.indexOf('重點三條') > 0 && hy.indexOf('待加強線') < 0 && hy.indexOf('藍色範圍越往外越好') > 0, '年度頁：重點三條圖例；星狀圖下說明沒有 60% 紅虛線');
+ok(hy.indexOf('綠底＝85% 以上') > 0 && hy.indexOf('紅底＝低於 60%') > 0 && hy.indexOf('▲▼＝與上一季相比（差 10 個百分點以上才標）') > 0 && hy.indexOf('迷你折線＝四季走勢，刻度') > 0, '年度表圖例說明（含迷你折線刻度）');
+ok(hy.indexOf('重點三條') < 0 && hy.indexOf('chip') < 0 && hy.indexOf('待加強線') < 0 && hy.indexOf('各面向四季變化（分數，越高越好）') > 0, '年度頁：沒有舊的折線圖、膠囊圖例；有第 2 頁標題');
+eq(hy.split('class="sp"').length - 1, 7, '總表七列各一條迷你折線');
+eq(hy.split('class="ph"').length - 1, 2, '兩頁各一個黑底頁首');
+eq(hy.split('data-break="1"').length - 1, 1, '年度檔固定兩頁：只有第 2 頁頁首強制換頁');
+ok(hy.indexOf('登記次數') > 0 && hy.indexOf('class="tagc"') > 0 && hy.indexOf('Q4 進步最多') > 0, '總表有登記次數列與列尾標籤');
+ok(hy.indexOf('<td class="tg">') > 0 && hy.indexOf('<colgroup>') > 0, '總表欄位');
+ok(PDF._buildHtml(mq4b, {}, 'year').indexOf('<td class="na">—</td>') > 0, '只有 Q4 有紀錄：其餘季顯示「—」，版面照常');
+eq(PDF._buildHtml(mq4b, {}, 'year').split('class="sp"').length - 1, 7, '只有 Q4：迷你折線仍七條（單點）');
 [hq, hy].forEach(function (h, k) { ok(h.indexOf('抽查') < 0, '頁面文字沒有「抽查」#' + k); });
 var hq3 = PDF._buildHtml(S.buildModel(q3sum, { year: 2026, quarter: 3, nowMs: NOW, ctxRows: [] }), {}, 'quarter');
 ok(hq3.indexOf('上季無紀錄，只畫本季實線') > 0, '季度頁：上季無紀錄的說明');
@@ -370,9 +351,7 @@ eq(YB.filter(function (t) { return t.indexOf('建議：') > 0; }).length, 1, '�
 ok(S.yearAnalysis([M8, null, null, prevM]).length >= 2, '年度分析可處理缺季');
 ok(YA.every(function (t) { return typeof t === 'string'; }), '年度分析是字串陣列');
 // 全站字樣：顯示用文字都沒有「抽查」
-[QC.svg, T4.svg, LCH.svg, S.quarterLabel(2026, 3), JSON.stringify(S.DIM_ADVICE), JSON.stringify(D.DIM_SUBTITLE), mq4.analysis, mq4.yearAnalysis.join('')].forEach(function (t, k) { ok(t.indexOf('抽查') < 0, '輸出文字不含「抽查」#' + k); });
-ok(S.markerSvg(0, 10, 10, 6).indexOf('<circle') === 0 && S.markerSvg(6, 10, 10, 6).indexOf('<polygon') === 0, '七種標記');
-eq(S.DIM_COLORS.length, 7, '七色'); eq(S.DIM_DASH.length, 7, '七種線型');
+[QC.svg, T4.svg, S.quarterLabel(2026, 3), JSON.stringify(S.DIM_ADVICE), JSON.stringify(D.DIM_SUBTITLE), mq4.analysis, mq4.yearAnalysis.join('')].forEach(function (t, k) { ok(t.indexOf('抽查') < 0, '輸出文字不含「抽查」#' + k); });
 
 // ---- 登記截圖卡片：資料組裝、續卡編號、分頁 ----
 eq(S.cardDate('2026-11-13'), { md: '11/13', wk: '（五）', text: '11/13（五）' }, '星期依實際曆法：2026-11-13 是週五');
@@ -497,5 +476,54 @@ ok(noCardHtml.indexOf('本季小結') > 0, '沒有卡片仍有小結');
 ok(cardsHtml.indexOf('data-type="title" data-break="1"') > 0, '有卡片：登記紀錄標題強制換頁（從第 2 頁開始）');
 var iT = cardsHtml.indexOf('data-type="title"'), iS = cardsHtml.indexOf('本季小結'), iC = cardsHtml.indexOf('class="ccard');
 ok(iS > 0 && iS < iT && iT < iC, '順序：小結在標題之前、卡片在標題之後');
+
+// ---- 年度健檢單固定兩頁版：迷你折線、第 2 頁總表、第 1 頁星狀圖預算 ----
+eq(S.sparkRange([[0.9, 0.5, 0.6, 0.7]]), { min: 0.4, max: 1 }, '迷你折線刻度：全部 ≥ 40% → 40%~100%');
+eq(S.sparkRange([[0.9, 0.38, 0.6, 0.7]]), { min: 0.3, max: 1 }, '有 38% → 下限 30%');
+eq(S.sparkRange([[0.25, 0.9]]).min, 0.2, '有 25% → 下限 20%');
+eq(S.sparkRange([[0.4, 0.9]]).min, 0.4, '剛好 40% 不延伸');
+eq(S.sparkRange([[0.05, 0.9]]).min, 0, '有 5% → 下限 0%');
+eq(S.sparkRange([null, [0.7, 0.5], null, [0.9]]), { min: 0.4, max: 1 }, '缺資料的季略過');
+eq(S.sparkRange([null, null, null, null]), { min: 0.4, max: 1 }, '全部缺 → 預設 40%~100%');
+eq(S.sparkRange(null), { min: 0.4, max: 1 }, 'null → 預設');
+function cnt(str, sub) { return str.split(sub).length - 1; }
+var SR0 = S.sparkRange([[0.67, 0.67, 0.5, 0.7]]);
+var sp1 = S.sparkSvg([0.67, 0.67, 0.5, 0.7], SR0);
+ok(sp1.indexOf('width="190" height="66"') > 0, '迷你折線尺寸 190×66');
+eq([cnt(sp1, '<line '), cnt(sp1, '<circle '), cnt(sp1, 'r="5.5"'), cnt(sp1, 'r="3.5"'), cnt(sp1, 'stroke-width="2.5"')], [4, 4, 1, 3, 3], '四季都有：3 段線＋1 條中線、4 個點（Q4 點較大）、線寬 2.5');
+ok(sp1.indexOf('>67%<') > 0 && sp1.indexOf('>70%<') > 0 && cnt(sp1, '<text ') === 2, 'Q1 與 Q4 兩端點旁標分數（12px 灰字）');
+var sp2 = S.sparkSvg([0.5, null, 0.6, 0.7], SR0);
+eq([cnt(sp2, '<line '), cnt(sp2, '<circle ')], [2, 3], 'Q2 缺資料：不畫點、線斷開（只剩 Q3–Q4 一段＋中線）');
+var sp3 = S.sparkSvg([null, null, null, 0.8], SR0);
+eq([cnt(sp3, '<line '), cnt(sp3, '<circle '), cnt(sp3, '<text ')], [1, 1, 1], '只有 Q4：單點、只標 Q4 分數');
+eq(S.sparkSvg([null, null, null, null], SR0).indexOf('<circle'), -1, '全缺：沒有點');
+function firstCy(svg) { return Number(svg.match(/<circle cx="[\d.]+" cy="([\d.]+)"/)[1]); }
+eq(firstCy(S.sparkSvg([0.7, 0.7, 0.7, 0.7], SR0)), firstCy(S.sparkSvg([0.7, 0.9, 0.9, 0.9], SR0)), '同一刻度：相同分數畫在相同高度（所有列共用範圍）');
+ok(firstCy(S.sparkSvg([0.4, 0.4, 0.4, 0.4], SR0)) > firstCy(S.sparkSvg([1, 1, 1, 1], SR0)), '分數越高越靠上');
+var TM2 = S.yearTableModel(YQS);
+eq(TM2.map(function (r) { return r.nameCls; }), ['', '', 'rn', 'gn', '', 'gn', ''], '面向名稱顏色：全年最低紅字、全年強項綠字');
+eq(TM2.map(function (r) { return r.tags.map(function (t) { return t.t; }); }), [['Q4 進步最多'], [], ['全年最低'], ['全年強項'], [], ['全年強項'], ['Q4 退步最多']], '列尾標籤');
+eq(TM2[0].scores, [YQS[0], YQS[1], YQS[2], YQS[3]].map(function (m) { return S.scoreOf(m)[0]; }), '每列帶四季分數（給迷你折線）');
+var dupT = S.yearTableModel([null, null, { checks: 10, weak: 0, counts: [0, 0, 0, 0, 0, 0, 0] }, { checks: 10, weak: 5, counts: [6, 1, 1, 1, 1, 1, 1] }]);
+eq(dupT[0].tags.map(function (t) { return t.t; }), ['全年最低', 'Q4 退步最多'], '一列可有多個標籤');
+eq(S.yearTableModel([null, null, null, M8]).map(function (r) { return r.scores.slice(0, 3); })[0], [null, null, null], '缺資料季：分數 null');
+// 第 1 頁：星狀圖半徑預算
+var fitY = S.fitYearChart(YQS);
+ok(fitY.R >= 150 && fitY.width <= 754 && fitY.height <= fitY.maxH, '全年綜合星狀圖半徑 ≥ 150（實際 ' + fitY.R + '），放得進第 1 頁（' + fitY.width + '×' + fitY.height + ' ≤ ' + fitY.maxH + '）');
+eq(fitY.maxH, S.YEAR1.content - S.YEAR1.head - S.YEAR1.cards - S.YEAR1.chartTitle - S.yearItemsHeight(S.yearItems(YQS)) - S.YEAR1.safety, '星狀圖可用高度＝第 1 頁高度扣掉其他區塊');
+var minYR = 999;
+for (var yi = 0; yi < 40; yi++) {
+  var yq = [];
+  for (var yk = 0; yk < 4; yk++) { var yc = []; for (var yd = 0; yd < 7; yd++) yc.push(Math.floor(rnd() * 11)); yq.push(rnd() < 0.2 && yk < 3 ? null : { checks: 10, weak: 4, counts: yc }); }
+  yq[3] = yq[3] || { checks: 10, weak: 4, counts: [3, 3, 3, 3, 3, 3, 3] };
+  var yf = S.fitYearChart(yq);
+  minYR = Math.min(minYR, yf.R);
+  ok(yf.R >= 150 && yf.width <= 754 && yf.height <= yf.maxH, '各種資料：星狀圖半徑 ≥ 150 且放得進 #' + yi);
+}
+var worstYear = [{ tag: '感謝', text: 't' }, { tag: '強項', text: '「資訊正確性」、「預設訊息運用」、「風險意識」全年都是 94%，是你最穩定的地方，請繼續保持。' }, { tag: '待加強', text: 'x', advice: longest }, { tag: '進步', text: '「文字品質」第四季從 50% 進步到 70%，是本季進步最多的面向，很棒！', advice: '持續保持，' + longest }, { tag: '留意', text: 'x', advice: longest }];
+ok(S.YEAR1.head + S.YEAR1.cards + S.YEAR1.chartTitle + S.yearItemsHeight(worstYear) + S.totalSvg(YQS, S.YEAR1.floorR).height + S.YEAR1.safety <= S.YEAR1.content, '最壞情況（分析 5 列、建議最長）加上半徑 140 的星狀圖仍放得進第 1 頁');
+ok(S.yearItemsHeight(worstYear) >= S.yearItemsHeight(S.yearItems(YQS)), '最壞分析比實際分析高');
+eq(S.YEAR1.minR, 150, '星狀圖最小半徑底線 150');
+eq([typeof S.lineChartSvg, typeof S.markerSvg, typeof S.DIM_COLORS, typeof S.DIM_DASH], ['undefined', 'undefined', 'undefined', 'undefined'], '舊的年度折線圖已移除');
 
 console.log('健檢單 core 測試通過：' + passed + ' 項');

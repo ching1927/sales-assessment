@@ -36,8 +36,8 @@
 '#csDoc .stat span{display:inline;margin-left:8px;font-size:12px;color:#4A4F5A;font-weight:600}' +
 '#csDoc .stat.ok b{color:#16A34A}#csDoc .stat.bad b{color:#DC2626}' +
 '#csDoc .ptitle{font-size:14px;font-weight:800;margin:0 0 6px;padding-left:8px;border-left:4px solid #D9FF00;line-height:1.3}' +
-'#csDoc .chart svg,#csDoc .line svg{display:block}' +
-'#csDoc .line{padding-left:78px}' +   /* (內容欄 714 − 圖寬 557) / 2 */
+'#csDoc .chart{text-align:center}' +
+'#csDoc .chart svg{display:inline-block;vertical-align:top}' +
 '#csDoc .legend{text-align:center;font-size:13px;color:#4A4F5A;margin-top:20px}' +
 '#csDoc .legend span{display:inline-block;margin:0 11px;vertical-align:middle}' +
 '#csDoc .legend svg{display:inline-block;vertical-align:middle;margin-right:7px}' +
@@ -49,36 +49,45 @@
 '#csDoc .hint b{color:#0A0A0A}' +
 '#csDoc .analysis{border:1px solid #E3E7ED;border-radius:14px;padding:8px 16px;font-size:14px;line-height:1.75;background:#FAFBFC}' +
 '#csDoc .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}' +
-'#csDoc .card{border-radius:8px;padding:10px 12px;min-height:74px}' +
-'#csDoc .card small{display:block;font-size:11px;font-weight:800;margin-bottom:4px}' +
+'#csDoc .card{border-radius:8px;padding:8px 12px;min-height:62px}' +
+'#csDoc .card small{display:block;font-size:11px;font-weight:800;margin-bottom:2px}' +
 '#csDoc .card b{display:block;font-size:15px;line-height:1.4}' +
-'#csDoc .chips{text-align:center;margin-top:20px}' +
-'#csDoc .chip{display:inline-block;border:1.5px solid #C3CAD5;border-radius:999px;padding:3px 11px;margin:3px 3px;font-size:12px;font-weight:700;background:#fff}' +
-'#csDoc .chip svg{display:inline-block;vertical-align:middle;margin-right:5px}' +
-'#csDoc .chip.on{background:#0A0A0A;color:#D9FF00;border-color:#0A0A0A}' +
+'#csDoc .cards.tight .card{padding:4px 12px;min-height:48px}' +
+'#csDoc table.yt{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:8px}' +
+'#csDoc table.yt th{background:#F3F5F8;font-weight:700;font-size:13px;white-space:nowrap;padding:10px 0;text-align:center;border-bottom:1px solid #E3E7ED}' +
+'#csDoc table.yt th:first-child{text-align:left;padding-left:10px}' +
+'#csDoc table.yt td{border-bottom:1px solid #E3E7ED;text-align:center;height:90px;padding:0 2px;font-size:16px;white-space:nowrap}' +
+'#csDoc table.yt td.nm{white-space:normal;text-align:left;padding-left:10px;font-size:17.5px;font-weight:800;line-height:1.3}' +
+'#csDoc table.yt td.nm small{display:block;font-size:11.5px;color:#6B7280;font-weight:400;margin-top:3px;line-height:1.35}' +
+'#csDoc table.yt td.nm.rn{color:#B53A2D}' +
+'#csDoc table.yt td.nm.gn{color:#226347}' +
+'#csDoc table.yt td.bg-green{background:#EAF2EE}' +
+'#csDoc table.yt td.bg-red{background:#FBEDEB;color:#B53A2D;font-weight:800}' +
+'#csDoc table.yt td.tot{font-weight:800;background:rgba(217,255,0,.25)}' +
+'#csDoc table.yt td.tot.bg-red{background:#FBEDEB;color:#B53A2D}' +
+'#csDoc table.yt td.na{color:#94A3B8}' +
+'#csDoc small.df{font-size:10px;font-weight:800;margin-left:2px;letter-spacing:-.3px}' +
+'#csDoc small.df.up{color:#226347}#csDoc small.df.down{color:#B53A2D}' +
+'#csDoc table.yt td.sp{padding:0}' +
+'#csDoc table.yt td.sp svg{display:inline-block;vertical-align:middle}' +
+'#csDoc table.yt td.tg{padding:0 4px}' +
+'#csDoc .tagrow{text-align:center;margin:3px 0}' +
+'#csDoc .tagc{display:inline-block;padding:2px 7px;border-radius:999px;font-size:11.5px;font-weight:800;line-height:1.5;white-space:nowrap}' +
+'#csDoc tr.reg td{height:56px;font-size:16px;font-weight:700;background:#FAFBFC}' +
+'#csDoc tr.reg td.nm{font-size:16px}' +
+'#csDoc tr.reg td.tot{background:rgba(217,255,0,.25)}' +
+'#csDoc .tlegend{font-size:12.5px;color:#4A4F5A;margin-top:12px;line-height:1.9}' +
+'#csDoc .tlegend span{display:inline-block;margin-right:16px;white-space:nowrap}' +
+'#csDoc .tlegend i{display:inline-block;width:12px;height:12px;border:1px solid;vertical-align:middle;margin-right:5px}' +
 '#csDoc .alist .arow{display:grid;grid-template-columns:56px 1fr;gap:12px;padding:5px 0;border-bottom:1px dashed #E3E7ED;font-size:14px;line-height:1.6}' +
 '#csDoc .alist .arow:last-child{border-bottom:none}' +
 '#csDoc .alist.compact .arow{grid-template-columns:52px 1fr;gap:10px;padding:3px 0;font-size:13.5px;line-height:1.5}' +
 '#csDoc .alist.compact .atag{height:22px;line-height:22px;font-size:11.5px;margin-top:0}' +
 '#csDoc .alist.compact .adv{font-size:12.5px;line-height:1.3;margin-top:0}' +
+'#csDoc .alist.tight .arow{padding:1px 0}' +
 '#csDoc .analysis.cmp{padding:5px 14px}' +
 '#csDoc .atag{display:block;height:24px;line-height:24px;border-radius:4px;color:#fff;font-size:12px;font-weight:800;text-align:center;margin-top:2px}' +
 '#csDoc .adv{color:#4A4F5A;font-size:13px;margin-top:2px}' +
-'#csDoc td.bg-green{background:#EAF2EE}' +
-'#csDoc td.bg-red{background:#FBEDEB;color:#B53A2D;font-weight:800}' +
-'#csDoc td.rn{color:#B53A2D;font-weight:800}' +
-'#csDoc small.df{font-size:10px;font-weight:800;margin-left:4px}' +
-'#csDoc small.df.up{color:#226347}#csDoc small.df.down{color:#B53A2D}' +
-'#csDoc .tlegend{font-size:12px;color:#4A4F5A;margin-top:8px}' +
-'#csDoc .tlegend span{display:inline-block;margin-right:18px}' +
-'#csDoc .tlegend i{display:inline-block;width:12px;height:12px;border:1px solid;vertical-align:middle;margin-right:5px}' +
-'#csDoc table.yt{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}' +
-'#csDoc table.yt th,#csDoc table.yt td{border-bottom:1px solid #E3E7ED;padding:5px 6px;text-align:center}' +
-'#csDoc table.yt th:first-child,#csDoc table.yt td:first-child{text-align:left}' +
-'#csDoc table.yt th{background:#F3F5F8;font-weight:700}' +
-'#csDoc table.yt td.tot{font-weight:800;background:rgba(217,255,0,.25)}' +
-'#csDoc table.yt td.na{color:#94A3B8}' +
-'#csDoc td small.sub{display:block;font-size:11px;color:#94A3B8;font-weight:400}' +
 '#csDoc .blk[data-type=card]{padding:0 40px 10px}' +
 '#csDoc .ccard{position:relative;border-radius:14px;overflow:hidden;background:' + Core.CARD.bg + ';border:1px solid ' + Core.CARD.edge + ';padding-left:8px;display:flex;flex-direction:column}' +
 '#csDoc .ccard.hasshot{height:470px;box-sizing:border-box}' +
@@ -108,8 +117,6 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   // ===== 版面 HTML：回傳一串 .blk 區塊（#csDoc 的直接子元素）；imgs 是 { 路徑: { src: 圖檔資料網址, w, h } | null }（null 代表載入失敗）=====
-  var CHART_W = 714;   // 圖寬＝內容欄全寬（單季與全年綜合星狀圖）
-  var LINE_W = 557;    // 折線圖寬度（內容欄 714 的約 78%）；用固定留白置中，不靠 margin:auto（html2canvas 轉圖時會偏移）
   var C = Core.COLORS;
   var SCALE_HINT = '分數 ＝ 1 − 被勾次數 ÷ 登記次數，<b>越外圈越好</b>，越往內縮越需要加強。';
   function sized(L, w) {   // 依寬度縮放 SVG 的顯示大小（viewBox 不變）
@@ -135,37 +142,38 @@
       return '<div class="card" style="background:' + st[1] + ';border-left:4px solid ' + st[2] + '"><small style="color:' + st[3] + '">' + esc(c.title) + '</small><b' + (c.text ? '' : ' class="none"') + ' style="color:' + (c.text ? '#111' : '#6B7280') + '">' + esc(c.text || '—') + '</b></div>';
     }).join('') + '</div>';
   }
-  function chipsHtml() {
-    return '<div class="chips"><span class="chip on">重點三條</span>' + Core.DIMS.map(function (d, i) {
-      return '<span class="chip"><svg width="26" height="16" viewBox="0 0 26 16"><line x1="1" y1="8" x2="25" y2="8" stroke="' + Core.DIM_COLORS[i] + '" stroke-width="3"' + (Core.DIM_DASH[i] ? ' stroke-dasharray="' + Core.DIM_DASH[i] + '"' : '') + '/>' + Core.markerSvg(i, 13, 8, 5) + '</svg>' + esc(d) + '</span>';
-    }).join('') + '</div>';
-  }
-  function tableHtml(qs) {
-    var tot = Core.totalModel(qs), tm = Core.yearTableModel(qs);
+  // 年度第 2 頁：各面向四季變化總表（面向＋副標｜Q1~Q4｜全年綜合｜迷你折線｜列尾標籤）＋最後一列登記次數
+  function yearTableHtml(qs) {
+    var tm = Core.yearTableModel(qs), tot = Core.totalModel(qs), range = Core.sparkRange(qs.map(Core.scoreOf));
     var rows = tm.map(function (r) {
-      return '<tr><td' + (r.nameRed ? ' class="rn"' : '') + '>' + esc(r.name) + '<small class="sub">' + esc(r.sub) + '</small></td>' + r.cells.map(function (c) {
+      var cells = r.cells.map(function (c) {
         if (!c.has) return '<td class="na">—</td>';
         return '<td class="' + (c.bg ? 'bg-' + c.bg : '') + '">' + c.pct + '%' + (c.diff ? '<small class="df ' + c.diff.dir + '">' + (c.diff.dir === 'up' ? '▲' : '▼') + c.diff.n + '</small>' : '') + '</td>';
-      }).join('') + '<td class="tot' + (r.total.bg ? ' bg-' + r.total.bg : '') + '">' + r.total.pct + '%</td></tr>';
+      }).join('');
+      var tags = r.tags.map(function (t) { return '<div class="tagrow"><span class="tagc" style="background:' + t.bg + ';color:' + t.tx + '">' + esc(t.t) + '</span></div>'; }).join('');
+      return '<tr><td class="nm' + (r.nameCls ? ' ' + r.nameCls : '') + '">' + esc(r.name) + '<small>' + esc(r.sub) + '</small></td>' + cells +
+        '<td class="tot' + (r.total.bg ? ' bg-red' : '') + '">' + r.total.pct + '%</td><td class="sp">' + Core.sparkSvg(r.scores, range) + '</td><td class="tg">' + tags + '</td></tr>';
     }).join('');
-    return '<table class="yt"><thead><tr><th>面向（分數，越高越好）</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>全年綜合</th></tr></thead><tbody>' + rows +
-      '<tr><td>登記次數</td>' + qs.map(function (q) { return q && q.checks > 0 ? '<td>' + q.checks + '</td>' : '<td class="na">—</td>'; }).join('') + '<td class="tot">' + tot.checks + '</td></tr></tbody></table>' +
-      '<div class="tlegend"><span><i style="background:' + C.greenBg + ';border-color:' + C.green + '"></i>85% 以上（綠底）</span><span><i style="background:' + C.redBg + ';border-color:' + C.red + '"></i>低於 60%（紅底）</span><span>▲▼ 為與上一季相比</span></div>';
+    var reg = '<tr class="reg"><td class="nm">登記次數</td>' + qs.map(function (q) { return q && q.checks > 0 ? '<td>' + q.checks + '</td>' : '<td class="na">—</td>'; }).join('') + '<td class="tot">' + tot.checks + '</td><td></td><td></td></tr>';
+    var cols = '<colgroup><col style="width:144px"><col style="width:66px"><col style="width:66px"><col style="width:66px"><col style="width:66px"><col style="width:60px"><col style="width:' + Core.SPARK.w + 'px"><col></colgroup>';
+    return '<table class="yt">' + cols + '<thead><tr><th>面向</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>全年綜合</th><th>四季趨勢</th><th></th></tr></thead><tbody>' + rows + reg + '</tbody></table>' +
+      '<div class="tlegend"><span><i style="background:' + C.greenBg + ';border-color:' + C.green + '"></i>綠底＝85% 以上</span><span><i style="background:' + C.redBg + ';border-color:' + C.red + '"></i>紅底＝低於 60%</span><span>▲▼＝與上一季相比（差 10 個百分點以上才標）</span><span>迷你折線＝四季走勢，刻度 ' + Math.round(range.min * 100) + '%~' + Math.round(range.max * 100) + '%（所有列相同，淡灰線＝中線）</span></div>';
   }
-  var FOOT_HTML = function (m) { return blk('blk', '<div class="pfoot">本單由系統自動彙整，僅供改善參考，不計分。　產生日期 ' + esc(m.generated) + '　由 貳輪嶼 製作</div>', ' style="padding-top:14px"'); };
-  // 年度健檢單（只有第四季才有）：頁首、4 張摘要卡、全年綜合星狀圖、四季折線圖、全年數值表、年度分析
+  var FOOT_HTML = function (m, side) { return blk('blk', '<div class="pfoot">本單由系統自動彙整，僅供改善參考，不計分。　產生日期 ' + esc(m.generated) + '　由 貳輪嶼 製作</div>', ' style="padding:14px ' + (side == null ? 40 : side) + 'px 0"'); };
+  // 年度健檢單固定兩頁：第 1 頁＝頁首＋4 張摘要卡＋全年綜合星狀圖＋年度分析；第 2 頁＝各面向四季變化總表
   function buildYearHtml(m) {
-    var qs = m.yearQs, h = '';
-    h += blk('blk', '<div class="ph"><img class="logo" src="' + LOGO + '" alt=""><small>年度對比與分析</small><h3>' + esc(m.name) + '　年度健檢單</h3><p>' +
-      esc(m.store) + '　／　' + esc(m.year) + ' 年全年　／　員編 ' + esc(m.id) + '</p></div>');
+    var qs = m.yearQs, h = '', fit = Core.fitYearChart(qs);   // 星狀圖：半徑挑第 1 頁剩餘高度放得進的最大值（最小 150）
+    function head(brk) {
+      return blk('blk', '<div class="ph"><img class="logo" src="' + LOGO + '" alt=""><small>年度對比與分析</small><h3>' + esc(m.name) + '　年度健檢單</h3><p>' +
+        esc(m.store) + '　／　' + esc(m.year) + ' 年全年　／　員編 ' + esc(m.id) + '</p></div>', brk ? ' data-break="1" style="padding:4px 20px 12px"' : '');
+    }
+    h += head(false);
     h += blk('blk', cardsHtml(qs));
-    h += blk('blk', '<div class="ptitle">全年綜合（全年被勾次數 ÷ 全年登記次數）</div><div class="chart">' + sized(Core.totalSvg(qs), CHART_W) + '</div>' +
-      '<div class="hint">藍色範圍越往外越好；<b style="color:' + C.greenTx + '">綠色</b>標示全年強項，<b style="color:' + C.redTx + '">紅色</b>標示最需要加強的面向。</div>');
-    h += blk('blk', '<div class="ptitle">各面向四季變化</div><div class="line">' + sized(Core.lineChartSvg(qs), LINE_W) + '</div>' + chipsHtml() +
-      '<div class="hint">預設只上色三條重點線，其他為灰色。</div>');
-    h += blk('blk', '<div class="ptitle">全年數值表</div>' + tableHtml(qs));
-    h += blk('blk', '<div class="ptitle">年度分析</div><div class="analysis">' + itemsHtml(m.yearItems) + '</div>');
-    h += FOOT_HTML(m);
+    h += blk('blk', '<div class="ptitle" style="margin-left:20px">全年綜合（全年被勾次數 ÷ 全年登記次數）</div><div class="chart" data-mink="' + (Core.YEAR1.floorR / fit.R).toFixed(3) + '">' + sized(fit.L, fit.width) + '</div>', ' style="padding:4px 20px 12px"');
+    h += blk('blk', '<div class="ptitle">年度分析</div><div class="analysis">' + itemsHtml(m.yearItems, true) + '</div>');
+    h += head(true);
+    h += blk('blk', '<div class="ptitle" style="margin-left:0">各面向四季變化（分數，越高越好）</div>' + yearTableHtml(qs), ' style="padding:4px 20px 12px"');
+    h += FOOT_HTML(m, 20);
     return h;
   }
   // ===== 登記截圖卡片（風格 D1 淺灰；每張截圖一張卡片）；笑臉與驚嘆號用 SVG，不用 emoji =====
@@ -267,10 +275,13 @@
     for (var i = 0; i < blks.length && !blks[i].hasAttribute('data-break'); i++) first.push(blks[i]);
     var svg = docEl.querySelector('.chart svg');
     if (!svg || first.length === blks.length) return;
-    for (var n = 0; n < 6; n++) {
+    var wrapC = svg.parentNode, minK = Number(wrapC && wrapC.getAttribute('data-mink')) || 0.55;
+    for (var n = 0; n < 8; n++) {
       var total = first.reduce(function (a, el) { return a + el.getBoundingClientRect().height; }, 0), excess = total - CONTENT_H;
       if (excess <= 0) return;
-      var rc = svg.getBoundingClientRect(), k = Math.max(0.55, (rc.height - excess - 2) / rc.height);
+      if (n === 0) { Array.prototype.forEach.call(docEl.querySelectorAll('.alist'), function (e) { e.classList.add('tight'); }); continue; }
+      if (n === 1) { Array.prototype.forEach.call(docEl.querySelectorAll('.cards'), function (e) { e.classList.add('tight'); }); continue; }
+      var rc = svg.getBoundingClientRect(), k = Math.max(minK, (rc.height - excess - 2) / rc.height);
       svg.setAttribute('width', Math.round(rc.width * k)); svg.setAttribute('height', Math.round(rc.height * k));
     }
   }

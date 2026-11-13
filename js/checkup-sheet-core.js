@@ -20,7 +20,8 @@
  *                                                    ctxRows＝上一季（年度檔另抓全年）的紀錄，用來算上季對比與年度頁
  *   CheckupSheetCore.scoreOf(model)                  面向分數＝1 − 被勾次數 ÷ 登記次數（越外圈越好）；登記 0 筆回 null
  *   CheckupSheetCore.quarterCompareSvg(cur, prev)    單季星狀圖（本季實線、上季虛線；prev 為 null 只畫實線）→ { width, height, svg }
- *   CheckupSheetCore.totalSvg(qs) / lineChartSvg(qs) 全年總合星狀圖 / 各面向四季變化折線圖（qs＝[Q1..Q4 model 或 null]）
+ *   CheckupSheetCore.totalSvg(qs, R) 全年總合星狀圖（qs＝[Q1..Q4 model 或 null]）；fitYearChart(qs) 依第 1 頁剩餘高度挑最大半徑
+ *   CheckupSheetCore.yearTableModel(qs) / sparkRange(matrix) / sparkSvg(scores, range)  年度第 2 頁總表與迷你折線
  *   CheckupSheetCore.quarterAnalysis / yearAnalysis  單季小結（字串）／年度分析（字串陣列）；建議句在 DIM_ADVICE
  *   CheckupSheetCore.fileName(model)                 PDF 檔名（去掉檔名不允許的字元）
  */
@@ -254,10 +255,10 @@
       { scores: scoreOf(cur), color: CUR.color, fill: CUR.fill, width: CUR.width, dots: true, dotColors: dotColorsOf(em) }
     ], { labelIdx: 1, emph: em, tagMode: 'append', R: R || 130 });   // R：星狀圖半徑（預設 130；第 1 頁由 fitQuarterChart 依剩餘高度挑最大的）
   }
-  function totalSvg(qs) {
+  function totalSvg(qs, R) {
     var ts = scoreOf(totalModel(qs)), em = ts ? emphOf(ts) : {};
     return radarSvg([{ scores: ts, color: COLORS.blue, fill: 'rgba(31,111,209,.12)', width: 2.5, dots: true, dotColors: dotColorsOf(em) }],
-      { labelIdx: 0, R: 160, fs: 18, emph: em, tagMode: 'replace', subSingle: true });
+      { labelIdx: 0, R: R || 160, fs: 18, emph: em, tagMode: 'replace', subSingle: true });
   }
 
   // 各面向的具體建議（草稿，老闆之後會確認文字；日後只要改這張表）
@@ -346,7 +347,7 @@
   }
   function quarterAnalysis(cur, prev) { return itemsText(quarterItems(cur, prev), '，建議：'); }
 
-  // ---- 年度：全年強項／最弱、第四季對第三季進步與退步、折線圖重點三條 ----
+  // ---- 年度：全年強項／最弱、第四季對第三季進步與退步 ----
   function yearInsights(qs) {
     var tot = totalModel(qs), ts = scoreOf(tot);
     if (!ts) return null;
@@ -362,16 +363,7 @@
     }
     var improve = impC.length ? { i: impC[0], diff: diffs[impC[0]] } : null;
     var decline = decC.length ? { i: decC[0], diff: -diffs[decC[0]] } : null;
-    // 折線圖重點三條：全年最低（紅）、Q4 進步最多（藍）、Q4 退步最多（金）；同一面向不畫兩次，重複的改取次要者
-    var key = [], used = [];
-    function take(cands, kind, color, note) {
-      for (var k = 0; k < cands.length; k++) if (used.indexOf(cands[k]) < 0) { used.push(cands[k]); key.push({ i: cands[k], kind: kind, color: color, tx: color === COLORS.red ? COLORS.redTx : color === COLORS.blue ? COLORS.blueTx : COLORS.goldTx, note: note }); return; }
-    }
-    if (weakest.length) take(byScoreAsc(ts, IDX), 'weak', COLORS.red, '全年最低');
-    take(decC, 'decline', COLORS.gold, 'Q4 退步最多');
-    take(impC, 'improve', COLORS.blue, 'Q4 進步最多');
-    key.sort(function (a, b) { return ['weak', 'improve', 'decline'].indexOf(a.kind) - ['weak', 'improve', 'decline'].indexOf(b.kind); });
-    return { tot: tot, ts: ts, sc: sc, strong: strong, weakest: weakest, improve: improve, decline: decline, diffs: diffs, key: key };
+    return { tot: tot, ts: ts, sc: sc, strong: strong, weakest: weakest, improve: improve, decline: decline, diffs: diffs };
   }
   // 年度頁頂端 4 張摘要卡；沒有符合者 text 為 null（畫面顯示「—」）
   function yearCards(qs) {
@@ -418,10 +410,19 @@
   // 全年數值表：格子底色（>= 85% 綠、< 60% 紅）與和上一季的差異（差 >= 10 才標，Q1 不標）
   function yearTableModel(qs) {
     var sc = (qs || []).map(scoreOf), ts = scoreOf(totalModel(qs)) || IDX.map(function () { return 0; });
+    var ins = yearInsights(qs), strongL = ins ? ins.strong : [], weakL = ins ? ins.weakest : [];
+    var weakIdx = weakL.length ? weakL.slice().sort(function (x, y) { return ts[x] - ts[y] || x - y; })[0] : -1;
     function bg(v) { return v >= STRONG_MIN - EPS ? 'green' : v < WEAK_LINE - EPS ? 'red' : ''; }
     return IDX.map(function (i) {
       return {
         name: DIMS[i], sub: DIM_SUB[DIMS[i]], nameRed: ts[i] < WEAK_LINE - EPS,
+        nameCls: i === weakIdx || (weakL.indexOf(i) >= 0 && ts[i] < WEAK_LINE - EPS) ? 'rn' : (strongL.indexOf(i) >= 0 ? 'gn' : ''),   // 全年最低紅字、全年強項綠字
+        tags: [].concat(
+          i === weakIdx ? [{ t: '全年最低', bg: COLORS.redBg, tx: COLORS.redTx }] : [],
+          ins && ins.improve && ins.improve.i === i ? [{ t: 'Q4 進步最多', bg: COLORS.blueBg, tx: COLORS.blueTx }] : [],
+          ins && ins.decline && ins.decline.i === i ? [{ t: 'Q4 退步最多', bg: COLORS.goldBg, tx: COLORS.goldTx }] : [],
+          strongL.indexOf(i) >= 0 ? [{ t: '全年強項', bg: COLORS.greenBg, tx: COLORS.greenTx }] : []),
+        scores: [0, 1, 2, 3].map(function (q) { return sc[q] ? sc[q][i] : null; }),
         cells: [0, 1, 2, 3].map(function (q) {
           if (!sc[q]) return { has: false };
           var diff = null;
@@ -433,73 +434,42 @@
     });
   }
 
-  // 七條線同一張折線圖：橫軸 Q1~Q4；預設「重點三條」彩色（全年最低紅、Q4 進步最多藍、Q4 退步最多金），其餘灰色細線。
-  var DIM_COLORS = ['#0072B2', '#E69F00', '#D55E00', '#009E73', '#7B3FA0', '#CC79A7', '#333333'];
-  var DIM_DASH = ['', '9 5', '', '3 4', '', '11 4 3 4', ''];
-  function markerSvg(i, x, y, r, color) {
-    var c = color || DIM_COLORS[i], st = 'fill="' + c + '" stroke="#fff" stroke-width="1.5"';
-    function P(pts) { return '<polygon points="' + pts.map(function (p) { return (x + p[0] * r).toFixed(1) + ',' + (y + p[1] * r).toFixed(1); }).join(' ') + '" ' + st + '/>'; }
-    switch (i) {
-      case 0: return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" ' + st + '/>';
-      case 1: return '<rect x="' + (x - r * 0.9) + '" y="' + (y - r * 0.9) + '" width="' + (r * 1.8) + '" height="' + (r * 1.8) + '" ' + st + '/>';
-      case 2: return P([[0, -1.15], [1.05, 0.85], [-1.05, 0.85]]);
-      case 3: return P([[0, -1.3], [1.15, 0], [0, 1.3], [-1.15, 0]]);
-      case 4: return P([[0, 1.15], [1.05, -0.85], [-1.05, -0.85]]);
-      case 5: return '<path d="M' + (x - r) + ' ' + (y - r) + 'L' + (x + r) + ' ' + (y + r) + 'M' + (x + r) + ' ' + (y - r) + 'L' + (x - r) + ' ' + (y + r) + '" stroke="' + c + '" stroke-width="3.2" stroke-linecap="round" fill="none"/>';
-      default:
-        var pts = [];
-        for (var k = 0; k < 10; k++) { var a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? 0.5 : 1.3; pts.push([rr * Math.cos(a), rr * Math.sin(a)]); }
-        return P(pts);
-    }
+  // ---- 年度健檢單固定兩頁：第 1 頁＝頁首＋摘要卡＋全年綜合星狀圖＋年度分析；第 2 頁＝各面向四季變化總表（含迷你折線）----
+  // 迷你折線共用刻度：預設 40%~100%；有任何分數低於 40% 才把下限往下延伸到 10% 的整數（缺資料的季略過）
+  function sparkRange(matrix) {
+    var all = [].concat.apply([], (matrix || []).filter(Boolean)), lo = 0.4;
+    if (all.length) { var m = Math.min.apply(null, all); if (m < 0.4 - EPS) lo = Math.floor(m * 10 + EPS) / 10; }
+    return { min: lo, max: 1 };
   }
-  // mode：預設（不給）＝「重點三條」彩色、其餘四條灰色細線；給面向索引＝只畫那一條（該面向自己的顏色）
-  function lineChartSvg(qs, mode) {
-    var W = 780, H = 520, L = 66, Rt = 270, T = 40, B = 50, pw = W - L - Rt, ph = H - T - B;
-    var sc = qs.map(scoreOf), all = [];
-    sc.forEach(function (s) { if (s) all = all.concat(s); });
-    var mn = all.length ? Math.min.apply(null, all) : 0;
-    var r0 = 1 - (mn - 0.05), step = r0 > 0.7 ? 0.2 : 0.1, lo = Math.max(0, 1 - Math.ceil(r0 / step - EPS) * step);   // 下限剛好落在刻度上
-    function X(k) { return L + 24 + (pw - 48) * k / 3; }
-    function Y(v) { return T + ph * (1 - (v - lo) / (1 - lo)); }
-    var single = typeof mode === 'number';
-    var ins = yearInsights(qs), keyOf = {};
-    if (!single && ins) ins.key.forEach(function (k) { keyOf[k.i] = k; });
-    var s = '<text x="' + L + '" y="18" font-size="17" font-weight="700" fill="#4A4F5A">縱軸 ' + pct(lo) + '%~100%（不是從 0 開始）</text>';
-    for (var v = 1; v > lo - EPS; v -= step) {
-      s += '<line x1="' + L + '" x2="' + (L + pw) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" stroke="' + (v >= 1 - EPS ? '#8F99A8' : '#E3E7ED') + '"/>' +
-        '<text x="' + (L - 8) + '" y="' + (Y(v) + 5).toFixed(1) + '" text-anchor="end" font-size="18" fill="#4A4F5A">' + pct(v) + '%</text>';
+  // 一個面向的迷你折線（四季分數 scores＝[Q1..Q4，缺資料為 null]；range 全表共用）：寬 190、高 66、線寬 2.5、端點 3.5、Q4 點 5.5，Q1 與 Q4 旁標分數；缺資料季不畫點、線斷開
+  var SPARK = { w: 190, h: 66, pxl: 42, pxr: 38, pyt: 19, pyb: 6 };
+  function sparkSvg(scores, range) {
+    var SW = SPARK.w, SH = SPARK.h, lo = range.min, hi = range.max;
+    function sx(k) { return SPARK.pxl + (SW - SPARK.pxl - SPARK.pxr) * k / 3; }
+    function sy(v) { return SPARK.pyt + (SH - SPARK.pyt - SPARK.pyb) * (1 - (v - lo) / (hi - lo)); }
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + SW + '" height="' + SH + '" viewBox="0 0 ' + SW + ' ' + SH + '" style="overflow:visible;font-family:Microsoft JhengHei,PingFang TC,Noto Sans TC,sans-serif">';
+    var mid = sy((lo + hi) / 2).toFixed(1);
+    s += '<line x1="' + sx(0).toFixed(1) + '" x2="' + sx(3).toFixed(1) + '" y1="' + mid + '" y2="' + mid + '" stroke="#F0F2F5" stroke-width="1"/>';
+    for (var a = 0; a < 3; a++) if (scores[a] != null && scores[a + 1] != null) s += '<line x1="' + sx(a).toFixed(1) + '" y1="' + sy(scores[a]).toFixed(1) + '" x2="' + sx(a + 1).toFixed(1) + '" y2="' + sy(scores[a + 1]).toFixed(1) + '" stroke="' + COLORS.blue + '" stroke-width="2.5" stroke-linecap="round"/>';
+    for (var b = 0; b < 4; b++) if (scores[b] != null) s += '<circle cx="' + sx(b).toFixed(1) + '" cy="' + sy(scores[b]).toFixed(1) + '" r="' + (b === 3 ? 5.5 : 3.5) + '" fill="' + COLORS.blue + '"/>';
+    if (scores[0] != null) s += '<text x="' + (sx(0) - 6).toFixed(1) + '" y="' + (sy(scores[0]) - 6).toFixed(1) + '" text-anchor="end" font-size="12" fill="#6B7280">' + pct(scores[0]) + '%</text>';
+    if (scores[3] != null) s += '<text x="' + (sx(3) + 7).toFixed(1) + '" y="' + (sy(scores[3]) - 7).toFixed(1) + '" text-anchor="start" font-size="12" fill="#6B7280">' + pct(scores[3]) + '%</text>';
+    return s + '</svg>';
+  }
+  // 第 1 頁高度預算（px，A4 794 寬版面）：全年綜合星狀圖的半徑「放得進去的最大值」，最小半徑底線 150（真的放不下才到 140）
+  var YEAR1 = { content: 1045, head: 92, cards: 92, chartTitle: 40, analysisFixed: 58, safety: 10, maxW: 754, minR: 150, floorR: 140 };
+  function yearRowHeight(it) { return 30 + (it.text.length > 40 ? 20 : 0) + (it.advice ? 19 + (('建議：' + it.advice).length > 46 ? 16 : 0) : 0); }
+  function yearItemsHeight(items) { return YEAR1.analysisFixed + (items || []).reduce(function (a, it) { return a + yearRowHeight(it); }, 0); }
+  function yearChartMaxH(items) { return YEAR1.content - YEAR1.head - YEAR1.cards - YEAR1.chartTitle - yearItemsHeight(items) - YEAR1.safety; }
+  function fitYearChart(qs) {
+    var maxH = yearChartMaxH(yearItems(qs)), W = YEAR1.maxW, L, R;
+    for (R = 260; R >= YEAR1.floorR; R -= 2) {
+      L = totalSvg(qs, R);
+      if (L.width <= W && L.height <= maxH) return { R: R, L: L, width: L.width, height: L.height, maxH: maxH };
     }
-    s += '<line x1="' + L + '" x2="' + (L + pw) + '" y1="' + (T + ph) + '" y2="' + (T + ph) + '" stroke="#8F99A8"/>';
-    for (var k = 0; k < 4; k++) s += '<text x="' + X(k) + '" y="' + (H - 14) + '" text-anchor="middle" font-size="20" font-weight="800" fill="' + (sc[k] ? '#111' : '#94A3B8') + '">Q' + (k + 1) + (sc[k] ? '' : '（無）') + '</text>';
-    // 線尾標籤位置：由上往下排，相鄰至少隔 24，再整體往上推回圖內（保留引線）
-    var drawn = IDX.filter(function (i) { return !single || i === mode; });
-    var ends = [];
-    drawn.forEach(function (i) {
-      var last = -1;
-      for (var q = 0; q < 4; q++) if (sc[q]) last = q;
-      if (last >= 0) ends.push({ i: i, x: X(last), y: Y(sc[last][i]), ly: Y(sc[last][i]), v: sc[last][i] });
-    });
-    ends.sort(function (a, b) { return a.y - b.y || a.i - b.i; });
-    for (var j = 1; j < ends.length; j++) if (ends[j].ly - ends[j - 1].ly < 24) ends[j].ly = ends[j - 1].ly + 24;
-    var over = ends.length ? ends[ends.length - 1].ly - (T + ph) : 0;
-    if (over > 0) ends.forEach(function (e) { e.ly -= over; });
-    var endOf = {};
-    ends.forEach(function (e) { endOf[e.i] = e; });
-    function dimGroup(i) {
-      var key = keyOf[i], c = single ? DIM_COLORS[i] : key ? key.color : COLORS.gray, tx = single ? DIM_COLORS[i] : key ? key.tx : '#6B7280';
-      var hot = single || !!key, w = hot ? 3.2 : 2, dash = single && DIM_DASH[i] ? ' stroke-dasharray="' + DIM_DASH[i] + '"' : '', g = '';
-      for (var a = 0; a < 3; a++) if (sc[a] && sc[a + 1]) {
-        g += '<line x1="' + X(a).toFixed(1) + '" y1="' + Y(sc[a][i]).toFixed(1) + '" x2="' + X(a + 1).toFixed(1) + '" y2="' + Y(sc[a + 1][i]).toFixed(1) + '" stroke="' + c + '" stroke-width="' + w + '" stroke-linecap="round"' + dash + '/>';
-      }
-      for (var b = 0; b < 4; b++) if (sc[b]) g += hot ? markerSvg(i, +X(b).toFixed(1), +Y(sc[b][i]).toFixed(1), 6.5, c) : '<circle cx="' + X(b).toFixed(1) + '" cy="' + Y(sc[b][i]).toFixed(1) + '" r="4" fill="' + c + '"/>';
-      var e = endOf[i];
-      if (e) g += '<line x1="' + (e.x + 9) + '" y1="' + e.y.toFixed(1) + '" x2="' + (e.x + 22) + '" y2="' + e.ly.toFixed(1) + '" stroke="' + c + '" stroke-width="1.2"/>' +
-        '<text x="' + (e.x + 26) + '" y="' + (e.ly + 5).toFixed(1) + '" font-size="' + (hot ? 17 : 16) + '" font-weight="' + (hot ? 800 : 500) + '" fill="' + tx + '">' + esc(DIMS[i] + ' ' + pct(e.v) + '%' + (key ? '（' + key.note + '）' : '')) + '</text>';
-      return '<g>' + g + '</g>';
-    }
-    // 灰線先畫、重點線疊在上面
-    var grp = drawn.filter(function (i) { return !keyOf[i]; }).map(dimGroup).join('') + drawn.filter(function (i) { return keyOf[i]; }).map(dimGroup).join('');
-    return { width: W, height: H, lo: lo, key: ins ? ins.key : [], svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="全年四季七面向分數折線圖，縱軸 ' + pct(lo) + '% 到 100%，越高越好" style="font-family:Microsoft JhengHei,PingFang TC,Noto Sans TC,sans-serif">' + s + grp + '</svg>' };
+    L = totalSvg(qs, YEAR1.floorR);   // 極端情況：連 140 都放不下，只縮小顯示尺寸
+    var k = Math.min(W / L.width, maxH / L.height, 1);
+    return { R: YEAR1.floorR, L: L, width: Math.round(L.width * k), height: Math.round(L.height * k), maxH: maxH };
   }
 
   // ---- 登記截圖卡片（季度健檢單的「登記紀錄與截圖」；版面照 樣品/登記截圖卡片公版樣品.html 風格 D1 淺灰）----
@@ -579,8 +549,8 @@
     quarterRange: quarterRange, quarterLabel: quarterLabel, dimCounts: dimCounts, topDims: topDims,
     summarize: summarize, filterByStore: filterByStore, buildModel: buildModel, fileName: fileName, fileNameYear: fileNameYear, buildCards: buildCards, capItems: capItems, fitQuarterChart: fitQuarterChart, quarterChartMaxH: quarterChartMaxH, worstSummaryItems: worstSummaryItems, summaryHeight: summaryHeight, summaryBudget: summaryBudget, chartHeight: chartHeight, SUMMARY_MAX_ROWS: SUMMARY_MAX_ROWS, QCHART_W: QCHART_W, PAGE1: PAGE1, showScrollHint: showScrollHint, HINT_MIN_GAP: HINT_MIN_GAP, HINT_TEXT: HINT_TEXT, paginateCards: paginateCards, cardHeight: cardHeight, cardDate: cardDate, clampNote: clampNote, CARD: CARD, CARD_H: CARD_H, CARD_GAP: CARD_GAP, NOTE_MAX: NOTE_MAX, yearRange: yearRange,
     quarterModel: quarterModel, sumModel: sumModel, prevQuarterOf: prevQuarterOf, modelFromRows: modelFromRows, contextRange: contextRange, DIMS: DIMS, scoreOf: scoreOf, totalModel: totalModel,
-    radarSvg: radarSvg, quarterCompareSvg: quarterCompareSvg, totalSvg: totalSvg, lineChartSvg: lineChartSvg, markerSvg: markerSvg,
-    quarterAnalysis: quarterAnalysis, yearAnalysis: yearAnalysis, quarterItems: quarterItems, yearItems: yearItems, yearInsights: yearInsights, yearCards: yearCards, yearTableModel: yearTableModel, emphOf: emphOf, COLORS: COLORS, TAG_COLOR: TAG_COLOR, STRONG_MIN: STRONG_MIN, WEAK_LINE: WEAK_LINE, DIFF_MIN: DIFF_MIN, DIM_ADVICE: DIM_ADVICE, DIM_SUBTITLE: DIM_SUB, DIM_COLORS: DIM_COLORS, DIM_DASH: DIM_DASH, Q_NAMES: Q_NAMES, pct: pct
+    radarSvg: radarSvg, quarterCompareSvg: quarterCompareSvg, totalSvg: totalSvg, sparkRange: sparkRange, sparkSvg: sparkSvg, SPARK: SPARK, fitYearChart: fitYearChart, yearItemsHeight: yearItemsHeight, yearChartMaxH: yearChartMaxH, YEAR1: YEAR1,
+    quarterAnalysis: quarterAnalysis, yearAnalysis: yearAnalysis, quarterItems: quarterItems, yearItems: yearItems, yearInsights: yearInsights, yearCards: yearCards, yearTableModel: yearTableModel, emphOf: emphOf, COLORS: COLORS, TAG_COLOR: TAG_COLOR, STRONG_MIN: STRONG_MIN, WEAK_LINE: WEAK_LINE, DIFF_MIN: DIFF_MIN, DIM_ADVICE: DIM_ADVICE, DIM_SUBTITLE: DIM_SUB, Q_NAMES: Q_NAMES, pct: pct
   };
   if (isNode) module.exports = api;
   else root.CheckupSheetCore = api;
