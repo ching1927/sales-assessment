@@ -88,7 +88,7 @@
 '#csDoc .dimrow{display:flex;flex-wrap:wrap;align-items:center}' +
 '#csDoc .dimrow .lab{font-size:12px;font-weight:800;letter-spacing:1px;color:#5B6270;margin-right:8px;white-space:nowrap}' +
 '#csDoc .dimtag{font-size:15px;font-weight:800;border-radius:10px;padding:3px 14px;line-height:1.4;margin:2px 8px 2px 0}' +
-'#csDoc .cnote{background:#fff;border-radius:10px;padding:7px 14px;font-size:15px;line-height:1.5;color:#222;overflow-wrap:anywhere}' +
+'#csDoc .cnote{background:#fff;border:1px solid #E8EAEE;border-radius:10px;padding:7px 14px;font-size:15px;line-height:1.5;color:#222;overflow-wrap:anywhere}' +
 '#csDoc .cnote .nl{display:inline-block;font-size:12px;font-weight:800;color:#5B6270;background:#E6E9ED;border-radius:6px;padding:0 7px;margin-right:8px;line-height:1.5;vertical-align:1px}' +
 '#csDoc .cframe{flex:1;min-height:0;position:relative}' +
 '#csDoc .cframe img{position:absolute;display:block;border:1px solid ' + Core.CARD.shotEdge + ';border-radius:8px;box-shadow:0 3px 10px rgba(17,24,39,.22)}' +

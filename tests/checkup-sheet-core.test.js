@@ -432,7 +432,7 @@ ok(S.cardHeight(bareCard({ dims: 1, note: 1 })) > S.cardHeight(bareCard()), '小
 eq(S.cardHeight(shotCard(1)), S.CARD_H, '有截圖的卡片固定高度');
 ok(2 * (S.CARD_H + S.CARD_GAP) + 48 + 36 <= 1045, '一頁 2 張＋標題＋頁尾放得下');
 eq(S.CARD.dim.length, 7, '七個面向各有膠囊顏色');
-eq([S.CARD.ok, S.CARD.bad, S.CARD.bg, S.CARD.line, S.CARD.edge], ['#10B981', '#EF4444', '#F5F6F8', '#E3E6EA', '#E6E8EC'], '卡片配色（優良綠、待加強紅、很淡的灰底、分隔線、極淡外框）');
+eq([S.CARD.ok, S.CARD.bad, S.CARD.bg, S.CARD.line, S.CARD.edge], ['#10B981', '#EF4444', '#FAFBFC', '#E8EAEE', '#DDE0E5'], '卡片配色（優良綠、待加強紅、很淡的灰底、分隔線、極淡外框）');
 ok(Object.keys(S.buildCards(cm.records)[0]).indexOf('legacy') < 0, '卡片資料不含舊制分數');
 
 // ---- 卡片 HTML（PDF 頁面組裝）----

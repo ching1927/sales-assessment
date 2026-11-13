@@ -474,7 +474,7 @@
   // 每張卡片＝一筆登記的一張截圖；一筆有多張截圖時，第 2、3 張接著做續卡（日期旁標 (2/3)），日期、判定、面向、說明都重複。
   // 沒有截圖的登記：一張沒有截圖框的小卡。顏色集中在這裡（改色只改這一處）。
   var CARD = {
-    bg: '#F5F6F8', line: '#E3E6EA', edge: '#E6E8EC', ok: '#10B981', bad: '#EF4444', mute: '#5B6270', noteTx: '#222222', noteBg: '#FFFFFF', nlBg: '#E6E9ED', shotEdge: '#AEB5C0',
+    bg: '#FAFBFC', line: '#E8EAEE', edge: '#DDE0E5', ok: '#10B981', bad: '#EF4444', mute: '#5B6270', noteTx: '#222222', noteBg: '#FFFFFF', nlBg: '#E6E9ED', shotEdge: '#AEB5C0',
     wkTx: '#4A4F5A', seqBg: '#D9FF00', seqTx: '#111111', capBg: 'rgba(255,255,255,.82)', capTx: '#333333',
     // 七大面向膠囊（依面向順序）：柔和底色＋深色字
     dim: [{ bg: '#DCEBFF', tx: '#0A4FB0' }, { bg: '#D3F2EC', tx: '#0B6B5E' }, { bg: '#E9E0FF', tx: '#5B34B0' }, { bg: '#F0FBB0', tx: '#4E5A00' },
