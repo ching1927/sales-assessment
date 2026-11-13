@@ -73,27 +73,26 @@
 '#csDoc table.yt td.na{color:#94A3B8}' +
 '#csDoc td small.sub{display:block;font-size:11px;color:#94A3B8;font-weight:400}' +
 '#csDoc .blk[data-type=card]{padding:0 40px 10px}' +
-'#csDoc .ccard{position:relative;border-radius:14px;overflow:hidden;background:#ECEEF1;padding-left:8px;display:flex;flex-direction:column}' +
-'#csDoc .ccard.hasshot{height:470px}' +
-'#csDoc .cstripe{position:absolute;left:0;top:0;bottom:0;width:8px}' +
-'#csDoc .chead{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #D5D8DD}' +
+'#csDoc .ccard{position:relative;border-radius:14px;overflow:hidden;background:' + Core.CARD.bg + ';border:1px solid ' + Core.CARD.edge + ';padding-left:8px;display:flex;flex-direction:column}' +
+'#csDoc .ccard.hasshot{height:470px;box-sizing:border-box}' +
+'#csDoc .cstripe{position:absolute;left:-1px;top:-1px;bottom:-1px;width:9px}' +
+'#csDoc .chead{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid ' + Core.CARD.line + '}' +
 '#csDoc .cdate{display:flex;align-items:baseline}' +
 '#csDoc .cdate b{font-size:30px;font-weight:800;line-height:1.1;letter-spacing:.5px;color:#111}' +
 '#csDoc .cdate .wk{font-size:18px;font-weight:700;color:#4A4F5A;margin-left:8px}' +
 '#csDoc .cdate .seq{font-size:16px;font-weight:800;color:#111;background:#D9FF00;border:1.5px solid #111;border-radius:999px;padding:0 10px;margin-left:10px;align-self:center;line-height:1.35}' +
 '#csDoc .cbadge{display:block;color:#fff;font-size:19px;font-weight:800;border-radius:999px;padding:4px 16px 4px 11px;line-height:23px;white-space:nowrap}' +
 '#csDoc .cbadge svg{display:inline-block;vertical-align:middle;width:23px;height:23px;margin-right:6px}' +
-'#csDoc .cbody{display:flex;flex-direction:column;padding:10px 14px 12px 10px;flex:1;min-height:0}' +
-'#csDoc .cbody > * + *{margin-top:8px}' +
+'#csDoc .cbody{display:flex;flex-direction:column;padding:8px 14px 8px 10px;flex:1;min-height:0}' +
+'#csDoc .cbody > * + *{margin-top:6px}' +
 '#csDoc .dimrow{display:flex;flex-wrap:wrap;align-items:center}' +
 '#csDoc .dimrow .lab{font-size:12px;font-weight:800;letter-spacing:1px;color:#5B6270;margin-right:8px;white-space:nowrap}' +
 '#csDoc .dimtag{font-size:15px;font-weight:800;border-radius:10px;padding:3px 14px;line-height:1.4;margin:2px 8px 2px 0}' +
 '#csDoc .cnote{background:#fff;border-radius:10px;padding:7px 14px;font-size:15px;line-height:1.5;color:#222;overflow-wrap:anywhere}' +
 '#csDoc .cnote .nl{display:inline-block;font-size:12px;font-weight:800;color:#5B6270;background:#E6E9ED;border-radius:6px;padding:0 7px;margin-right:8px;line-height:1.5;vertical-align:1px}' +
-'#csDoc .clegacy{font-size:11px;color:#7B8494;line-height:1.4}' +
 '#csDoc .cframe{flex:1;min-height:0;position:relative}' +
-'#csDoc .cframe img{position:absolute;display:block;border:1px solid #AEB5C0;border-radius:8px;box-shadow:0 4px 14px rgba(17,24,39,.25)}' +
-'#csDoc .cframe .fail{position:absolute;left:14px;right:14px;top:14px;bottom:30px;border:1px dashed #AEB5C0;border-radius:8px;background:rgba(255,255,255,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#5B6270}' +
+'#csDoc .cframe img{position:absolute;display:block;border:1px solid ' + Core.CARD.shotEdge + ';border-radius:8px;box-shadow:0 3px 10px rgba(17,24,39,.22)}' +
+'#csDoc .cframe .fail{position:absolute;left:0;right:0;top:4px;bottom:24px;border:1px dashed ' + Core.CARD.shotEdge + ';border-radius:8px;background:rgba(255,255,255,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#5B6270}' +
 '#csDoc .cframe .fail b{font-size:16px;font-weight:700}' +
 '#csDoc .cframe .fail small{font-size:12px;margin-top:4px}' +
 '#csDoc .cframe .cap{position:absolute;right:2px;bottom:0;font-size:12px;font-weight:700;color:#333;background:rgba(255,255,255,.82);border-radius:999px;padding:1px 10px}' +
@@ -171,13 +170,12 @@
     var head = '<div class="chead"><div class="cdate"><b>' + esc(c.md) + '</b><span class="wk">' + esc(c.wk) + '</span>' + (c.seq ? '<span class="seq">' + esc(c.seq) + '</span>' : '') + '</div>' + badge + '</div>';
     var dims = c.dimIdx.length ? '<div class="dimrow"><span class="lab">可改善面向</span>' + c.dimIdx.map(function (i) { return '<span class="dimtag" style="background:' + K.dim[i].bg + ';color:' + K.dim[i].tx + '">' + esc(Core.DIMS[i]) + '</span>'; }).join('') + '</div>' : '';
     var note = c.note ? '<div class="cnote"><span class="nl">說明</span>' + esc(c.note) + '</div>' : '';
-    var legacy = c.legacy != null ? '<div class="clegacy">舊制分數 ' + esc(c.legacy) + '</div>' : '';
     var frame = '';
     if (c.hasShot) {
       var im = imgs && imgs[c.shot];
       frame = '<div class="cframe">' + (im && im.src ? '<img alt="' + esc(c.cap) + '" src="' + im.src + '" data-w="' + im.w + '" data-h="' + im.h + '">' : '<div class="fail"><b>截圖載入失敗</b><small>可私訊客服部確認聊天室網址</small></div>') + '<span class="cap">' + esc(c.cap) + '</span></div>';
     }
-    return blk('card', '<div class="ccard' + (c.hasShot ? ' hasshot' : '') + '" style="border-left:0"><div class="cstripe" style="background:' + col + '"></div>' + head + '<div class="cbody">' + dims + note + legacy + frame + '</div></div>', newPage ? ' data-break="1"' : '');
+    return blk('card', '<div class="ccard' + (c.hasShot ? ' hasshot' : '') + '" style="border-left:0"><div class="cstripe" style="background:' + col + '"></div>' + head + '<div class="cbody">' + dims + note + frame + '</div></div>', newPage ? ' data-break="1"' : '');
   }
 
   // 季度健檢單（所有季都有，含第四季）：頁首、登記次數、單季星狀圖（含上季對比）、小結、當季登記紀錄與截圖
@@ -231,15 +229,16 @@
         keepNext: el.getAttribute('data-type') === 'title' || el.hasAttribute('data-keep') };
     });
   }
-  // 卡片裡的截圖：在截圖框內等比縮放置中（contain，不裁切）；四周留 14px，下方多留 16px 給「截圖 n/N」小膠囊
+  // 卡片裡的截圖：預設滿版橫式（寬度撐滿截圖框、高度依比例）；太高的圖限制在框高內置中縮小（contain，不裁切不拉伸）；
+  // 上下留 4px，最下面一列（CAP）留給右下角「截圖 n/N」小膠囊，不蓋到截圖
   function fitCards(docEl) {
     Array.prototype.forEach.call(docEl.querySelectorAll('.cframe'), function (fr) {
       var im = fr.querySelector('img[data-w]');
       if (!im) return;
-      var fw = fr.clientWidth, fh = fr.clientHeight, w = +im.getAttribute('data-w'), h = +im.getAttribute('data-h'), M = 14, CAP = 16;
-      var k = Math.min((fw - 2 * M) / w, (fh - 2 * M - CAP) / h), W = Math.round(w * k), H = Math.round(h * k);
+      var fw = fr.clientWidth, fh = fr.clientHeight, w = +im.getAttribute('data-w'), h = +im.getAttribute('data-h'), M = 4, CAP = 20;
+      var k = Math.min((fw - 2) / w, (fh - 2 * M - CAP) / h), W = Math.round(w * k), H = Math.round(h * k);
       im.style.width = W + 'px'; im.style.height = H + 'px';
-      im.style.left = Math.round((fw - W) / 2) + 'px'; im.style.top = Math.round((fh - CAP - H) / 2) + 'px';
+      im.style.left = Math.round((fw - W) / 2) + 'px'; im.style.top = Math.round(M + (fh - 2 * M - CAP - H) / 2) + 'px';
     });
   }
   function paginate(docEl) {

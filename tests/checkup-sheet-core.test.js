@@ -403,8 +403,6 @@ eq([k2.seq, k2.cap, k2.verdict, k2.isWeak, k2.dimIdx, k2.note], ['', '截圖', '
 var k3 = cards.filter(function (c) { return c.recId === 'k3'; })[0];
 eq([k3.hasShot, k3.shot, k3.cap, k3.seq, k3.note], [false, null, '', '', '只有說明沒有截圖'], '沒有截圖的登記：一張沒有截圖框的小卡');
 var k4 = cards.filter(function (c) { return c.recId === 'k4'; })[0];
-eq([k4.legacy, k4.dimIdx, k4.hasShot], [72, [], false], '舊制分數保留（卡片說明區下方小字用）');
-eq(cards.filter(function (c) { return c.recId !== 'k4'; }).every(function (c) { return c.legacy === null; }), true, '新制沒有舊制分數');
 eq(S.buildCards([]), [], '沒有紀錄沒有卡片'); eq(S.buildCards(null), [], 'null 沒有卡片');
 eq(S.clampNote('a'.repeat(72)), 'a'.repeat(72), '說明剛好 72 字不截');
 eq(S.clampNote('字'.repeat(100)), '字'.repeat(72) + '…', '說明超過 72 字截成「…」');
@@ -412,8 +410,8 @@ eq(S.clampNote('  第一行\n\n 第二行  '), '第一行 第二行', '說明換
 eq(S.clampNote(null), '', '沒有說明');
 ok(S.buildCards(S.buildModel(S.summarize([CR('z', '2026-10-01', '適當', [], { improve_note: '字'.repeat(100) })])[0], { year: 2026, quarter: 4, nowMs: NOW }).records)[0].noteCut, '說明被截斷有旗標');
 // 分頁：有截圖的卡一頁 2 張
-function shotCard(i) { return { hasShot: true, dimIdx: [], note: '', legacy: null, id: i }; }
-function bareCard(o) { return { hasShot: false, dimIdx: o && o.dims ? [0] : [], note: o && o.note ? '說明' : '', legacy: null }; }
+function shotCard(i) { return { hasShot: true, dimIdx: [], note: '', id: i }; }
+function bareCard(o) { return { hasShot: false, dimIdx: o && o.dims ? [0] : [], note: o && o.note ? '說明' : '' }; }
 var PG = { pageH: 1045, firstOffset: 48, footH: 36 };
 function sizes(p) { return p.map(function (x) { return x.length; }); }
 eq(sizes(S.paginateCards([shotCard(1), shotCard(2), shotCard(3), shotCard(4)], PG)), [2, 2], '4 張有截圖：每頁 2 張');
@@ -434,7 +432,8 @@ ok(S.cardHeight(bareCard({ dims: 1, note: 1 })) > S.cardHeight(bareCard()), '小
 eq(S.cardHeight(shotCard(1)), S.CARD_H, '有截圖的卡片固定高度');
 ok(2 * (S.CARD_H + S.CARD_GAP) + 48 + 36 <= 1045, '一頁 2 張＋標題＋頁尾放得下');
 eq(S.CARD.dim.length, 7, '七個面向各有膠囊顏色');
-eq([S.CARD.ok, S.CARD.bad, S.CARD.bg], ['#10B981', '#EF4444', '#ECEEF1'], '卡片配色（優良綠、待加強紅、淺灰底）');
+eq([S.CARD.ok, S.CARD.bad, S.CARD.bg, S.CARD.line, S.CARD.edge], ['#10B981', '#EF4444', '#F5F6F8', '#E3E6EA', '#E6E8EC'], '卡片配色（優良綠、待加強紅、很淡的灰底、分隔線、極淡外框）');
+ok(Object.keys(S.buildCards(cm.records)[0]).indexOf('legacy') < 0, '卡片資料不含舊制分數');
 
 // ---- 卡片 HTML（PDF 頁面組裝）----
 var cardsHtml = PDF._buildHtml(S.buildModel(cardSum, { year: 2026, quarter: 4, nowMs: NOW }), { 'spot/k1/a.jpg': { src: 'data:image/png;base64,AAAA', w: 360, h: 640 }, 'spot/k1/b.jpg': { src: 'data:image/png;base64,AAAA', w: 1000, h: 620 }, 'spot/k2/a.jpg': null }, 'quarter');
@@ -448,7 +447,7 @@ ok(cardPart.indexOf('(2/3)') > 0 && cardPart.indexOf('(3/3)') > 0 && cardPart.in
 ok(cardPart.indexOf('優良回覆') > 0 && cardPart.indexOf('待加強回覆') > 0 && cardPart.indexOf('<svg') > 0, '判定徽章含 SVG 圖示');
 ok(!/[\u{1F300}-\u{1FAFF}☀-➿☺]/u.test(cardPart), '卡片區沒有 emoji（笑臉、驚嘆號用 SVG）');
 ok(cardPart.indexOf('可改善面向') > 0 && cardPart.indexOf('background:' + S.CARD.dim[2].bg) > 0, '面向膠囊用既有七色');
-ok(cardPart.indexOf('舊制分數 72') > 0, '舊制分數保留');
+ok(cardPart.indexOf('舊制分數') < 0 && cardPart.indexOf('clegacy') < 0, '卡片上不顯示舊制分數');
 ok(cardPart.indexOf('class="cap">截圖 1/3<') > 0 && cardPart.indexOf('class="cap">截圖<') > 0, '截圖 n/N 與單張「截圖」');
 eq(cardPart.split('data-break="1"').length - 1, 2, '第一張卡片之後每頁第一張強制換頁（6 張＝有截圖 3 張一頁 2 張 → 換頁處）');
 ok(cardPart.indexOf('抽查') < 0, '卡片區沒有「抽查」');

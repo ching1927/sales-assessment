@@ -474,7 +474,7 @@
   // 每張卡片＝一筆登記的一張截圖；一筆有多張截圖時，第 2、3 張接著做續卡（日期旁標 (2/3)），日期、判定、面向、說明都重複。
   // 沒有截圖的登記：一張沒有截圖框的小卡。顏色集中在這裡（改色只改這一處）。
   var CARD = {
-    bg: '#ECEEF1', ok: '#10B981', bad: '#EF4444', mute: '#5B6270', noteTx: '#222222', noteBg: '#FFFFFF', nlBg: '#E6E9ED', shotEdge: '#AEB5C0',
+    bg: '#F5F6F8', line: '#E3E6EA', edge: '#E6E8EC', ok: '#10B981', bad: '#EF4444', mute: '#5B6270', noteTx: '#222222', noteBg: '#FFFFFF', nlBg: '#E6E9ED', shotEdge: '#AEB5C0',
     wkTx: '#4A4F5A', seqBg: '#D9FF00', seqTx: '#111111', capBg: 'rgba(255,255,255,.82)', capTx: '#333333',
     // 七大面向膠囊（依面向順序）：柔和底色＋深色字
     dim: [{ bg: '#DCEBFF', tx: '#0A4FB0' }, { bg: '#D3F2EC', tx: '#0B6B5E' }, { bg: '#E9E0FF', tx: '#5B34B0' }, { bg: '#F0FBB0', tx: '#4E5A00' },
@@ -503,8 +503,7 @@
       var base = {
         recId: r.id, md: dt.md, wk: dt.wk, dateText: dt.text, verdict: r.verdict, isWeak: !!r.isWeak,
         dimIdx: (r.dims || []).map(function (d) { return DIMS.indexOf(d); }).filter(function (i) { return i >= 0; }), dims: (r.dims || []).slice(),
-        note: clampNote(r.note), noteCut: String(r.note == null ? '' : r.note).replace(/\s+/g, ' ').replace(/^ | $/g, '').length > NOTE_MAX,
-        legacy: r.legacy == null ? null : r.legacy
+        note: clampNote(r.note), noteCut: String(r.note == null ? '' : r.note).replace(/\s+/g, ' ').replace(/^ | $/g, '').length > NOTE_MAX
       };
       function mk(extra) { var c = {}; Object.keys(base).forEach(function (k) { c[k] = base[k]; }); Object.keys(extra).forEach(function (k) { c[k] = extra[k]; }); return c; }
       if (!n) out.push(mk({ shot: null, hasShot: false, k: 0, n: 0, seq: '', cap: '' }));
@@ -520,7 +519,6 @@
     var h = 57 + 24;
     if (c.dimIdx.length) h += 35;
     if (c.note) h += c.note.length > 36 ? 67 : 45;
-    if (c.legacy != null) h += 26;
     return h + 6;
   }
   // 分頁：依高度由上往下放，放不下就換頁（一張卡片不會被切成兩半）；有截圖的卡一頁剛好 2 張。
