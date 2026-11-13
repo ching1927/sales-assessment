@@ -228,11 +228,7 @@ ok(INS.key.every(function (k, i, a) { return a.filter(function (x) { return x.i 
 
 // ---- 星狀圖：60% 待加強線、強項（綠）／最弱（紅）、副標單行截斷 ----
 var TS = S.totalSvg(YQS);
-ok(TS.svg.indexOf('stroke="#D64B3C"') > 0 && TS.svg.indexOf('stroke-dasharray="6 4"') > 0, '全年綜合星狀圖有紅色 60% 虛線');
-var wl = TS.svg.match(/<polygon points="([^"]+)" fill="none" stroke="#D64B3C"/)[1].split(' ').map(function (p) { return p.split(',').map(Number); });
-var rings = TS.svg.match(/<polygon points="([^"]+)" fill="none" stroke="#8F99A8"/)[1].split(' ').map(function (p) { return p.split(',').map(Number); });
-var tcx = TS.width / 2, tcy = Number(TS.svg.match(/<line x1="[\d.]+" y1="([\d.]+)"/)[1]);
-ok(Math.abs((tcy - wl[0][1]) / (tcy - rings[0][1]) - 0.6) < 0.01, '紅色虛線畫在 60% 的位置（相對外圈）');
+ok(TS.svg.indexOf('stroke-dasharray="6 4"') < 0 && !/fill="none" stroke="#D64B3C"/.test(TS.svg), '全年綜合星狀圖沒有紅色 60% 虛線');
 eq((TS.svg.match(/★ 全年強項/g) || []).length, 2, '強項並列兩個都標 ★ 全年強項');
 eq((TS.svg.match(/▲ 最需要加強/g) || []).length, 1, '最弱標 ▲ 最需要加強');
 ok(TS.svg.indexOf('fill="' + S.COLORS.greenTx + '"') > 0 && TS.svg.indexOf('fill="' + S.COLORS.redTx + '"') > 0, '強項標籤綠色、最弱標籤紅色');
@@ -243,7 +239,7 @@ ok(TS.svg.indexOf('聽懂客戶需求') < 0, '有強調標籤的面向以標籤�
 texts(TS.svg).forEach(function (t) { ok(t.l >= 0 && t.r <= TS.width, '全年綜合星狀圖文字不被裁切：' + t.txt); });
 ok(S.totalSvg([null, null, null, { checks: 5, weak: 0, counts: [0, 0, 0, 0, 0, 0, 0] }]).svg.indexOf('最需要加強') < 0, '全 100%：沒有最弱標示');
 var QE = S.quarterCompareSvg(M8, prevM);
-ok(QE.svg.indexOf('stroke-dasharray="6 4"') > 0, '單季星狀圖也有 60% 紅色虛線');
+ok(QE.svg.indexOf('stroke-dasharray="6 4"') < 0 && !/fill="none" stroke="#D64B3C"/.test(QE.svg), '單季星狀圖沒有紅色 60% 虛線');
 ok(QE.svg.indexOf('★ 本季強項') > 0 && QE.svg.indexOf('▲ 最需要加強') > 0, '單季：最強（語氣與禮貌 100%）綠色、最弱（問題掌握）紅色標示');
 ok(QE.svg.indexOf('聽懂客戶需求') > 0, '單季標籤保留副標（標示接在副標下）');
 eq(Object.keys(S.emphOf([0.9, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8])).length, 7, '強項與最弱都標（0.9 強項、其餘並列最弱）');
@@ -335,7 +331,7 @@ ok(hy.indexOf('本季小結') < 0 && hy.indexOf('stat ok') < 0, '年度頁沒有
 ok(hy.split('class="card"').length - 1 === 4, '年度頁 4 張摘要卡');
 ok(hy.indexOf('▼17') > 0 || hy.indexOf('▲') > 0, '年度表有 ▲▼ 文字符號');
 ok(hy.indexOf('85% 以上（綠底）') > 0 && hy.indexOf('低於 60%（紅底）') > 0 && hy.indexOf('▲▼ 為與上一季相比') > 0, '年度表圖例說明');
-ok(hy.indexOf('重點三條') > 0 && hy.indexOf('紅色虛線是 60% 待加強線') > 0, '重點三條圖例與 60% 說明');
+ok(hy.indexOf('重點三條') > 0 && hy.indexOf('待加強線') < 0 && hy.indexOf('藍色範圍越往外越好') > 0, '年度頁：重點三條圖例；星狀圖下說明沒有 60% 紅虛線');
 [hq, hy].forEach(function (h, k) { ok(h.indexOf('抽查') < 0, '頁面文字沒有「抽查」#' + k); });
 var hq3 = PDF._buildHtml(S.buildModel(q3sum, { year: 2026, quarter: 3, nowMs: NOW, ctxRows: [] }), {}, 'quarter');
 ok(hq3.indexOf('上季無紀錄，只畫本季實線') > 0, '季度頁：上季無紀錄的說明');
@@ -470,25 +466,30 @@ var seven = [{ tag: '感謝', text: 'a' }, { tag: '進步', text: 'b' }, { tag: 
 eq(S.capItems(seven).map(function (it) { return it.text; }), ['b', 'd', 'e', 'f', 'g'], '超過 5 列：依優先序（強項、待加強、進步、留意、感謝）留前 5 名，留意與感謝被捨棄，原順序不變');
 eq(S.capItems(seven.slice(0, 4)).length, 4, '不超過 5 列不動');
 var seed = 7; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-var maxChartH = 0, maxRows = 0;
+var maxChartH = 0, maxRows = 0, minR = 999;
 for (var ti = 0; ti < 60; ti++) {
   var cc = [], pc = [];
   for (var di = 0; di < 7; di++) { cc.push(Math.floor(rnd() * 11)); pc.push(Math.floor(rnd() * 11)); }
   var curM = { checks: 10, weak: 3, counts: cc }, prevM2 = rnd() < 0.7 ? { checks: 10, weak: 3, counts: pc } : null;
-  var chH = S.chartHeight(S.quarterCompareSvg(curM, prevM2));
-  maxChartH = Math.max(maxChartH, chH);
+  var fit = S.fitQuarterChart(curM, prevM2);
+  maxChartH = Math.max(maxChartH, fit.height); minR = Math.min(minR, fit.R);
+  ok(fit.height <= S.quarterChartMaxH(), '星狀圖高度不超過剩餘高度 #' + ti);
+  ok(fit.width === S.QCHART_W, '星狀圖寬度撐滿內容欄 #' + ti);
   var its = S.quarterItems(curM, prevM2);
   maxRows = Math.max(maxRows, its.length);
-  ok(its.length <= S.SUMMARY_MAX_ROWS, '小結列數不超過上限 #' + ti);
-  ok(S.summaryHeight(its) <= S.summaryBudget(chH), '小結高度排得進第 1 頁預算 #' + ti);
+  ok(its.length <= S.SUMMARY_MAX_ROWS && its.length <= 4, '單季小結最多 4 列 #' + ti);
+  ok(S.summaryHeight(its) <= S.summaryBudget(fit.height), '小結高度排得進第 1 頁預算 #' + ti);
 }
+ok(minR >= 140, '星狀圖半徑 ≥ 140（最小 ' + minR + '，原本 116）');
 ok(maxRows >= 3, '亂數情況涵蓋 3 列以上：' + maxRows);
 var longest = Object.keys(S.DIM_ADVICE).reduce(function (a, k) { return S.DIM_ADVICE[k].length > a.length ? S.DIM_ADVICE[k] : a; }, '');
-var worst = []; for (var wi = 0; wi < 5; wi++) worst.push({ tag: '待加強', text: '「問題掌握」還有進步空間', advice: longest });
+var worst = S.worstSummaryItems();
 ok(longest.length <= 40, '最長建議句不超過 40 字（單行放得下）：' + longest.length);
-ok(S.summaryHeight(worst) <= S.summaryBudget(maxChartH), '最壞情況（5 列、每列都有最長建議）高度 ' + S.summaryHeight(worst) + ' ≤ 預算 ' + S.summaryBudget(maxChartH) + '（最高的圖 ' + maxChartH + '）');
+eq(worst.map(function (it) { return it.tag; }), ['強項', '進步', '待加強', '待加強'], '最壞小結：強項、進步（不帶建議）、待加強 ×2（帶最長建議）');
+ok(S.summaryHeight(worst) <= S.summaryBudget(maxChartH), '最壞小結高度 ' + S.summaryHeight(worst) + ' ≤ 預算 ' + S.summaryBudget(maxChartH) + '（最高的圖 ' + maxChartH + '）');
 ok(S.summaryHeight([{ tag: '強項', text: 'a' }]) < S.summaryHeight(worst), '只有 1 列時高度小很多');
-eq(S.QCHART_W, 555, '單季星狀圖固定寬度');
+ok(S.summaryHeight(S.worstSummaryItems()) + S.quarterChartMaxH() <= S.PAGE1.content - S.PAGE1.head - S.PAGE1.stats - S.PAGE1.chartExtra - S.PAGE1.safety, '圖與最壞小結加總不超過第 1 頁可用高度');
+eq(S.QCHART_W, 714, '單季星狀圖寬度＝內容欄全寬');
 // 沒有登記卡片：不產生「登記紀錄」標題、不強制換頁（第 1 頁後不會多出空白頁）
 var noCardHtml = PDF._buildHtml(S.buildModel(cardSum, { year: 2026, quarter: 4, nowMs: NOW }) && Object.assign({}, S.buildModel(cardSum, { year: 2026, quarter: 4, nowMs: NOW }), { records: [] }), {}, 'quarter');
 ok(noCardHtml.indexOf('登記紀錄') < 0 && noCardHtml.indexOf('data-break') < 0 && noCardHtml.indexOf('class="ccard') < 0, '沒有卡片：沒有標題、沒有強制換頁');

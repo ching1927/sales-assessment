@@ -24,16 +24,16 @@
 '#csDoc *{box-sizing:border-box;margin:0}' +
 '#csDoc .blk{padding:4px 40px 12px}' +
 '#csDoc .blk[data-type=row]{padding-top:0;padding-bottom:0}' +
-'#csDoc .ph{background:#0A0A0A;color:#fff;padding:10px 28px;position:relative;border-radius:6px;overflow:hidden}' +
+'#csDoc .ph{background:#0A0A0A;color:#fff;padding:8px 28px;position:relative;border-radius:6px;overflow:hidden}' +
 '#csDoc .ph::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:#D9FF00}' +
 '#csDoc .ph small{color:#D9FF00;font-weight:700;letter-spacing:1.5px;font-size:11px}' +
-'#csDoc .ph h3{font-size:22px;margin:2px 0 0;line-height:1.3;font-weight:800}' +
-'#csDoc .ph p{font-size:13px;color:rgba(255,255,255,.75)}' +
-'#csDoc .ph .logo{position:absolute;right:24px;top:11px;height:34px;width:auto}' +
-'#csDoc .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}' +
-'#csDoc .stat{border:1px solid #E3E7ED;border-radius:14px;padding:5px 14px}' +
-'#csDoc .stat b{display:block;font-size:24px;font-weight:800;line-height:1.2}' +
-'#csDoc .stat span{font-size:12px;color:#4A4F5A;font-weight:600}' +
+'#csDoc .ph h3{font-size:21px;margin:1px 0 0;line-height:1.3;font-weight:800}' +
+'#csDoc .ph p{font-size:12.5px;color:rgba(255,255,255,.75)}' +
+'#csDoc .ph .logo{position:absolute;right:24px;top:9px;height:30px;width:auto}' +
+'#csDoc .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}' +
+'#csDoc .stat{border:1px solid #E3E7ED;border-radius:10px;padding:3px 14px;white-space:nowrap}' +
+'#csDoc .stat b{display:inline;font-size:20px;font-weight:800;line-height:1.3}' +
+'#csDoc .stat span{display:inline;margin-left:8px;font-size:12px;color:#4A4F5A;font-weight:600}' +
 '#csDoc .stat.ok b{color:#16A34A}#csDoc .stat.bad b{color:#DC2626}' +
 '#csDoc .ptitle{font-size:14px;font-weight:800;margin:0 0 6px;padding-left:8px;border-left:4px solid #D9FF00;line-height:1.3}' +
 '#csDoc .chart svg,#csDoc .line svg{display:block}' +
@@ -42,7 +42,7 @@
 '#csDoc .legend span{display:inline-block;margin:0 11px;vertical-align:middle}' +
 '#csDoc .legend svg{display:inline-block;vertical-align:middle;margin-right:7px}' +
 '#csDoc .legend .tag0{padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#F3F5F8}' +
-'#csDoc .hint{font-size:13px;color:#4A4F5A;text-align:center;margin-top:4px}' +
+'#csDoc .hint{font-size:12.5px;color:#4A4F5A;text-align:center;margin-top:4px}' +
 '#csDoc .chart + .hint{margin-top:20px}' +
 '#csDoc .scrollhint{font-size:15px;color:#5B6270;text-align:center;padding-top:8px}' +
 '#csDoc .scrollhint svg{display:inline-block;vertical-align:middle;margin-right:6px}' +
@@ -58,6 +58,10 @@
 '#csDoc .chip.on{background:#0A0A0A;color:#D9FF00;border-color:#0A0A0A}' +
 '#csDoc .alist .arow{display:grid;grid-template-columns:56px 1fr;gap:12px;padding:5px 0;border-bottom:1px dashed #E3E7ED;font-size:14px;line-height:1.6}' +
 '#csDoc .alist .arow:last-child{border-bottom:none}' +
+'#csDoc .alist.compact .arow{grid-template-columns:52px 1fr;gap:10px;padding:3px 0;font-size:13.5px;line-height:1.5}' +
+'#csDoc .alist.compact .atag{height:22px;line-height:22px;font-size:11.5px;margin-top:0}' +
+'#csDoc .alist.compact .adv{font-size:12.5px;line-height:1.3;margin-top:0}' +
+'#csDoc .analysis.cmp{padding:5px 14px}' +
 '#csDoc .atag{display:block;height:24px;line-height:24px;border-radius:4px;color:#fff;font-size:12px;font-weight:800;text-align:center;margin-top:2px}' +
 '#csDoc .adv{color:#4A4F5A;font-size:13px;margin-top:2px}' +
 '#csDoc td.bg-green{background:#EAF2EE}' +
@@ -104,11 +108,10 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
   // ===== 版面 HTML：回傳一串 .blk 區塊（#csDoc 的直接子元素）；imgs 是 { 路徑: { src: 圖檔資料網址, w, h } | null }（null 代表載入失敗）=====
-  var QCHART_W = Core.QCHART_W;   // 單季星狀圖寬度：固定值，預算見 core 的 summaryBudget
   var CHART_W = 714;   // 圖寬＝內容欄全寬（單季與全年綜合星狀圖）
   var LINE_W = 557;    // 折線圖寬度（內容欄 714 的約 78%）；用固定留白置中，不靠 margin:auto（html2canvas 轉圖時會偏移）
   var C = Core.COLORS;
-  var SCALE_HINT = '分數 ＝ 1 − 被勾次數 ÷ 登記次數。<b>越外圈越好</b>（外圈 100％＝整季沒被勾），越往內縮越需要加強。';
+  var SCALE_HINT = '分數 ＝ 1 − 被勾次數 ÷ 登記次數，<b>越外圈越好</b>，越往內縮越需要加強。';
   function sized(L, w) {   // 依寬度縮放 SVG 的顯示大小（viewBox 不變）
     return L.svg.replace(' width="' + L.width + '" height="' + L.height + '"', ' width="' + w + '" height="' + Math.round(L.height * w / L.width) + '"');
   }
@@ -116,8 +119,8 @@
   function curSwatch() { return '<svg width="38" height="14"><rect x="2" y="1" width="34" height="12" fill="rgba(217,255,0,.45)"/><line x1="2" y1="7" x2="36" y2="7" stroke="#111" stroke-width="2.5"/></svg>'; }
   function blk(type, inner, attrs) { return '<div class="blk" data-type="' + type + '"' + (attrs || '') + '>' + inner + '</div>'; }
   // 帶色塊標籤的條列（小結與年度分析共用）
-  function itemsHtml(items) {
-    return '<div class="alist">' + items.map(function (it) {
+  function itemsHtml(items, compact) {
+    return '<div class="alist' + (compact ? ' compact' : '') + '">' + items.map(function (it) {
       return '<div class="arow"><span class="atag" style="background:' + Core.TAG_COLOR[it.tag] + '">' + esc(it.tag) + '</span><div class="atxt">' + esc(it.text) +
         (it.advice ? '<div class="adv">建議：' + esc(it.advice) + '</div>' : '') + '</div></div>';
     }).join('') + '</div>';
@@ -157,7 +160,7 @@
       esc(m.store) + '　／　' + esc(m.year) + ' 年全年　／　員編 ' + esc(m.id) + '</p></div>');
     h += blk('blk', cardsHtml(qs));
     h += blk('blk', '<div class="ptitle">全年綜合（全年被勾次數 ÷ 全年登記次數）</div><div class="chart">' + sized(Core.totalSvg(qs), CHART_W) + '</div>' +
-      '<div class="hint">藍色範圍越往外越好，<b style="color:' + C.redTx + '">紅色虛線是 60% 待加強線</b>，落在線內的面向優先改善。</div>');
+      '<div class="hint">藍色範圍越往外越好；<b style="color:' + C.greenTx + '">綠色</b>標示全年強項，<b style="color:' + C.redTx + '">紅色</b>標示最需要加強的面向。</div>');
     h += blk('blk', '<div class="ptitle">各面向四季變化</div><div class="line">' + sized(Core.lineChartSvg(qs), LINE_W) + '</div>' + chipsHtml() +
       '<div class="hint">預設只上色三條重點線，其他為灰色。</div>');
     h += blk('blk', '<div class="ptitle">全年數值表</div>' + tableHtml(qs));
@@ -185,17 +188,16 @@
   // 季度健檢單（所有季都有，含第四季）：頁首、登記次數、單季星狀圖（含上季對比）、小結、當季登記紀錄與截圖
   function buildQuarterHtml(m, imgs) {
     imgs = imgs || {};
-    var h = '', hasPrev = !!(m.prev && m.prev.checks > 0);
+    var h = '', hasPrev = !!(m.prev && m.prev.checks > 0), fit = Core.fitQuarterChart(m.cur, hasPrev ? m.prev : null);   // 星狀圖：寬度撐滿、半徑挑剩餘高度放得進的最大值
     h += blk('blk', '<div class="ph"><img class="logo" src="' + LOGO + '" alt=""><small>每季健檢單</small><h3>' + esc(m.name) + '　健檢單</h3><p>' +
       esc(m.store) + '　／　' + esc(m.quarterText) + '　／　員編 ' + esc(m.id) + '</p></div>');
     h += blk('blk', '<div class="stats"><div class="stat"><b>' + m.total + '</b><span>本季登記次數</span></div>' +
       '<div class="stat ok"><b>' + m.good + '</b><span>優良回覆</span></div><div class="stat bad"><b>' + m.weak + '</b><span>待加強回覆</span></div></div>');
-    h += blk('blk', '<div class="ptitle">面向分數星狀圖（越外圈越好）' + (hasPrev ? '　對比：' + esc(m.prevName) : '') + '</div><div class="chart">' + sized(Core.quarterCompareSvg(m.cur, hasPrev ? m.prev : null), QCHART_W) + '</div>' +
+    h += blk('blk', '<div class="ptitle">面向分數星狀圖（越外圈越好）' + (hasPrev ? '　對比：' + esc(m.prevName) : '') + '</div><div class="chart">' + sized(fit.L, fit.width) + '</div>' +
       '<div class="legend"><span>' + curSwatch() + '實線＝本季（' + m.cur.checks + ' 次紀錄）</span>' +
-      (hasPrev ? '<span>' + lineSwatch('#0669EB', 2.2, '8 5') + '虛線＝上一季，對比：' + esc(m.prevName) + '（' + m.prev.checks + ' 次紀錄）</span>' : '<span class="tag0">上季無紀錄，只畫本季實線</span>') +
-      '<span>' + lineSwatch(C.red, 1.8, '6 4') + '紅色虛線＝60% 待加強線</span></div>' +
+      (hasPrev ? '<span>' + lineSwatch('#0669EB', 2.2, '8 5') + '虛線＝上一季，對比：' + esc(m.prevName) + '（' + m.prev.checks + ' 次紀錄）</span>' : '<span class="tag0">上季無紀錄，只畫本季實線</span>') + '</div>' +
       '<div class="hint">' + SCALE_HINT + '</div>');
-    h += blk('blk', '<div class="ptitle">本季小結</div><div class="analysis">' + itemsHtml(m.items) + '</div>');
+    h += blk('blk', '<div class="ptitle">本季小結</div><div class="analysis">' + itemsHtml(m.items, true) + '</div>');
     // 登記紀錄一律從第 2 頁開始（沒有任何卡片時連標題都不產生，第 1 頁後不會多出空白頁）
     var CARDS = Core.paginateCards(Core.buildCards(m.records), { pageH: CONTENT_H, firstOffset: CARD_TITLE_H, footH: CARD_FOOT_H });
     if (CARDS.length) h += blk('title', '<div class="ptitle" style="margin-top:4px">登記紀錄（共 ' + m.total + ' 筆）</div>', ' data-break="1"');

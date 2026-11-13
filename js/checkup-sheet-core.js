@@ -182,7 +182,7 @@
   // 副標單行：超過 12 字截成 12 字加「…」（完整副標在年度數值表看得到）
   function singleSub(t) { t = String(t || ''); return t ? [t.length > 12 ? t.slice(0, 12) + '…' : t] : []; }
   // o：{ R: 圖半徑（預設 130）, fs: 標籤字級（預設 17）, sub: 是否顯示副標（預設 true）, labelIdx, labelBold,
-  //      weakLine: 紅色虛線多邊形的比例（如 0.6）, emph: { 面向索引: { color, dot, tag } }, tagMode: 'replace'（標籤取代副標）| 'append'（接在副標下）, subSingle: 副標單行截斷 }
+  //      emph: { 面向索引: { color, dot, tag } }, tagMode: 'replace'（標籤取代副標）| 'append'（接在副標下）, subSingle: 副標單行截斷 }
   function radarSvg(series, o) {
     o = o || {};
     var n = DIMS.length, R = o.R || 130, fs = o.fs || 17, sfs = Math.round(fs * 0.65 * 10) / 10, lh = sfs * 1.3, lr = R + GAP, showSub = o.sub !== false;
@@ -232,7 +232,6 @@
       body += '<polygon points="' + pts + '" fill="' + (s.fill || 'none') + '" stroke="' + s.color + '" stroke-width="' + s.width + '" stroke-linejoin="round"' + (s.dash ? ' stroke-dasharray="' + s.dash + '"' : '') + '/>';
       if (s.dots) body += DIMS.map(function (_, i) { var p = pt(i, R * Math.max(0, Math.min(1, s.scores[i]))); return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (s.dotColors && s.dotColors[i] ? 5.5 : 4.5) + '" fill="' + ((s.dotColors && s.dotColors[i]) || s.color) + '"' + (s.dotColors && s.dotColors[i] ? ' stroke="#fff" stroke-width="1.2"' : '') + '/>'; }).join('');
     });
-    if (o.weakLine) body += '<polygon points="' + DIMS.map(function (_, i) { return f(pt(i, R * o.weakLine)); }).join(' ') + '" fill="none" stroke="' + COLORS.red + '" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round"/>';
     series.forEach(function (s) {
       if (!s || !s.scores || !s.dotColors) return;
       body += DIMS.map(function (_, i) { if (!s.dotColors[i]) return ''; var p = pt(i, R * Math.max(0, Math.min(1, s.scores[i]))); return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="5.5" fill="' + s.dotColors[i] + '" stroke="#fff" stroke-width="1.2"/>'; }).join('');
@@ -248,17 +247,17 @@
   }
   var CUR = { color: '#111', fill: 'rgba(217,255,0,.45)', width: 2.5, dots: true };
   function dotColorsOf(em) { return IDX.map(function (i) { return em[i] ? em[i].dot : null; }); }
-  function quarterCompareSvg(cur, prev) {
+  function quarterCompareSvg(cur, prev, R) {
     var p = scoreOf(prev), em = emphOf(scoreOf(cur), true);
     return radarSvg([
       p ? { scores: p, color: '#0669EB', fill: 'rgba(6,105,235,.05)', width: 2.2, dash: '8 5' } : null,
       { scores: scoreOf(cur), color: CUR.color, fill: CUR.fill, width: CUR.width, dots: true, dotColors: dotColorsOf(em) }
-    ], { labelIdx: 1, weakLine: WEAK_LINE, emph: em, tagMode: 'append', R: 116 });   // 半徑 116（原 130）：單季圖縮小，讓小結排得進第一頁
+    ], { labelIdx: 1, emph: em, tagMode: 'append', R: R || 130 });   // R：星狀圖半徑（預設 130；第 1 頁由 fitQuarterChart 依剩餘高度挑最大的）
   }
   function totalSvg(qs) {
     var ts = scoreOf(totalModel(qs)), em = ts ? emphOf(ts) : {};
     return radarSvg([{ scores: ts, color: COLORS.blue, fill: 'rgba(31,111,209,.12)', width: 2.5, dots: true, dotColors: dotColorsOf(em) }],
-      { labelIdx: 0, R: 125, fs: 18, weakLine: WEAK_LINE, emph: em, tagMode: 'replace', subSingle: true });
+      { labelIdx: 0, R: 160, fs: 18, emph: em, tagMode: 'replace', subSingle: true });
   }
 
   // 各面向的具體建議（草稿，老闆之後會確認文字；日後只要改這張表）
@@ -281,7 +280,7 @@
     gray: '#9AA0A6', grayTx: '#4A4F5A', grayBg: '#F1F2F3', thanksTx: '#5F6368'
   };
   var STRONG_MIN = 0.85;   // 分數 >= 85% 才算強項
-  var WEAK_LINE = 0.6;     // 星狀圖紅色虛線：60% 待加強線；表格低於 60% 標紅
+  var WEAK_LINE = 0.6;     // 全年數值表：低於 60% 標紅底（星狀圖上沒有 60% 虛線）
   var DIFF_MIN = 10;       // 與上一季差距（百分點）>= 10 才標 ▲▼、才算進步／退步
   var TAG_COLOR = { '感謝': COLORS.thanksTx, '強項': COLORS.greenTx, '待加強': COLORS.redTx, '進步': COLORS.blueTx, '留意': COLORS.goldTx };
   var IDX = DIMS.map(function (_, i) { return i; });
@@ -294,9 +293,9 @@
 
   // ---- 第 1 頁版面預算：第 1 頁固定＝頁首＋摘要卡＋星狀圖＋本季小結；登記卡片從第 2 頁開始 ----
   // 小結最多 SUMMARY_MAX_ROWS 列（優先序：強項、待加強、進步、留意；超出者捨棄後面的）；每列＝一行文字，需建議的多一行建議句
-  var SUMMARY_MAX_ROWS = 5, SUMMARY_ROW_H = 34, SUMMARY_ADV_H = 23, SUMMARY_FIXED_H = 58;   // 單位 px（A4 794 寬版面）；FIXED＝小標題＋外框上下內距＋區塊內距
-  var QCHART_W = 555;                      // 單季星狀圖顯示寬度（固定一個值，讓小結最壞情況也排得進第 1 頁）
-  var PAGE1 = { content: 1045, head: 105, stats: 75, chartExtra: 132 };   // 第 1 頁可用高度、頁首、摘要卡、圖的標題＋圖例＋說明列所佔高度
+  var SUMMARY_MAX_ROWS = 5, SUMMARY_ROW_H = 29, SUMMARY_ADV_H = 17, SUMMARY_FIXED_H = 54;   // 單位 px（A4 794 寬版面）；FIXED＝小標題＋外框上下內距＋區塊內距
+  var QCHART_W = 714;                      // 單季星狀圖顯示寬度＝頁面內容欄全寬
+  var PAGE1 = { content: 1045, head: 92, stats: 50, chartExtra: 104, safety: 10 };   // 第 1 頁可用高度、頁首、摘要卡、圖的標題＋圖例＋說明列所佔高度
   var ITEM_RANK = { '強項': 0, '待加強': 1, '進步': 2, '留意': 3, '感謝': 4 };
   function capItems(items) {
     if (items.length <= SUMMARY_MAX_ROWS) return items;
@@ -306,7 +305,24 @@
   }
   function summaryHeight(items) { return SUMMARY_FIXED_H + (items || []).reduce(function (a, it) { return a + SUMMARY_ROW_H + (it.advice ? SUMMARY_ADV_H : 0); }, 0); }
   function chartHeight(L) { return Math.round(L.height * QCHART_W / L.width); }   // 單季星狀圖實際顯示高度
-  function summaryBudget(chartH) { return PAGE1.content - PAGE1.head - PAGE1.stats - PAGE1.chartExtra - chartH; }   // 第 1 頁留給小結的高度
+  function summaryBudget(chartH) { return PAGE1.content - PAGE1.head - PAGE1.stats - PAGE1.chartExtra - chartH - PAGE1.safety; }   // 第 1 頁留給小結的高度
+  // 最壞小結：單季最多 4 列（強項、進步不帶建議，待加強 2 列各帶最長建議）
+  function worstSummaryItems() {
+    var longest = Object.keys(DIM_ADVICE).reduce(function (a, k) { return DIM_ADVICE[k].length > a.length ? DIM_ADVICE[k] : a; }, '');
+    return [{ tag: '強項', text: 'x' }, { tag: '進步', text: 'x' }, { tag: '待加強', text: 'x', advice: longest }, { tag: '待加強', text: 'x', advice: longest }];
+  }
+  // 以最壞小結為預算，剩下的高度全給星狀圖：寬度撐滿內容欄，半徑挑「放得進去的最大值」（回傳 { R, width, height, L }）
+  function quarterChartMaxH() { return summaryBudget(0) - summaryHeight(worstSummaryItems()); }
+  function fitQuarterChart(cur, prev) {
+    var maxH = quarterChartMaxH(), L;
+    for (var R = 210; R >= 100; R -= 2) {
+      L = quarterCompareSvg(cur, prev, R);
+      var h = L.height * QCHART_W / L.width;
+      if (h <= maxH) return { R: R, width: QCHART_W, height: Math.round(h), L: L };
+    }
+    L = quarterCompareSvg(cur, prev, 100);
+    return { R: 100, width: Math.floor(maxH * L.width / L.height), height: maxH, L: L };   // 極端情況：連半徑 100 都放不下，就縮小顯示寬度
+  }
 
   // 單季小結：優秀面向（進步或高分，最多 3 個）鼓勵；不足面向（分數最低，最多 2 個，90% 以上不算）給具體建議；不提次數、不用括號
   function quarterItems(cur, prev) {
@@ -561,7 +577,7 @@
 
   var api = {
     quarterRange: quarterRange, quarterLabel: quarterLabel, dimCounts: dimCounts, topDims: topDims,
-    summarize: summarize, filterByStore: filterByStore, buildModel: buildModel, fileName: fileName, fileNameYear: fileNameYear, buildCards: buildCards, capItems: capItems, summaryHeight: summaryHeight, summaryBudget: summaryBudget, chartHeight: chartHeight, SUMMARY_MAX_ROWS: SUMMARY_MAX_ROWS, QCHART_W: QCHART_W, PAGE1: PAGE1, showScrollHint: showScrollHint, HINT_MIN_GAP: HINT_MIN_GAP, HINT_TEXT: HINT_TEXT, paginateCards: paginateCards, cardHeight: cardHeight, cardDate: cardDate, clampNote: clampNote, CARD: CARD, CARD_H: CARD_H, CARD_GAP: CARD_GAP, NOTE_MAX: NOTE_MAX, yearRange: yearRange,
+    summarize: summarize, filterByStore: filterByStore, buildModel: buildModel, fileName: fileName, fileNameYear: fileNameYear, buildCards: buildCards, capItems: capItems, fitQuarterChart: fitQuarterChart, quarterChartMaxH: quarterChartMaxH, worstSummaryItems: worstSummaryItems, summaryHeight: summaryHeight, summaryBudget: summaryBudget, chartHeight: chartHeight, SUMMARY_MAX_ROWS: SUMMARY_MAX_ROWS, QCHART_W: QCHART_W, PAGE1: PAGE1, showScrollHint: showScrollHint, HINT_MIN_GAP: HINT_MIN_GAP, HINT_TEXT: HINT_TEXT, paginateCards: paginateCards, cardHeight: cardHeight, cardDate: cardDate, clampNote: clampNote, CARD: CARD, CARD_H: CARD_H, CARD_GAP: CARD_GAP, NOTE_MAX: NOTE_MAX, yearRange: yearRange,
     quarterModel: quarterModel, sumModel: sumModel, prevQuarterOf: prevQuarterOf, modelFromRows: modelFromRows, contextRange: contextRange, DIMS: DIMS, scoreOf: scoreOf, totalModel: totalModel,
     radarSvg: radarSvg, quarterCompareSvg: quarterCompareSvg, totalSvg: totalSvg, lineChartSvg: lineChartSvg, markerSvg: markerSvg,
     quarterAnalysis: quarterAnalysis, yearAnalysis: yearAnalysis, quarterItems: quarterItems, yearItems: yearItems, yearInsights: yearInsights, yearCards: yearCards, yearTableModel: yearTableModel, emphOf: emphOf, COLORS: COLORS, TAG_COLOR: TAG_COLOR, STRONG_MIN: STRONG_MIN, WEAK_LINE: WEAK_LINE, DIFF_MIN: DIFF_MIN, DIM_ADVICE: DIM_ADVICE, DIM_SUBTITLE: DIM_SUB, DIM_COLORS: DIM_COLORS, DIM_DASH: DIM_DASH, Q_NAMES: Q_NAMES, pct: pct
