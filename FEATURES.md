@@ -141,7 +141,7 @@
 - 送出結果頁（第一期）｜`assess.html`｜總分、判定、題組數只看核心題組；追加題另列「弱項追加題・不算入總分」；送出後讀 reply_activations 與 period_status：有待開通紀錄顯示「已加入待開通回覆權限清單」，仍在考核期顯示「仍在考核期，可再約補考」；回考核期者合格線 85 的顯示照舊
 - 成績單追加題區塊｜`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜成績單詳情（客服部版與主管／店長版）追加題獨立區塊「弱項追加題・不算入總分」；雷達圖與題組列表只用核心題組；主管與店長版追加題不含題組名稱、步驟、考點
 - 待開通回覆權限清單｜`requests.html`、`js/requests-api.js`｜只有客服部看得到；讀 reply_activations（人員、門市、通過日期、狀態），可依門市與狀態篩選，待開通排前面；「已開通」按鈕（先跳確認視窗）呼叫 activation_mark_done，已開通者顯示開通日期；清單讀取失敗只在該區塊提示；導覽紅點由 exam_req_badge 提供
-- 考核期與新人標籤｜`roster.html`｜身分標籤依 employees_with_tenure 的 period_status 與 tenure_group：考核期者顯示「考核期」，到職 90 天內另顯示「新人」，其餘顯示「已上線」，未填到職日者另加「未填到職日」；既有門市篩選與搜尋不變；標籤判斷只看 period_status（資料庫遷移與 spot_register 回考核期都會同步，不再看 probation_since）
+- 考核期與新人標籤｜`roster.html`｜身分標籤依 employees_with_tenure 的 period_status 與 tenure_group：考核期者顯示「考核期」，到職 90 天內另顯示「新人」，其餘顯示「已上線」（「未填到職日」標籤已隱藏，2026-11）；既有門市篩選與搜尋不變；標籤判斷只看 period_status（資料庫遷移與 spot_register 回考核期都會同步，不再看 probation_since）
 - 名冊「回覆狀態」欄位｜`roster.html`｜新增／編輯人員表單多「回覆狀態」下拉（考核期／已上線），只有客服部看得到；新增預設考核期（資料庫預設是已上線，所以新增時一定明確帶 period_status），編輯顯示目前值並可手動調整，存檔寫入 period_status，不動 passed_on；`js/api.js` 直接傳入整列，不需改
 - 第一期網頁驗證方式｜以 jsdom 搭配假的 Api 物件逐項驗證（有弱項／無弱項／不追加／追加題未評完不能送出／核心抽題失敗改自選／繼續草稿／放棄／通過與未通過結果頁／成績單追加題區塊／待開通清單／名冊標籤）；`node tests/suggest.test.js`、`tests/scoring.test.js`、`tests/requests-core.test.js` 皆結束碼 0
 
