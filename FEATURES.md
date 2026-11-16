@@ -195,3 +195,5 @@
 - 舊成績型健檢介面停用｜`checkup.html`｜【已停用】排定、取消排定、開始／繼續健檢、分數與判定、待排定／首次健檢標籤；assess.html 的健檢模式、advice.html、checkup_* 資料表與函式、歷史成績單（近期考核等處）全部保留不動｜開 checkup.html 不再有上述按鈕與欄位；黃單排名分頁（原門市季次表，已改版）
 - 寄給業務（副本店長）【暫緩，未做】｜—｜老闆尚未決定業務信箱來源與副本做法；本次沒有寄信按鈕、checkup_sheet_sends 表、mail_outbox 寫入｜—
 - 各門市黃單排名（取代門市季次表分頁）｜`checkup.html#ranking`、`js/store-ranking-core.js`、`js/store-ranking-view.js`（畫面與下載共用同一份版面）、`js/checkup-api.js`（yellowRanking）、`supabase/yellow_ranking_schema.sql`（checkup_yellow_ranking）、`supabase/yellow_ranking_verify_fake.sql`、`tests/store-ranking-core.test.js`｜年度（2026 起）＋期間（第1～4季、全年）＋排序（平均每人張數（預設）／黃單總張數）；黃單算有效（作廢不算）、依開單日、依開單當時的門市；人數＝目前在職、納入考核、已上線；總公司不列；名次少的在前、同值並列、人數 0 排最後沒有名次；摘要卡（黃單最少／最多／全公司總張數）、排名表與橫條；店長自己的門市標黃底「← 你的門市」；三種角色都看得到全部門市的張數，但只有彙總（無黃單內容、人員、網址）；可下載圖片（PNG）與 PDF（A4 一頁，檔名「門市黃單排名_2026_第4季」「…_全年」）；資料庫函式未部署時顯示「黃單排名功能尚未啟用」｜`node tests/store-ranking-core.test.js` 通過 58 項；`supabase/yellow_ranking_verify_fake.sql` 結果表第一列「18/18 項通過」（PGlite 假環境已跑）；開頁看「黃單排名」分頁並按兩顆下載
+
+- 人員名冊表格拖曳捲動與全表置中｜`roster.html`、`js/drag-scroll.js`｜名冊表格寬度超過畫面時，用滑鼠按住表格空白處左右拉即可橫向捲動（按在按鈕、連結、輸入框上不觸發；拖動超過 5px 才算，放開不誤觸點擊）；整張表文字置中、姓名欄暱稱在上真名在下｜開人員名冊頁，縮窄視窗後按住空白處左右拖
