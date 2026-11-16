@@ -298,7 +298,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var rows = people.filter(function (p) { return LineCore.matchRow(p, f, access[p.id] || []); });
     $('tbody').innerHTML = rows.map(function (p) {
       var tg = p.tenure_group;
-      var inc = p.job_title === '公務機' ? ''   // 公務機不考核，納入考核欄整格留白（不顯示開關與「否（免健檢）」）
+      var inc = (p.job_title === '公務機' || p.job_title === '技師') ? ''   // 公務機、技師不考核，納入考核欄整格留白（不顯示開關與「否（免健檢）」）
         : cs
         ? '<button type="button" class="sw" role="switch" aria-checked="' + (p.include_in_assessment ? 'true' : 'false') + '" aria-label="納入考核：' + esc(p.nickname || p.full_name || p.id) + '" data-toggle="' + esc(p.id) + '"></button><span class="yn">' + esc(LineCore.assessText(p)) + '</span>'
         : esc(LineCore.assessText(p));
