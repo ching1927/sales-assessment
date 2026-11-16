@@ -64,18 +64,10 @@ th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-sh
 .pane[hidden]{display:none}
 @media (max-width:480px){.pgtab{padding:9px 12px;font-size:14px}}
 
-/* 季次統計卡 */
-.qcards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-3);margin-bottom:var(--sp-4)}
-.qcard{padding:var(--sp-4) var(--sp-6)}
-.qcard small{display:block;font-size:12px;font-weight:700;color:var(--ink-2);letter-spacing:1px}
-.qcard b{display:block;font-size:30px;font-weight:800;line-height:1.2;margin-top:2px}
-.qcard b span{font-size:14px;font-weight:600;color:var(--ink-2);margin-left:2px}
-.qcard em{display:block;font-style:normal;font-size:13px;color:var(--ink-2);margin-top:2px}
-.qcard.now{box-shadow:0 0 0 2px var(--ci-yellow),var(--shadow)}
-.savebar{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin-top:var(--sp-4)}
 .prevhead{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin-bottom:var(--sp-3)}
 .prevhead .grow{flex:1}
-@media (max-width:760px){.qcards{grid-template-columns:repeat(2,1fr)}}
+/* 黃單排名（版面本身的樣式在 js/store-ranking-view.js，網頁與下載共用） */
+#rkSheet{min-width:640px;border:1px solid var(--ink-line);border-radius:var(--r-sm);padding:var(--sp-4)}
 
 dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
 dialog::backdrop{background:var(--scrim)}
@@ -138,21 +130,28 @@ dialog::backdrop{background:var(--scrim)}
       <div class="pgtabs" role="tablist" aria-label="登記&amp;健檢分頁">
         <a class="pgtab" id="tabReg" role="tab" aria-selected="false" href="spotcheck.html#reg" hidden>登記</a>
         <a class="pgtab" role="tab" aria-selected="false" href="spotcheck.html#records">登記歷程</a>
-        <button type="button" class="pgtab on" role="tab" data-pane="paneStores" aria-selected="true">門市季次表</button>
+        <button type="button" class="pgtab on" role="tab" data-pane="paneRank" aria-selected="true">黃單排名</button>
         <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢單</button>
       </div>
     </div>
 
-    <!-- ① 門市季次表 -->
-    <section class="pane" id="paneStores" role="tabpanel">
-      <div class="qcards" id="qcards"></div>
+    <!-- ① 黃單排名：各門市在該期間被開的黃單數量（資料庫函式彙總，三種角色都看得到全部門市的張數，看不到黃單內容） -->
+    <section class="pane" id="paneRank" role="tabpanel">
       <section class="glass panel">
-        <p class="sub" id="storeHint" style="margin-bottom:var(--sp-3)"></p>
-        <div class="msg err" id="storeErr" role="alert" hidden></div>
-        <div class="scroll" tabindex="0" aria-label="門市季次表，可左右捲動"><table class="list"><thead><tr><th>門市</th><th>健檢季</th><th class="num">約人數</th></tr></thead><tbody id="storeBody"></tbody></table></div>
-        <div class="empty" id="storeEmpty" hidden>沒有門市資料</div>
-        <div class="savebar" id="saveBar" hidden><button type="button" class="btn primary" id="saveStores">儲存</button><span class="sub" id="storeSum"></span></div>
-        <p class="sub" id="storeSumRo" style="margin-top:var(--sp-3)" hidden></p>
+        <div class="prevhead">
+          <label for="rkYear" class="sub">年度</label><select id="rkYear" class="ctrl"></select>
+          <label for="rkPeriod" class="sub">期間</label><select id="rkPeriod" class="ctrl"></select>
+          <label for="rkSort" class="sub">排序</label>
+          <select id="rkSort" class="ctrl"><option value="avg">平均每人張數（預設）</option><option value="tot">黃單總張數</option></select>
+          <span class="grow sub" id="rkInfo" aria-live="polite"></span>
+          <button type="button" class="btn" id="rkPng" disabled>下載圖片</button>
+          <button type="button" class="btn primary" id="rkPdf" disabled>下載 PDF</button>
+        </div>
+        <p class="sub" style="margin-bottom:var(--sp-3)">期間是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以黃單開單日計；被作廢的黃單不算，人員換門市時黃單算開單當時的門市。</p>
+        <div class="msg err" id="rkMsg" role="alert" hidden></div>
+        <div class="msg info" id="rkDlMsg" role="status" hidden></div>
+        <div class="scroll" tabindex="0" aria-label="各門市黃單排名，可左右捲動"><div class="srk" id="rkSheet"></div></div>
+        <div class="empty" id="rkEmpty" hidden>這個期間沒有門市資料。</div>
       </section>
     </section>
 
@@ -192,9 +191,11 @@ dialog::backdrop{background:var(--scrim)}
 <script src="js/checkup-sheet-core.js"></script>
 <script src="js/checkup-api.js"></script>
 <script src="js/checkup-sheet-pdf.js"></script>
+<script src="js/store-ranking-core.js"></script>
+<script src="js/store-ranking-view.js"></script>
 <script>
 (function () {
-  var C = CheckupCore, SC = CheckupSheetCore;
+  var C = CheckupCore, SC = CheckupSheetCore, SR = StoreRankingCore, SV = StoreRankingView;
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -206,10 +207,9 @@ dialog::backdrop{background:var(--scrim)}
 
   // ====== 狀態 ======
   var me = null;
-  var qrows = [];          // checkup_quarters_list 的結果
-  var pending = {};        // 客服部尚未儲存的選擇 { 門市代碼: 季次 }
+  var qrows = [];          // checkup_quarters_list 的結果（只用來查門市名稱，健檢單分頁的門市顯示與篩選用）
   var sheets = [], sheetSeq = 0, sheetsLoaded = false;   // 健檢單清單（現算自抽查紀錄）
-  var busy = false;
+  var rankRows = [], rankSeq = 0, rankLoaded = false, rankBusy = false;   // 黃單排名（資料庫函式彙總）
   var now = C.taipeiYearQuarter();
 
   function isCS() { return !!me && me.role === 'cs_admin'; }
@@ -238,77 +238,66 @@ dialog::backdrop{background:var(--scrim)}
       var on = b.getAttribute('data-pane') === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     if (id === 'paneList' && !sheetsLoaded) loadSheets();
+    if (id === 'paneRank' && !rankLoaded) loadRank();
   }
-  var HASH_PANE = { stores: 'paneStores', list: 'paneList' };
-  var PANE_HASH = { paneStores: 'stores', paneList: 'list' };
+  var HASH_PANE = { ranking: 'paneRank', stores: 'paneRank', list: 'paneList' };   // #stores 是舊網址（門市季次表），一樣開排名
+  var PANE_HASH = { paneRank: 'ranking', paneList: 'list' };
   document.querySelector('.pgtabs').addEventListener('click', function (e) {
     var b = e.target.closest('button.pgtab'); if (!b) return;
     var id = b.getAttribute('data-pane'); showPane(id);
     try { history.replaceState(null, '', '#' + PANE_HASH[id]); } catch (x) {}
   });
-  function openByHash() { showPane(HASH_PANE[(location.hash || '').replace('#', '')] || 'paneStores'); }
+  function openByHash() { showPane(HASH_PANE[(location.hash || '').replace('#', '')] || 'paneRank'); }
   window.addEventListener('hashchange', openByHash);
 
-  // ====== ① 門市季次表 ======
-  function renderStores() {
-    var rows = C.sortStores(qrows, 'store_code');
-    $('storeEmpty').hidden = rows.length > 0;
-    $('storeBody').innerHTML = rows.map(function (r) {
-      var q = pending[r.store_code] || r.quarter;
-      var cell = isCS()
-        ? '<select class="ctrl sm" data-store="' + esc(r.store_code) + '" aria-label="' + esc(r.store_name || r.store_code) + ' 健檢季"' + (busy ? ' disabled' : '') + '>' +
-          C.QUARTERS.map(function (n) { return '<option value="' + n + '"' + (Number(q) === n ? ' selected' : '') + '>Q' + n + '</option>'; }).join('') + '</select>'
-        : '<span class="tag reg">Q' + esc(r.quarter) + '</span>';
-      return '<tr><td><b>' + esc(r.store_name || r.store_code) + '</b></td><td>' + cell + '</td><td class="num">' + esc(r.headcount == null ? '—' : r.headcount) + '</td></tr>';
-    }).join('');
-    updateStats();
+  // ====== ① 黃單排名（資料庫函式 checkup_yellow_ranking 彙總；三種角色都看得到全部門市的張數，沒有黃單內容）======
+  function rkPeriod() { return $('rkPeriod').value; }
+  function rkYear() { return Number($('rkYear').value); }
+  function rkSort() { return $('rkSort').value === 'tot' ? 'tot' : 'avg'; }
+  function rkModel() {
+    var g = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);   // 產生日期（台北）
+    return { year: rkYear(), period: rkPeriod(), sortKey: rkSort(), generated: g,
+      ranked: SR.rank(rankRows, rkSort(), isMgr() ? me.store_code : null) };
   }
-  function updateStats() {
-    var stats = C.quarterStats(qrows, pending), totS = 0, totP = 0;
-    $('qcards').innerHTML = stats.map(function (s) {
-      totS += s.stores; totP += s.people;
-      var cur = s.quarter === now.quarter;
-      return '<div class="glass qcard' + (cur ? ' now' : '') + '"><small>Q' + s.quarter + (cur ? '　（本季）' : '') + '</small><b>' + s.stores + '<span>家門市</span></b><em>約 ' + s.people + ' 人</em></div>';
-    }).join('');
-    var sum = '合計 ' + totS + ' 家門市、約 ' + totP + ' 人';
-    var n = C.changedStores(qrows, pending).length;
-    if (isCS()) {
-      $('storeSum').textContent = sum + (n ? '（有 ' + n + ' 家尚未儲存）' : '');
-      $('saveStores').disabled = busy || n === 0;
-    } else {
-      $('storeSumRo').textContent = sum;
-    }
+  function renderRank(loading) {
+    var m = rkModel(), has = rankRows.length > 0, err = !!$('rkMsg').textContent;
+    $('rkInfo').textContent = loading ? '載入中…' : err ? '' : SR.periodLabel(m.year, m.period) + '　共 ' + rankRows.length + ' 家門市';
+    $('rkSheet').parentNode.hidden = !has;
+    $('rkEmpty').hidden = loading || has || err;
+    SV.ensureStyle();
+    $('rkSheet').innerHTML = has ? SV.html(m) : '';
+    $('rkPng').disabled = $('rkPdf').disabled = loading || !has || rankBusy;
   }
-  $('storeBody').addEventListener('change', function (e) {
-    var s = e.target.getAttribute('data-store'); if (!s || !isCS() || busy) return;
-    pending[s] = Number(e.target.value);
-    showMsg('storeErr', '');
-    updateStats();
-  });
-  $('saveStores').addEventListener('click', function () {
-    if (!isCS() || busy) return;
-    var list = C.changedStores(qrows, pending);
-    if (!list.length) return;
-    busy = true; $('saveStores').disabled = true; showMsg('storeErr', '');
-    var done = 0, failMsg = '';
-    // 一家一家存；遇到失敗就停，已存的保留
-    list.reduce(function (p, it) {
-      return p.then(function () {
-        if (failMsg) return;
-        return CheckupApi.setQuarter(it.store, it.quarter).then(function () { done++; delete pending[it.store]; },
-          function (e) { failMsg = '「' + sName(it.store) + '」儲存失敗：' + errText(e); });
-      });
-    }, Promise.resolve()).then(function () {
-      return CheckupApi.quarters().then(function (rows) { qrows = rows; }, function (e) {
-        failMsg = (failMsg ? failMsg + '　' : '') + '已儲存，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。';
-      });
-    }).then(function () {
-      busy = false;
-      if (failMsg) showMsg('storeErr', (done ? '已儲存 ' + done + ' 家；' : '') + failMsg);
-      else toast('門市季次已儲存。這只是各門市的季次紀錄，不影響每季健檢單。');
-      renderStores(); refreshStoreOptions();
+  function loadRank() {
+    var rg = SR.periodRange(rkYear(), rkPeriod()), seq = ++rankSeq;
+    rankLoaded = true;
+    showMsg('rkMsg', ''); showMsg('rkDlMsg', '');
+    rankRows = []; renderRank(true);
+    CheckupApi.yellowRanking(rg.start, rg.end).then(function (rows) {
+      if (seq !== rankSeq) return;       // 已切換年度或期間，舊回應不採用
+      rankRows = rows; renderRank(false);
+    }, function (e) {
+      if (seq !== rankSeq) return;
+      showMsg('rkMsg', e && e.notDeployed ? errText(e) : '讀取黃單排名失敗：' + errText(e));
+      rankRows = []; renderRank(false);
+      rankLoaded = false;                 // 下次切回這個分頁再試一次
     });
-  });
+  }
+  ['rkYear', 'rkPeriod'].forEach(function (id) { $(id).addEventListener('change', loadRank); });
+  $('rkSort').addEventListener('change', function () { renderRank(false); });
+  function rankDownload(kind, btn) {
+    if (rankBusy || !rankRows.length) return;
+    rankBusy = true; showMsg('rkDlMsg', '');
+    var old = btn.textContent; btn.textContent = '產生中…'; renderRank(false); btn.textContent = '產生中…';
+    var m = rkModel();
+    (kind === 'pdf' ? SV.downloadPdf(m) : SV.downloadPng(m)).then(function (name) {
+      var el = $('rkDlMsg'); el.textContent = '已產生：' + name; el.className = 'msg info'; el.hidden = false;
+    }, function (e) {
+      var el = $('rkDlMsg'); el.textContent = errText(e); el.className = 'msg err'; el.hidden = false;
+    }).then(function () { rankBusy = false; btn.textContent = old; renderRank(false); });
+  }
+  $('rkPng').addEventListener('click', function () { rankDownload('png', $('rkPng')); });
+  $('rkPdf').addEventListener('click', function () { rankDownload('pdf', $('rkPdf')); });
 
   // ====== ② 健檢單（每季抽查彙整；清單與 PDF 都用 spot_inspections 該季資料現算，RLS 已限制可見範圍）======
   function selYear() { return Number($('listYear').value); }
@@ -378,15 +367,10 @@ dialog::backdrop{background:var(--scrim)}
     $('whoBadge').textContent = lab;
     $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
     $('tabReg').hidden = !isCS();      // 登記分頁只有客服部看得到（在 spotcheck.html）
-    $('saveBar').hidden = !isCS();
     $('listStore').hidden = isMgr(); $('listStoreLb').hidden = isMgr();   // 店長固定自己門市（資料庫只給自己門市），不顯示門市篩選
-    $('storeSumRo').hidden = isCS();
-    $('storeHint').textContent = isCS()
-      ? '請為每家門市選擇它的健檢季；改完上方統計會即時更新，按「儲存」才會生效。這只是各門市的季次紀錄，不影響每季健檢單。'
-      : me.role === 'store_manager' ? '這是你門市的健檢季；季次由客服部指定。' : '各門市的健檢季由客服部指定，這裡只能查看。';
-    $('roleNote').textContent = isCS() ? '客服部可改門市季次；健檢單可下載 PDF（用該季登記紀錄現算，不另存、不計分）。'
-      : me.role === 'store_manager' ? '只顯示自己門市；門市季次只能查看，健檢單可下載 PDF。'
-      : '總公司主管門市季次只能查看；健檢單可查看與下載 PDF。';
+    $('roleNote').textContent = isCS() ? '黃單排名可下載圖片或 PDF；健檢單可下載 PDF（用該季登記紀錄現算，不另存、不計分）。'
+      : me.role === 'store_manager' ? '黃單排名可看到所有門市的名次與張數，但看不到黃單內容；健檢單只顯示自己門市，可下載 PDF。'
+      : '黃單排名可看到所有門市的名次與張數並下載；健檢單可查看與下載 PDF。';
   }
 
   $('logout').addEventListener('click', doLogout);
@@ -410,13 +394,17 @@ dialog::backdrop{background:var(--scrim)}
       $('listQ').innerHTML = C.QUARTERS.map(function (n) { return '<option value="' + n + '">Q' + n + '</option>'; }).join('');
       $('listYear').value = String(now.year); $('listQ').value = String(now.quarter);
       $('loading').hidden = true; $('app').hidden = false;
+      // 黃單排名的年度與期間下拉：預設今天（台北時間）所在的年與季
+      var dp = SR.defaultPeriod();
+      $('rkYear').innerHTML = SR.yearOptions().map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
+      $('rkPeriod').innerHTML = SR.PERIODS.map(function (p) { return '<option value="' + p + '">' + (p === 'Y' ? '全年' : '第' + p.slice(1) + '季') + '</option>'; }).join('');
+      $('rkYear').value = String(dp.year); $('rkPeriod').value = dp.period;
       applyRole(); openByHash();
       return CheckupApi.quarters().then(function (rows) {
-        qrows = rows; applyRole(); renderStores(); refreshStoreOptions();
+        qrows = rows; applyRole(); refreshStoreOptions();
         if (sheets.length) renderSheets(false);   // 門市名稱晚到時，把已顯示的清單重畫一次
       }, function (e) {
-        showMsg('pageMsg', '讀取門市季次失敗：' + errText(e));
-        renderStores();
+        showMsg('pageMsg', '讀取門市名稱失敗：' + errText(e));
       });
     });
   }).catch(function (e) {

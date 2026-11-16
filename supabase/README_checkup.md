@@ -435,3 +435,11 @@ select
 - 既有驗證在「全部既有 schema＋phase1＋本期 schema」的環境重跑：assess 249/249、backoffice 161/161、spotcheck 314/314、weak_suggest 177/177、bank 162/162、accounts 113/113、notes_visible 134/134、url_patch 84/84、phase1 378/378（第 459 行檢查已調整）、exam_request 388/388，**全過**。
 - 本期 schema 執行前後，其餘所有 public 函式的原始碼指紋比對：**除本期新增與修改的函式外完全相同**。
 - 反向測試：故意弄壞 20 種寫法（觸發器不排除健檢、待考回報誤完成、複檢可用健檢、弱項建議含健檢、名單 `<=`、排定資格 `<=`、已完成可取消、已開始可取消、送出守門拿掉、草稿索引不分 kind、開始健檢不檢查排定、每年一張索引失效、檢視沒有 kind、首次健檢判斷錯誤、店長看到別店、主管看到草稿、健檢身分約束拿掉、作廢算已完成、主管可改季次、updated_by 洩漏給非客服部），驗證腳本**全部抓得到**。
+
+## 九、各門市黃單排名（2026-11 新增，取代門市季次表畫面）
+
+- **新函式 `checkup_yellow_ranking(p_from date, p_to date)`**：在 `yellow_ranking_schema.sql`（可重複執行、不動任何資料）。回傳 `store_code, store_name, tickets, headcount` 四欄；`tickets`＝該期間（含頭尾）有效黃單張數（作廢不算、紅單不算），依 `spot_tickets.store_code`（開單當時門市）分組；`headcount`＝該門市目前在職、納入考核、已上線的人數；總公司不列；人數與張數都是 0 的門市不列。
+- **權限**：客服部、總公司主管、店長都回「全部門市」的彙總（老闆定案：店長看得到其他門市的名次與張數）；其他角色與未登入一律「沒有權限」；起訖日為空或起日大於迄日丟「日期範圍不正確」。函式只回彙總，不含黃單內容、原因、人員、網址與截圖；店長直接讀 `spot_tickets` 的 RLS 不變，仍只看得到自己門市。
+- **網頁**：`checkup.html` 的「門市季次表」分頁改為「黃單排名」（網址 `#ranking`，舊網址 `#stores` 也開它），年度＋期間（第 1～4 季、全年）＋排序（平均每人／總張數），可下載圖片與 A4 一頁 PDF。**季次表的畫面已拿掉**（不能再改各門市 Q1～Q4、不再顯示四季統計卡）；`checkup_store_quarter` 資料表與 `checkup_quarters_list`、`checkup_quarter_set` 函式原樣保留（網頁仍呼叫 `checkup_quarters_list` 查門市名稱）。
+- **執行**：在 `noredticket_schema.sql` 之後，貼 `yellow_ranking_schema.sql` 整份 → Run；再貼 `yellow_ranking_verify_fake.sql` 整份 → Run（全程 rollback，預期第一列「18/18 項通過」）。**網頁要在函式部署之後才上線**；函式沒部署時頁面會顯示「黃單排名功能尚未啟用」。
+- **限制**：人數是「目前」現況，查過去的季度時人數不是當時人數（黃單張數則是當時的）；人員換店後，舊單歸舊門市、人數歸新門市。

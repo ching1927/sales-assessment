@@ -78,7 +78,7 @@ label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-
 .regfoot{display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3);flex-wrap:wrap}
 .log{font-size:13px;color:var(--ink-2);margin-top:var(--sp-3);line-height:1.7}
 .txt{white-space:pre-wrap;overflow-wrap:anywhere}
-/* 頁內分頁（與 checkup.html 同一組四個膠囊：登記、抽查紀錄在本頁切換，門市季次表、健檢名單是連結） */
+/* 頁內分頁（與 checkup.html 同一組四個膠囊：登記、抽查紀錄在本頁切換，黃單排名、健檢單是連結） */
 .tophead{margin:0 0 var(--sp-4)}
 .pgtabs{display:flex;gap:6px;padding:5px;border-radius:var(--r-pill);background:var(--track);width:max-content;max-width:100%;overflow-x:auto}
 .pgtab{padding:9px 22px;border-radius:var(--r-pill);border:0;background:transparent;font-size:15px;font-weight:700;color:var(--ink-2);cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none;display:inline-block}
@@ -154,7 +154,7 @@ dialog::backdrop{background:var(--scrim)}
       <div class="pgtabs" role="tablist" aria-label="登記&amp;健檢分頁">
         <button type="button" class="pgtab" id="tabReg" role="tab" data-pane="paneReg" aria-selected="false" hidden>登記</button>
         <button type="button" class="pgtab" role="tab" data-pane="paneRecords" aria-selected="false">登記歷程</button>
-        <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#stores">門市季次表</a>
+        <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#ranking">黃單排名</a>
         <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#list">健檢單</a>
       </div>
     </div>
