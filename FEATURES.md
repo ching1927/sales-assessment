@@ -182,7 +182,7 @@
 ### 登記&健檢整併（導覽改名與四分頁；純前端，不動資料庫）
 
 - 導覽「登記&健檢」（原「健檢」）｜各頁 `ab-tab`，指向 `spotcheck.html`｜在 spotcheck.html 與 checkup.html 兩頁都亮黃底；375px 不爆版
-- 四個膠囊分頁（登記、登記歷程、黃單排名、健檢單；第三個原名「門市季次表」、第四個原名「健檢名單」，已改名）｜`spotcheck.html`（登記、抽查紀錄，頁內切換）、`checkup.html`（黃單排名、健檢單）｜另一頁的分頁是連結；網址 #reg、#records、#ranking、#list 直接開啟（舊網址 #stores 也開黃單排名）；客服部預設進登記，店長與主管沒有登記分頁、預設進抽查紀錄；舊的「抽查（黃單／紅單）」連結已拿掉
+- 四個膠囊分頁（登記、登記歷程、健檢單、門市黃單排行榜（2026-11 兩者對調、黃單排名改名）；原：第三個「門市季次表」、第四個「健檢名單」，已改名）｜`spotcheck.html`（登記、抽查紀錄，頁內切換）、`checkup.html`（黃單排名、健檢單）｜另一頁的分頁是連結；網址 #reg、#records、#ranking、#list 直接開啟（舊網址 #stores 也開黃單排名）；客服部預設進登記，店長與主管沒有登記分頁、預設進抽查紀錄；舊的「抽查（黃單／紅單）」連結已拿掉
 - 登記歷程分頁頂端「門市」下拉｜`spotcheck.html`｜同時篩選人員抽查狀態、單據清單、抽查紀錄三區塊（原三個區塊各自的門市下拉合併為這一個）；店長不顯示；其餘篩選、作廢、回填輔導、截圖、LINE 網址照舊（標記已執行、取消回考核期已於 2026-11 停用拿掉）
 - 停用紅單與回考核期（老闆 2026-11 定案）｜`supabase/noredticket_schema.sql`、`spotcheck.html`、`js/spotcheck-api.js`、`js/spotdims-core.js`、`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜黃單照開（待加強回覆）、可作廢、可回填輔導；不再有「滿 5 張黃單開紅單」「紅單滿 2 回考核期」「建議移除官方 LINE 權限」與「已執行／取消回考核期」；assess_start 不再依 probation_since 改身分、assess_submit 不再有「考核期成績單 >= 85 清除」；待考回報只剩「新人」「複檢」兩種情況（舊的「回考核期」回報仍可顯示）；資料表與欄位都保留｜驗證：`supabase/noredticket_verify_fake.sql`（PGlite 81/81）；網頁見 `tests/`
 - 待考回報的「回考核期」情況｜`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜【已停用 2026-11】不再提供選項，也不再預填；KIND_LABEL 保留「回考核期再考」只為舊紀錄顯示
