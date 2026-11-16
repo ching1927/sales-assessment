@@ -121,7 +121,7 @@
 
 ## 名冊加技師、公務機與官方 LINE 回覆權限（網頁已寫好，尚未連真實資料庫；需先依 supabase/README_roster.md「LINE 權限與新類別」備份並執行 roster_line_schema.sql）
 
-- 技師、公務機類別｜`roster.html`、`js/line-core.js`｜新增人員選職級「技師」或「公務機」：納入考核預設否、回覆狀態預設已上線；列表職級顯示有色標籤，納入考核欄顯示「否（免健檢）」；員編公務機用 OF-0000（也接受 MI／PT）
+- 技師、公務機類別｜`roster.html`、`js/line-core.js`｜新增人員選職級「技師」或「公務機」：納入考核預設否、回覆狀態預設已上線；列表職級顯示有色標籤，技師的納入考核欄顯示「否（免健檢）」，公務機的納入考核欄整格留白（不顯示開關）；員編公務機用 OF-0000（也接受 MI／PT）
 - 技師、公務機自動排除各名單｜`supabase/*.sql`（皆靠 `include_in_assessment`）、`supabase/roster_line_verify_fake.sql`｜驗證腳本區段 F：考核名單、抽查名單、待考回報候選、健檢資格都排除（即使被誤設成考核期）
 - 官方 LINE 回覆權限欄與篩選｜`roster.html`｜名冊多一欄：部分權限顯示一個個標籤、12 個全有顯示黑底「全部 12 個 LINE」、沒有顯示「—」；工具列多「類別」「LINE」「在職狀態（預設只看在職）」三個篩選
 - 客服部編輯 LINE 權限｜`roster.html`、`js/api.js`｜新增／編輯人員視窗有 12 個勾選框，存檔呼叫 `roster_set_line_access`（整批成功或不變）；LINE 權限沒改就不呼叫；主管與店長唯讀，店長只看到自己門市人員的 LINE 權限
