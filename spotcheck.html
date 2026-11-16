@@ -208,9 +208,6 @@ dialog::backdrop{background:var(--scrim)}
     </section>
 
     <h2 class="sec">人員抽查狀態</h2>
-    <section class="toolbar glass" id="stTool" aria-label="人員抽查狀態">
-      <span class="count" id="stCount"></span>
-    </section>
     <section class="tablebox glass">
       <div class="scroll" tabindex="0" aria-label="人員抽查狀態表，可左右捲動">
         <table style="min-width:640px">
@@ -325,7 +322,6 @@ dialog::backdrop{background:var(--scrim)}
     var rows = statusRows.filter(function (r) { return !pick || r.store_code === pick; }).sort(function (a, b) {
       return SpotApi.storeRank(a.store_code) - SpotApi.storeRank(b.store_code) || cmp(a.employee_id, b.employee_id);
     });
-    $("stCount").textContent = "共 " + rows.length + " 人";
     $('stBody').innerHTML = rows.map(function (r) {
       var y = Number(r.yellow_month) || 0;
       var st = y > 0 ? '<span class="tag y">本月有黃單</span>' : '<span class="tag ok">正常</span>';
