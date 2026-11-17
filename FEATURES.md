@@ -165,7 +165,7 @@
 
 - 共用版面與配色｜`app.css`、`js/appbar.js`、`img/*`｜6 個頁面頁首為黑底導覽列＋黑色標題橫幅，CI 色黑藍黃白；開 `roster.html` 登入後見黑底導覽、選中分頁黃底、頭像為信箱首字
 - 登入頁 LOGO｜`index.html`｜登入卡片頂部顯示貳輪嶼 LOGO，登入鈕黑底
-- 雷達圖（七面向得分率）｜`js/radar.js`、`backoffice.html`（近期考核的成績單詳情，客服部與主管/店長版都有；以及人員歷史）、`js/recent-reports.js`｜開一張成績單，標頭下方出現七面向雷達圖、最弱面向橘色，下方表格仍在；人員歷史的「七面向平均得分率」也是雷達圖
+- 雷達圖（七面向得分率）｜`js/radar.js`、`backoffice.html`（近期考核的成績單詳情，客服部與主管/店長版都有；以及人員歷史）、`js/recent-reports.js`｜開一張成績單，標頭下方出現七面向雷達圖、各面向文字與圓點最低分紅、最高分綠、其他黑（同分同色、全部同分則全黑；弱項分析旁數值表同規則），下方表格仍在；人員歷史的「七面向平均得分率」也是雷達圖
 - 名冊姓名連結｜`roster.html`、`backoffice.html`｜點名冊裡的姓名／暱稱，會跳到考核後台並直接打開那位同仁的歷史成績；沒有考核資料的人（離職或未納入考核且無成績單）顯示提示
 - PDF 走勢圖標籤避讓｜`js/report-pdf-core.js`（trendLabelLayout）、`js/report-pdf.js`、`js/advice-pdf.js`、`tests/report-pdf-core.test.js`｜成績單與建議單 PDF 的走勢折線圖：合格線文字與分數／判定標籤自動避開彼此、折線與圓點（例：74.5 夾在 85 與 70 兩線間、81.5 貼近 85）；跑 `node tests/report-pdf-core.test.js` 全過
 

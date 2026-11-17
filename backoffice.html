@@ -87,7 +87,8 @@ details.vals table{margin-top:8px}
 .legend i.solid{border-top:3px solid var(--accent)}
 table.radar-t{font-size:14px}
 table.radar-t td.nm{white-space:normal}
-table.radar-t tr.weakrow td{background:var(--warning-soft)}
+table.radar-t tr.tlo td.nm,table.radar-t tr.tlo td.num:nth-child(2){color:var(--danger);font-weight:700}
+table.radar-t tr.thi td.nm,table.radar-t tr.thi td.num:nth-child(2){color:var(--success);font-weight:700}
 table.radar-t .up{color:var(--success);font-weight:700}
 table.radar-t .down{color:var(--danger);font-weight:700}
 @media (max-width:820px){.radar-grid{grid-template-columns:minmax(0,1fr);gap:var(--sp-3)}}
@@ -476,8 +477,12 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
   // 雷達圖旁的數值表（排序與差異在 RecentReportsCore.radarRows）
   function radarTable(rows, scopeName, hasCmp) {
     var h = '<table class="radar-t"><thead><tr><th>面向</th><th class="num">' + (hasCmp ? esc(scopeName) + '得分率' : '得分率') + '</th>' + (hasCmp ? '<th class="num">全公司</th><th class="num">差異</th>' : '') + '</tr></thead><tbody>';
+    var vs = rows.filter(function (r) { return r.pct !== null; }).map(function (r) { return r.pct; });
+    var lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
     rows.forEach(function (r) {
-      h += '<tr' + (r.weak ? ' class="weakrow"' : '') + '><td class="nm">' + esc(r.name) + (r.weak ? ' <span class="tag unk">最弱</span>' : '') + '</td><td class="num"><b>' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</b></td>';
+      // 最低分紅字、最高分綠字、其他黑字（全部同分則都黑）
+      var tc = (r.pct === null || lo === hi) ? '' : r.pct === lo ? ' class="tlo"' : r.pct === hi ? ' class="thi"' : '';
+      h += '<tr' + tc + '><td class="nm">' + esc(r.name) + '</td><td class="num"><b>' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</b></td>';
       if (hasCmp) {
         var dt = r.diff === null ? '<span class="sub">—</span>' : r.diff > 0 ? '<span class="up">▲ ' + fmt(r.diff) + '</span>' : r.diff < 0 ? '<span class="down">▼ ' + fmt(-r.diff) + '</span>' : '<span class="sub">—</span>';
         h += '<td class="num">' + (r.co === null ? '—' : fmt(r.co) + '%') + '</td><td class="num">' + dt + '</td>';

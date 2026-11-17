@@ -33,20 +33,27 @@ var Radar = (function () {
       if (g === 100) return;
       s += '<text x="' + (CX + 4) + '" y="' + (CY - R * g / 100 + 11) + '" font-size="10" fill="var(--ink-3)">' + g + '</text>';
     });
+    // 最低分紅、最高分綠、其他黑（同分者同色；全部同分則都用黑）
+    var vals = rows.filter(function (r) { return r.pct !== null; }).map(function (r) { return r.pct; });
+    var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+    function tone(r) {
+      if (r.pct === null || mn === mx) return 'var(--ink)';
+      return r.pct === mn ? 'var(--danger, #DC2626)' : r.pct === mx ? 'var(--success, #16A34A)' : 'var(--ink)';
+    }
     // 資料區塊（無資料的面向以 0 畫，標示「—」）
     var data = rows.map(function (r, i) { return pt(i, n, R * (r.pct === null ? 0 : Math.max(0, Math.min(100, r.pct))) / 100); });
     s += '<polygon points="' + poly(data) + '" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>';
     rows.forEach(function (r, i) {
       if (r.pct === null) return;
-      s += '<circle cx="' + data[i][0].toFixed(1) + '" cy="' + data[i][1].toFixed(1) + '" r="' + (r.weak ? 5.5 : 4) + '" fill="' + (r.weak ? 'var(--warning)' : 'var(--accent)') + '" stroke="var(--surface-solid, #fff)" stroke-width="2"/>';
+      s += '<circle cx="' + data[i][0].toFixed(1) + '" cy="' + data[i][1].toFixed(1) + '" r="' + (tone(r) !== 'var(--ink)' ? 5.5 : 4) + '" fill="' + (tone(r) !== 'var(--ink)' ? tone(r) : 'var(--accent)') + '" stroke="var(--surface-solid, #fff)" stroke-width="2"/>';
     });
     // 軸名稱與數值
     rows.forEach(function (r, i) {
       var p = pt(i, n, R + 16), c = Math.cos(p[2]);
       var anchor = Math.abs(c) < 0.2 ? 'middle' : (c > 0 ? 'start' : 'end');
       var dy = Math.sin(p[2]) > 0.5 ? 12 : (Math.sin(p[2]) < -0.5 ? -4 : 4);
-      s += '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + dy).toFixed(1) + '" text-anchor="' + anchor + '" font-size="13" font-weight="600" fill="' + (r.weak ? 'var(--warning)' : 'var(--ink)') + '">' + esc(r.name) + '</text>' +
-        '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + dy + 15).toFixed(1) + '" text-anchor="' + anchor + '" font-size="13" font-weight="700" fill="' + (r.weak ? 'var(--warning)' : 'var(--accent-deep)') + '">' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</text>';
+      s += '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + dy).toFixed(1) + '" text-anchor="' + anchor + '" font-size="13" font-weight="600" fill="' + tone(r) + '">' + esc(r.name) + '</text>' +
+        '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + dy + 15).toFixed(1) + '" text-anchor="' + anchor + '" font-size="13" font-weight="700" fill="' + tone(r) + '">' + (r.pct === null ? '—' : fmt(r.pct) + '%') + '</text>';
     });
     return s + '</svg>';
   }
