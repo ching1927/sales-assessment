@@ -77,7 +77,8 @@ details.vals{margin-top:var(--sp-2)}
 details.vals summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
 details.vals table{margin-top:8px}
 .heat td.cell{text-align:center;font-variant-numeric:tabular-nums}
-.heat td.low{background:var(--warning-soft);color:var(--warning);font-weight:700}
+.heat td.low{background:var(--danger-soft);color:var(--danger);font-weight:700}
+.heat td.high{background:var(--success-soft);color:var(--success);font-weight:700}
 .heat td.sel,.heat th.sel{box-shadow:inset 3px 0 0 var(--accent)}
 .legend{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);font-size:12px;color:var(--ink-2);margin-top:var(--sp-2)}
 .legend i{display:inline-block;width:14px;height:0;border-top:2px dashed var(--ink-3);vertical-align:middle;margin-right:6px}
@@ -274,7 +275,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       <p class="note" id="iNote">圖上藍色實線為所選範圍，灰色虛線為全公司平均（選全公司時不畫）；橘色為最弱面向。右表按得分率由高到低排列，差異＝所選範圍減全公司。</p>
       <section class="card glass" id="heatCard">
         <h3 id="heatTitle">門市 × 面向 平均得分率</h3>
-        <p class="intro">每格為該門市該面向的平均得分率；低於 70% 標示「偏低」。期間條件同上；「—」代表沒有資料。</p>
+        <p class="intro">每格為該門市該面向的平均得分率；低於 70% 紅底標「偏低」，85% 以上綠底標「偏高」。期間條件同上；「—」代表沒有資料。</p>
         <div class="scroll" tabindex="0" aria-label="門市乘面向熱度表，可左右捲動"><div id="iHeat"></div></div>
       </section>
       <p class="note">算法：每張成績單的每個題組，取該面向的等級百分比（優良 100、尚可 70、待加強 40；不適用不計入），再對所有題組取平均。改制前的舊成績單照原等級計算（優 100、良 70、待加強 40、不及格 0），不換算。「最近 3 次」是對每位考生各取最近 3 張成績單再彙總。</p>
@@ -685,8 +686,8 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       var rr = dimRates(gather(st, per));
       h += '<tr><td' + (scope === st ? ' class="sel"' : '') + '><b>' + esc(sName(st)) + '</b></td>' + rr.map(function (x) {
         if (x.pct === null) return '<td class="cell">—</td>';
-        var low = x.pct < 70;
-        return '<td class="cell' + (low ? ' low' : '') + '">' + fmt(x.pct) + '%' + (low ? '<div style="font-size:12px">偏低</div>' : '') + '</td>';
+        var low = x.pct < 70, high = x.pct >= 85;
+        return '<td class="cell' + (low ? ' low' : high ? ' high' : '') + '">' + fmt(x.pct) + '%' + (low ? '<div style="font-size:12px">偏低</div>' : high ? '<div style="font-size:12px">偏高</div>' : '') + '</td>';
       }).join('') + '</tr>';
     });
     $('iHeat').innerHTML = (!reps.length || (!isMgr() && !heatStores.length)) ? '<div class="empty">目前沒有成績單可分析</div>' : h + '</tbody></table>';
