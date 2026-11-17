@@ -162,11 +162,11 @@ dialog::backdrop{background:var(--scrim)}
     <!-- ① 登記（客服部） -->
     <section class="pane" id="paneReg" role="tabpanel" hidden>
     <div id="regWrap" hidden>
-      <h2 class="sec">登記一次抽查（客服部）</h2>
+      <h2 class="sec">新增一筆登記（客服部）</h2>
       <form class="glass panel" id="regForm" novalidate>
         <div class="fgrid">
-          <div><label class="lb" for="rEmp">被抽查人員</label><select class="ctrl" id="rEmp"></select></div>
-          <div><label class="lb" for="rDay">抽查日期</label><input class="ctrl" type="date" id="rDay"></div>
+          <div><label class="lb" for="rEmp">登記人員</label><select class="ctrl" id="rEmp"></select></div>
+          <div><label class="lb" for="rDay">登記日期</label><input class="ctrl" type="date" id="rDay"></div>
           <div><label class="lb" for="rVerdict">判定</label><select class="ctrl" id="rVerdict"></select></div>
         </div>
         <label class="lb" for="rMsg">訊息抽檢-LINE聊天室網址</label>
@@ -183,10 +183,10 @@ dialog::backdrop{background:var(--scrim)}
           <div class="shots" id="rShots"></div>
         </div>
         <input type="file" id="rFile" accept="image/jpeg,image/png,image/webp" multiple hidden>
-        <label class="lb" for="rNote">一句說明（選填，會顯示在抽查紀錄與健檢單）</label>
+        <label class="lb" for="rNote">一句說明（選填，會顯示在登記紀錄與健檢單）</label>
         <input class="ctrl" id="rNote" maxlength="500" autocomplete="off" placeholder="例：客人問保固，回覆沒有附上條款">
         <div class="regfoot">
-          <button class="btn primary" id="rGo" type="submit">登記這次抽查</button>
+          <button class="btn primary" id="rGo" type="submit">送出這筆登記</button>
           <span class="sub">已勾 <b id="cntD">0</b> 個面向、<b id="cntS">0</b> 張截圖</span>
         </div>
         <div class="msg err" id="rErr" role="alert" hidden></div>
@@ -198,7 +198,7 @@ dialog::backdrop{background:var(--scrim)}
     <!-- ② 抽查紀錄：頂端「門市」下拉同時篩選下面三個區塊 -->
     <section class="pane" id="paneRecords" role="tabpanel" hidden>
     <section class="glass intro">
-      <b>規則：</b>抽查對象是「正式業務」。客服部每次抽查判定「優良回覆／待加強回覆」，並勾選<b>可改善面向</b>（可複選、不打分數）、附上截圖與說明；判定<b>待加強回覆</b>就開一張<b>黃單</b>（觀察單）。
+      <b>規則：</b>登記對象是「正式業務」。客服部每次登記判定「優良回覆／待加強回覆」，並勾選<b>可改善面向</b>（可複選、不打分數）、附上截圖與說明；判定<b>待加強回覆</b>就開一張<b>黃單</b>（觀察單）。
       黃單依日曆月累計，作為輔導與追蹤的依據。評錯的單可作廢（寫原因、不刪除）；店長可為黃單回填輔導紀錄。
     </section>
 
@@ -207,9 +207,9 @@ dialog::backdrop{background:var(--scrim)}
       <select class="ctrl" id="rcStore"><option value="">全部門市</option></select>
     </section>
 
-    <h2 class="sec">人員抽查狀態</h2>
+    <h2 class="sec">人員登記狀態</h2>
     <section class="tablebox glass">
-      <div class="scroll" tabindex="0" aria-label="人員抽查狀態表，可左右捲動">
+      <div class="scroll" tabindex="0" aria-label="人員登記狀態表，可左右捲動">
         <table style="min-width:640px">
           <thead><tr><th>人員</th><th>門市</th><th>本月黃單</th><th>狀態</th></tr></thead>
           <tbody id="stBody"></tbody>
@@ -233,19 +233,19 @@ dialog::backdrop{background:var(--scrim)}
       </div>
       <div class="empty" id="tEmpty" hidden>沒有符合條件的單據</div>
     </section>
-    <h2 class="sec">抽查紀錄（含優良回覆）</h2>
-    <section class="toolbar glass" aria-label="抽查紀錄篩選">
+    <h2 class="sec">登記紀錄（含優良回覆）</h2>
+    <section class="toolbar glass" aria-label="登記紀錄篩選">
       <select class="ctrl" id="iVerdict" aria-label="判定篩選"></select>
       <span class="count" id="iCount" aria-live="polite"></span>
     </section>
     <section class="tablebox glass">
-      <div class="scroll" tabindex="0" aria-label="抽查紀錄，可左右捲動">
+      <div class="scroll" tabindex="0" aria-label="登記紀錄，可左右捲動">
         <table style="min-width:960px">
           <thead><tr><th>日期</th><th>人員</th><th>門市</th><th>判定</th><th>可改善面向</th><th>原因與說明</th><th>截圖</th><th>聊天室</th></tr></thead>
           <tbody id="iBody"></tbody>
         </table>
       </div>
-      <div class="empty" id="iEmpty" hidden>目前沒有抽查紀錄</div>
+      <div class="empty" id="iEmpty" hidden>目前沒有登記紀錄</div>
       <div class="empty" id="iMoreWrap" hidden style="padding:var(--sp-3)"><button class="btn sm" id="iMore" type="button">顯示更多</button></div>
     </section>
     </section>
@@ -360,7 +360,7 @@ dialog::backdrop{background:var(--scrim)}
   function fillCands() {
     var cur = $('rEmp').value;
     var sorted = cands.slice().sort(function (a, b) { return SpotApi.storeRank(a.store_code) - SpotApi.storeRank(b.store_code) || cmp(a.id, b.id); });
-    $('rEmp').innerHTML = '<option value="">請選擇被抽查人員</option>' + sorted.map(function (c) {
+    $('rEmp').innerHTML = '<option value="">請選擇登記人員</option>' + sorted.map(function (c) {
       var nm = (c.nickname || '').trim() || (c.full_name || '').trim() || c.id;
       return '<option value="' + esc(c.id) + '">' + esc(nm + '（' + sName(c.store_code) + '・' + c.id + '）') + '</option>';
     }).join('');
@@ -475,10 +475,10 @@ dialog::backdrop{background:var(--scrim)}
       $('rWhy').value = ''; $('rMsg').value = ''; $('rNote').value = ''; $('rVerdict').value = '適當'; syncWhyLabel();
       Array.prototype.forEach.call($('rDims').querySelectorAll('input'), function (i) { i.checked = false; });
       regId = uuid(); clearShots();
-      toast('抽查已登記。');
+      toast('登記完成。');
       return reloadAll(true).catch(function (e) { showPageMsg('已登記，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
     }, function (e) { err.textContent = errText(e); err.hidden = false; })
-      .then(function () { busy = false; $('rGo').disabled = false; $('rGo').textContent = '登記這次抽查'; drawShots(); });
+      .then(function () { busy = false; $('rGo').disabled = false; $('rGo').textContent = '送出這筆登記'; drawShots(); });
   }
 
   // ====== 畫面：單據清單 ======
@@ -564,7 +564,7 @@ dialog::backdrop{background:var(--scrim)}
         '<td>' + (n ? '<button class="btn sm" type="button" data-shots="' + esc(r.id) + '">查看截圖（' + n + '）</button>' : '<span class="sub">—</span>') + '</td>' +
         '<td>' + chatCell({ kind: '黃', inspection_id: r.id }) + '</td></tr>';
     }).join('');
-    $('iEmpty').textContent = insList.length ? '沒有符合條件的抽查紀錄' : '目前沒有抽查紀錄';
+    $('iEmpty').textContent = insList.length ? '沒有符合條件的登記紀錄' : '目前沒有登記紀錄';
     $('iEmpty').hidden = list.length > 0;
     $('iMoreWrap').hidden = list.length <= insShown;
     $('iCount').textContent = '共 ' + list.length + ' 筆';
@@ -655,7 +655,7 @@ dialog::backdrop{background:var(--scrim)}
     $('whoBadge').textContent = lab;
     $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
     $('regWrap').hidden = !isCS(); $('tabReg').hidden = !isCS();
-    $('roleNote').textContent = isCS() ? '客服部可登記抽查、作廢單據、回填輔導。'
+    $('roleNote').textContent = isCS() ? '客服部可新增登記、作廢單據、回填輔導。'
       : isMgr() ? '只顯示自己門市的人員與單據；可為單據回填輔導紀錄，其餘唯讀。'
       : '總公司主管只能查看，不能登記、作廢或回填輔導。';
   }
