@@ -9,6 +9,8 @@
 })();
 
 /* 導覽列「待考回報」紅點：登入後（信箱被各頁寫入 #whoEmail 之後）呼叫資料庫函式 exam_req_badge()，大於 0 才顯示數字。
+   （店長＝自己門市考核期新人數，到「已上線」才消；客服部＝待處理回報＋待開通。不靠「已看」，點進頁面不會消。
+   另外「成績單&考核後台」分頁有第二顆紅點，呼叫 improve_badge()＝進行中的改善單數，到複檢完成才消。）
    任何失敗都安靜忽略，不影響頁面其他功能。各頁的 client 在各自的 api 檔裡沒有對外，所以這裡只從 localStorage 讀
    supabase-js 預設的 sb-<專案代號>-auth-token 取目前的 access_token，建一個「不存 session、不換 token、不監聽登入事件」的 client，
    用 Authorization 標頭帶 token 呼叫 RPC。絕不呼叫 refresh、不寫任何 storage；讀不到或 token 過期（RPC 回錯誤）就當沒有紅點。
@@ -20,6 +22,14 @@
   var badge = document.createElement('span');
   badge.className = 'ab-badge'; badge.hidden = true; badge.setAttribute('aria-label', '待處理數量');
   tab.appendChild(badge);
+  // 「成績單&考核後台」分頁的紅點（改善單進行中的數量，improve_badge()；到複檢完成／取消／離職才消，不因點進去而消）
+  var impTab = document.querySelector('a.ab-tab[href="backoffice.html"]');
+  var impBadge = null;
+  if (impTab) {
+    impBadge = document.createElement('span');
+    impBadge.className = 'ab-badge'; impBadge.hidden = true; impBadge.setAttribute('aria-label', '進行中的改善單數量');
+    impTab.appendChild(impBadge);
+  }
   // 目前 session 的 access_token（supabase-js 預設存在 localStorage 的 sb-<專案代號>-auth-token）；讀不到或解析失敗回 null
   function readToken(cfg) {
     try {
@@ -43,11 +53,20 @@
       });
     } catch (e) { return null; }
   }
-  function show(n) {
+  function showOn(el, n) {
     n = Number(n);
-    if (!(n > 0)) { badge.hidden = true; badge.textContent = ''; return; }
-    badge.textContent = n > 99 ? '99+' : String(Math.floor(n));
-    badge.hidden = false;
+    if (!(n > 0)) { el.hidden = true; el.textContent = ''; return; }
+    el.textContent = n > 99 ? '99+' : String(Math.floor(n));
+    el.hidden = false;
+  }
+  function show(n) { showOn(badge, n); }
+  // 改善單紅點：資料庫還沒有 improve_badge 或呼叫失敗就安靜略過（維持原狀）
+  function refreshImp(sb) {
+    if (!impBadge) return Promise.resolve();
+    return Promise.resolve(sb.rpc('improve_badge')).then(function (r) {
+      if (!r || r.error) return;
+      showOn(impBadge, r.data);
+    }, function () {});
   }
   function refresh() {
     try {
@@ -58,10 +77,11 @@
       var extra = Promise.resolve(sb.rpc('coached_pending_count')).then(function (r) {
         var n = r && !r.error ? Number(r.data) : 0; return n > 0 ? Math.floor(n) : 0;
       }, function () { return 0; });
+      var imp = refreshImp(sb);
       return Promise.resolve(sb.rpc('exam_req_badge')).then(function (r) {
-        if (!r || r.error) return;
-        return extra.then(function (n) { show((Number(r.data) > 0 ? Number(r.data) : 0) + n); });
-      }, function () {});
+        if (!r || r.error) return imp;
+        return extra.then(function (n) { show((Number(r.data) > 0 ? Number(r.data) : 0) + n); return imp; });
+      }, function () { return imp; });
     } catch (e) { return Promise.resolve(); }
   }
   window.AppBadge = { refresh: refresh, set: show };

@@ -34,6 +34,20 @@
     return p.then(function (r) { if (r.error) fail(r.error); return r; }, function (e) { fail(e); });
   }
 
+  // 下載管制的資料庫函式；還沒部署時（42883／PGRST202）回固定繁中提示
+  function dlRpc(name, args) {
+    return sb.rpc(name, args).then(function (r) {
+      if (r.error) {
+        var c = String(r.error.code || ''), m = String(r.error.message || '').toLowerCase();
+        if (c === '42883' || c === 'PGRST202' || m.indexOf('could not find the function') >= 0) {
+          var e = new Error('下載管制功能尚未啟用，請聯絡客服部。'); e.userMessage = e.message; e.notDeployed = true; throw e;
+        }
+        fail(r.error);
+      }
+      return r.data;
+    }, function (e) { fail(e); });
+  }
+
   window.CheckupApi = {
     explain: explain,
 
@@ -70,6 +84,23 @@
         }
         return r.data || [];
       }, function (e) { fail(e); });
+    },
+
+    // ---- 健檢單下載管制與下載紀錄（supabase/checkup_download_schema.sql）----
+    // 記一筆下載；店長日期沒到或不是自己門市資料庫會丟中文訊息。成功才可以產生檔案。
+    // o: { store, method:'一鍵下載'|'單人下載', kind:'季度'|'年度', year, quarter, employeeId, employeeName, peopleCount }
+    logDownload: function (o) {
+      return dlRpc('checkup_log_download', {
+        p_store: o.store, p_method: o.method, p_kind: o.kind, p_year: o.year, p_quarter: o.quarter,
+        p_employee_id: o.employeeId || null, p_employee_name: o.employeeName || null,
+        p_people_count: o.peopleCount == null ? null : o.peopleCount
+      });
+    },
+    // 各店彙總（只有客服部）；method：null 或 '一鍵下載'／'單人下載'
+    downloadSummary: function (method) { return dlRpc('checkup_download_summary', { p_method: method || null }).then(function (d) { return d || []; }); },
+    // 明細（只有客服部），新到舊，最多 500 筆
+    downloadList: function (store, method) {
+      return dlRpc('checkup_download_list', { p_store: store || null, p_method: method || null, p_limit: 500 }).then(function (d) { return d || []; });
     },
 
     // ---- 健檢單（每季抽查彙整）：直接讀 spot_inspections，RLS 已依角色過濾（店長只有自己門市）----

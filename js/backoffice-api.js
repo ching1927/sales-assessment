@@ -126,6 +126,19 @@
     cancelTicket: function (ticketId, reason) {
       return wrap(sb.rpc('improve_cancel', { p_ticket_id: ticketId, p_reason: reason }));
     },
+    // 輔導紀錄的編輯版本（新到舊）：客服部與該店店長可讀，其他人資料庫回「沒有權限」。
+    // 每列：version_no, coached_on, coach_note, edited_at, editor_label（門市-暱稱）, edited_by（只有客服部有值）, is_current
+    // 資料庫還沒執行 coach_history_schema.sql 時會失敗，由呼叫端決定要不要顯示版本資訊
+    coachVersions: function (ticketId) {
+      return wrap(sb.rpc('improve_coach_versions', { p_ticket_id: ticketId })).then(function (r) { return r.data || []; });
+    },
+    // 版本標題：「第 3 版（目前）」「第 1 版（首次回填）」「第 2 版」；只有一版時「第 1 版（目前、首次回填）」
+    coachVersionTitle: function (v) {
+      var tags = [];
+      if (v.is_current) tags.push('目前');
+      if (Number(v.version_no) === 1) tags.push('首次回填');
+      return '第 ' + v.version_no + ' 版' + (tags.length ? '（' + tags.join('、') + '）' : '');
+    },
 
     // ---- 成績單 PDF 用（只讀；權限由資料庫 RLS 把關）----
     // 某位考生的全部考核列（RLS 已過濾：客服部含草稿與作廢，主管與店長只有已送出；前端再用 ReportPdfCore 排除未送出、作廢）

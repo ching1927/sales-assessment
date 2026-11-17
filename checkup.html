@@ -131,6 +131,7 @@ dialog::backdrop{background:var(--scrim)}
         <a class="pgtab" id="tabReg" role="tab" aria-selected="false" href="spotcheck.html#reg" hidden>登記</a>
         <a class="pgtab" role="tab" aria-selected="false" href="spotcheck.html#records">登記歷程</a>
         <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢單</button>
+        <button type="button" class="pgtab" id="tabDl" role="tab" data-pane="paneDl" aria-selected="false" hidden>下載紀錄</button>
         <button type="button" class="pgtab on" role="tab" data-pane="paneRank" aria-selected="true">門市黃單排行榜</button>
       </div>
     </div>
@@ -164,12 +165,36 @@ dialog::backdrop{background:var(--scrim)}
           <span class="grow sub" id="listInfo" aria-live="polite"></span>
           <label for="listStore" class="sub" id="listStoreLb">門市</label><select id="listStore" class="ctrl"></select>
         </div>
-        <p class="sub" style="margin-bottom:var(--sp-3)">季次是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以登記日期計；這一季沒有登記紀錄的人不會出現。</p>
+        <div class="prevhead">
+          <span class="grow"></span>
+          <button type="button" class="btn primary" id="zipQ" disabled>一鍵下載全店季度健檢單（ZIP）</button>
+          <button type="button" class="btn primary" id="zipY" disabled hidden>一鍵下載全店年度健檢單（ZIP）</button>
+        </div>
+        <div class="sub" id="lockMsg" style="margin-bottom:var(--sp-2)"></div>
+        <div class="msg info" id="zipMsg" role="status" hidden></div>
+        <p class="sub" style="margin-bottom:var(--sp-3)">季次是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以登記日期計；這一季沒有登記紀錄的人不會出現。季度健檢單隔季 10 號起開放給店長下載（Q1→4/10、Q2→7/10、Q3→10/10）；第四季與年度→隔年 1/10。客服部與總公司主管不受限制。</p>
         <div class="msg err" id="listMsg" role="alert" hidden></div>
         <div class="msg info" id="pdfMsg" role="status" hidden></div>
         <div class="msg info" id="pdfMsgYear" role="status" hidden></div>
         <div class="scroll" tabindex="0" aria-label="健檢單清單，可左右捲動"><table class="list" id="rosterTable"><thead><tr><th>人員</th><th>門市</th><th class="num">本季登記次數</th><th class="num">待加強回覆次數</th><th>被勾最多的面向</th><th class="stick">操作</th></tr></thead><tbody id="listBody"></tbody></table></div>
         <div class="empty" id="listEmpty" hidden>這一季沒有登記紀錄。</div>
+      </section>
+    </section>
+
+    <!-- ③ 下載紀錄：各店健檢單下載彙總與明細（只有客服部看得到；資料庫函式也只給客服部） -->
+    <section class="pane" id="paneDl" role="tabpanel" hidden>
+      <section class="glass panel">
+        <div class="prevhead">
+          <label for="dlStore" class="sub">門市</label><select id="dlStore" class="ctrl"><option value="">全部門市</option></select>
+          <label for="dlMethod" class="sub">方式</label>
+          <select id="dlMethod" class="ctrl"><option value="">全部</option><option value="一鍵下載">一鍵下載</option><option value="單人下載">單人下載</option></select>
+          <span class="grow sub" id="dlInfo" aria-live="polite"></span>
+        </div>
+        <p class="sub" style="margin-bottom:var(--sp-3)">哪一間店、什麼時候、誰下載、下載了什麼；單人下載和一鍵下載分開記，季度與年度分開記。明細最多顯示最近 500 筆。</p>
+        <div class="msg err" id="dlMsg" role="alert" hidden></div>
+        <div class="scroll" tabindex="0" aria-label="各店下載彙總，可左右捲動"><table class="list" style="margin-bottom:var(--sp-4)"><thead><tr><th>門市</th><th class="num">總次數</th><th class="num">一鍵下載</th><th class="num">單人下載</th><th>最近一次</th></tr></thead><tbody id="dlSumBody"></tbody></table></div>
+        <div class="scroll" tabindex="0" aria-label="下載明細，可左右捲動"><table class="list"><thead><tr><th>下載時間</th><th>門市</th><th>下載人</th><th>方式</th><th>內容</th></tr></thead><tbody id="dlLogBody"></tbody></table></div>
+        <div class="empty" id="dlEmpty" hidden>沒有紀錄。</div>
       </section>
     </section>
 
@@ -189,13 +214,15 @@ dialog::backdrop{background:var(--scrim)}
 <script src="js/report-pdf-core.js"></script>
 <script src="js/spotdims-core.js"></script>
 <script src="js/checkup-sheet-core.js"></script>
+<script src="js/checkup-download-core.js"></script>
 <script src="js/checkup-api.js"></script>
 <script src="js/checkup-sheet-pdf.js"></script>
 <script src="js/store-ranking-core.js"></script>
 <script src="js/store-ranking-view.js"></script>
 <script>
 (function () {
-  var C = CheckupCore, SC = CheckupSheetCore, SR = StoreRankingCore, SV = StoreRankingView;
+  var C = CheckupCore, SC = CheckupSheetCore, SR = StoreRankingCore, SV = StoreRankingView, DC = CheckupDownloadCore;
+  var JSZIP_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -211,6 +238,8 @@ dialog::backdrop{background:var(--scrim)}
   var sheets = [], sheetSeq = 0, sheetsLoaded = false;   // 健檢單清單（現算自抽查紀錄）
   var rankRows = [], rankSeq = 0, rankLoaded = false, rankBusy = false;   // 黃單排名（資料庫函式彙總）
   var now = C.taipeiYearQuarter();
+  var dlLoaded = false, dlSeq = 0, dlStoreOpts = null;   // 下載紀錄分頁
+  var dlBusy = false;                                    // 單人下載或 ZIP 產生中（共用同一份隱藏版面，一次只做一件）
 
   function isCS() { return !!me && me.role === 'cs_admin'; }
   function isMgr() { return !!me && me.role === 'store_manager'; }
@@ -239,15 +268,20 @@ dialog::backdrop{background:var(--scrim)}
     });
     if (id === 'paneList' && !sheetsLoaded) loadSheets();
     if (id === 'paneRank' && !rankLoaded) loadRank();
+    if (id === 'paneDl' && !dlLoaded) loadDl();
   }
-  var HASH_PANE = { ranking: 'paneRank', stores: 'paneRank', list: 'paneList' };   // #stores 是舊網址（門市季次表），一樣開排名
-  var PANE_HASH = { paneRank: 'ranking', paneList: 'list' };
+  var HASH_PANE = { ranking: 'paneRank', stores: 'paneRank', list: 'paneList', downloads: 'paneDl' };   // #stores 是舊網址（門市季次表），一樣開排名
+  var PANE_HASH = { paneRank: 'ranking', paneList: 'list', paneDl: 'downloads' };
   document.querySelector('.pgtabs').addEventListener('click', function (e) {
     var b = e.target.closest('button.pgtab'); if (!b) return;
     var id = b.getAttribute('data-pane'); showPane(id);
     try { history.replaceState(null, '', '#' + PANE_HASH[id]); } catch (x) {}
   });
-  function openByHash() { showPane(HASH_PANE[(location.hash || '').replace('#', '')] || 'paneRank'); }
+  function openByHash() {
+    var id = HASH_PANE[(location.hash || '').replace('#', '')] || 'paneRank';
+    if (id === 'paneDl' && !isCS()) id = 'paneRank';   // 下載紀錄只有客服部
+    showPane(id);
+  }
   window.addEventListener('hashchange', openByHash);
 
   // ====== ① 黃單排名（資料庫函式 checkup_yellow_ranking 彙總；三種角色都看得到全部門市的張數，沒有黃單內容）======
@@ -328,14 +362,31 @@ dialog::backdrop{background:var(--scrim)}
       sheetsLoaded = false;
     });
   }
+  // 這個期間的某種健檢單，目前這個人能不能下載（店長要到開放日；客服部、主管不受限）
+  function dlOpen(kind) { return DC.isOpen(me.role, selYear(), selQ(), kind, DC.taipeiToday()); }
   function pdfBtn(r, kind, label) {
-    return '<button type="button" class="btn sm primary" data-e="' + esc(r.employee_id) + '" data-kind="' + kind + '">' + label + '</button>';
+    var open = dlOpen(kind);
+    return '<button type="button" class="btn sm primary" data-e="' + esc(r.employee_id) + '" data-kind="' + kind + '"' + (open ? '' : ' disabled') + '>' + label + '</button>' +
+      (open ? '' : ' <span class="sub">' + esc(DC.openLabel(selYear(), selQ(), kind)) + '</span>');
+  }
+  // 一鍵下載按鈕與提示：沒到開放日整顆灰掉；沒有人也灰掉
+  function renderZipBtns(rows) {
+    var q = selQ(), qOpen = dlOpen('quarter'), yOpen = dlOpen('year');
+    var has = rows.length > 0;
+    $('zipY').hidden = q !== 4;
+    $('zipQ').disabled = !qOpen || !has || dlBusy;
+    $('zipY').disabled = !yOpen || !has || dlBusy;
+    var t = [];
+    if (!qOpen) t.push('季度健檢單 ' + DC.openLabel(selYear(), q, 'quarter').replace(' 開放', ' 起開放下載'));
+    if (q === 4 && !yOpen) t.push('年度健檢單 ' + DC.openLabel(selYear(), q, 'year').replace(' 開放', ' 起開放下載'));
+    $('lockMsg').textContent = !DC.isRestricted(me.role) ? '客服部與總公司主管不受開放日期限制，隨時可下載。' : t.join('；');
   }
   function renderSheets(loading) {
     var y = selYear(), q = selQ();
     var rows = SC.filterByStore(sheets, isMgr() ? '' : $('listStore').value);
     $('listInfo').textContent = loading ? '載入中…' : SC.quarterLabel(y, q) + '　共 ' + rows.length + ' 人有登記紀錄';
     $('listEmpty').hidden = loading || rows.length > 0 || !!$('listMsg').textContent;
+    renderZipBtns(loading ? [] : rows);
     $('listBody').innerHTML = rows.map(function (r) {
       return '<tr>' +
         '<td class="who"><b>' + esc(r.name) + '</b><small class="mono">' + esc(r.employee_id) + '</small></td>' +
@@ -358,14 +409,126 @@ dialog::backdrop{background:var(--scrim)}
     if (!r) return;
     var kind = b.dataset.kind === 'year' ? 'year' : 'quarter', msgId = kind === 'year' ? 'pdfMsgYear' : 'pdfMsg';
     showMsg(msgId, '');   // 季度與年度的訊息各自顯示、互不影響
-    CheckupSheetPdf.run({ sum: r, year: selYear(), quarter: selQ(), storeName: sName(r.store_code), kind: kind, btn: b, msgEl: $(msgId) });
+    if (dlBusy) { showMsg(msgId, '另一份健檢單產生中，請稍候再按。'); $(msgId).className = 'msg err'; return; }
+    if (!dlOpen(kind)) { renderSheets(false); return; }
+    // 先記錄下載（資料庫在伺服端再檢查一次開放日期），成功才產生 PDF
+    dlBusy = true; b.disabled = true; renderZipBtns(SC.filterByStore(sheets, isMgr() ? '' : $('listStore').value));
+    CheckupApi.logDownload({ store: r.store_code, method: '單人下載', kind: DC.kindLabel(kind), year: selYear(), quarter: kind === 'year' ? 4 : selQ(),
+      employeeId: r.employee_id, employeeName: r.name }).then(function () {
+      b.disabled = false;
+      return CheckupSheetPdf.run({ sum: r, year: selYear(), quarter: selQ(), storeName: sName(r.store_code), kind: kind, btn: b, msgEl: $(msgId) });
+    }, function (e) {
+      b.disabled = false; var m = $(msgId); m.textContent = errText(e); m.className = 'msg err'; m.hidden = false;
+    }).then(function () { dlBusy = false; renderSheets(false); });
   });
+
+  // ====== 一鍵下載全店（ZIP）：每個門市先記一筆，成功才逐人產生 PDF 打包 ======
+  var zipPromise = null;
+  function loadJsZip() {
+    if (window.JSZip) return Promise.resolve();
+    if (!zipPromise) {
+      zipPromise = new Promise(function (ok, bad) {
+        var s = document.createElement('script'), tm = setTimeout(function () { fail(); }, 20000);
+        function fail() { clearTimeout(tm); s.remove(); zipPromise = null; bad(new Error('ZIP 打包工具載入失敗，請檢查網路後再試一次。')); }
+        s.src = JSZIP_SRC; s.async = true;
+        s.onload = function () { clearTimeout(tm); window.JSZip ? ok() : fail(); };
+        s.onerror = fail; document.head.appendChild(s);
+      });
+    }
+    return zipPromise;
+  }
+  function saveBlob(blob, name) {
+    var a = document.createElement('a'), u = URL.createObjectURL(blob);
+    a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(u); }, 10000);
+  }
+  function zipDownload(kind) {
+    if (dlBusy) return;
+    var y = selYear(), q = kind === 'year' ? 4 : selQ(), btn = $(kind === 'year' ? 'zipY' : 'zipQ');
+    var rows = SC.filterByStore(sheets, isMgr() ? me.store_code : $('listStore').value);
+    if (!rows.length || !dlOpen(kind)) { renderSheets(false); return; }
+    var groups = DC.groupByStore(rows), storeName = groups.length === 1 ? sName(groups[0].store_code) : '';
+    var msg = $('zipMsg'), old = btn.textContent, total = rows.length, doneN = 0, failN = 0, ctx = null, pdfLib = window.CheckupSheetPdf;
+    function say(t, ok) { msg.textContent = t; msg.className = 'msg ' + (ok ? 'info' : 'err'); msg.hidden = !t; }
+    dlBusy = true; renderSheets(false); btn.textContent = '產生中…'; say('');
+    // 1) 先記錄（每個門市一筆；店長日期沒到，資料庫會拒絕）
+    groups.reduce(function (p, g) {
+      return p.then(function () {
+        return CheckupApi.logDownload({ store: g.store_code, method: '一鍵下載', kind: DC.kindLabel(kind), year: y, quarter: q, peopleCount: g.items.length });
+      });
+    }, Promise.resolve()).then(function () {
+      var rg = kind === 'year' ? SC.yearRange(y) : SC.contextRange(y, q);
+      return Promise.all([pdfLib._loadLibs(), loadJsZip(), CheckupApi.sheetInspections(rg.start, rg.end)]);
+    }).then(function (res) {
+      ctx = res[2];
+      var zip = new window.JSZip();
+      var entries = DC.zipEntries(groups, function (s) {
+        return kind === 'year' ? SC.fileNameYear({ name: s.name, year: y }) : SC.fileName({ name: s.name, year: y, quarter: q });
+      }, sName);
+      // 2) 一個一個人產生（共用隱藏版面，不能並行）
+      return entries.reduce(function (p, en) {
+        return p.then(function () {
+          say('產生中 ' + (doneN + failN + 1) + ' / ' + total + '…', true);
+          var s = en.sum, m = SC.buildModel(s, { year: y, quarter: q, storeName: sName(s.store_code), nowMs: Date.now(), ctxRows: ctx, yearRows: kind === 'year' ? ctx : null });
+          return pdfLib._loadImages(m).then(function (imgs) { return pdfLib._makePdf(m, imgs, kind); }).then(function (o) {
+            zip.file(en.path, o.pdf.output('arraybuffer')); doneN++;
+          }, function () { failN++; });
+        });
+      }, Promise.resolve()).then(function () {
+        if (!doneN) throw new Error('產生 PDF 失敗，請稍後再試一次；若持續發生請聯絡客服部。');
+        say('打包中…', true);
+        return zip.generateAsync({ type: 'blob' });
+      });
+    }).then(function (blob) {
+      var name = DC.zipName({ kind: kind, year: y, quarter: q, storeName: storeName });
+      saveBlob(blob, name);
+      say('已產生：' + name + '（共 ' + doneN + ' 份）' + (failN ? '；有 ' + failN + ' 份產生失敗未放入，請改用單人下載補下。' : ''), !failN);
+    }).catch(function (e) {
+      say((e && (e.userMessage || e.message)) || '產生失敗，請稍後再試。', false);
+    }).then(function () { dlBusy = false; btn.textContent = old; renderSheets(false); });
+  }
+  $('zipQ').addEventListener('click', function () { zipDownload('quarter'); });
+  $('zipY').addEventListener('click', function () { zipDownload('year'); });
+
+  // ====== ③ 下載紀錄（只有客服部）======
+  function loadDl() {
+    var seq = ++dlSeq, store = $('dlStore').value, method = $('dlMethod').value;
+    dlLoaded = true; showMsg('dlMsg', ''); $('dlInfo').textContent = '載入中…';
+    Promise.all([CheckupApi.downloadSummary(method), CheckupApi.downloadList(store, method)]).then(function (res) {
+      if (seq !== dlSeq) return;
+      var sum = res[0], log = res[1];
+      if (!dlStoreOpts) {
+        dlStoreOpts = C.sortStores(sum, 'store_code');
+        $('dlStore').innerHTML = '<option value="">全部門市</option>' + dlStoreOpts.map(function (o) {
+          return '<option value="' + esc(o.store_code) + '">' + esc(o.store_name) + '</option>'; }).join('');
+        $('dlStore').value = store;
+      }
+      var shown = C.sortStores(sum.filter(function (r) { return !store || r.store_code === store; }), 'store_code');
+      $('dlSumBody').innerHTML = shown.map(function (r) {
+        return '<tr><td><b>' + esc(r.store_name) + '</b></td><td class="num">' + r.total + '</td><td class="num">' + r.bulk + '</td><td class="num">' + r.single +
+          '</td><td>' + (r.last_at ? esc(DC.logTime(r.last_at)) : '—') + '</td></tr>';
+      }).join('');
+      $('dlLogBody').innerHTML = log.map(function (r) {
+        return '<tr><td class="mono">' + esc(DC.logTime(r.downloaded_at)) + '</td><td>' + esc(r.store_name) + '</td><td>' + esc(r.by_name) + '</td>' +
+          '<td><span class="tag ' + (r.method === '一鍵下載' ? 'new' : 'reg') + '">' + esc(r.method) + '</span></td><td>' + esc(DC.logContent(r)) + '</td></tr>';
+      }).join('');
+      $('dlEmpty').hidden = log.length > 0;
+      $('dlInfo').textContent = '明細 ' + log.length + ' 筆';
+    }, function (e) {
+      if (seq !== dlSeq) return;
+      showMsg('dlMsg', e && e.notDeployed ? errText(e) : '讀取下載紀錄失敗：' + errText(e));
+      $('dlInfo').textContent = ''; $('dlSumBody').innerHTML = ''; $('dlLogBody').innerHTML = ''; $('dlEmpty').hidden = true;
+      dlLoaded = false;
+    });
+  }
+  ['dlStore', 'dlMethod'].forEach(function (id) { $(id).addEventListener('change', loadDl); });
 
   // ====== 載入與角色 ======
   function applyRole() {
     var lab = ROLE_LABEL[me.role] + (me.role === 'store_manager' ? '・' + sName(me.store_code) : '');
     $('whoBadge').textContent = lab;
     $('toAssess').hidden = !isCS(); $('toAccounts').hidden = !isCS(); $('toQuestions').hidden = !isCS();
+    $('tabDl').hidden = !isCS();       // 下載紀錄分頁只有客服部看得到
     $('tabReg').hidden = !isCS();      // 登記分頁只有客服部看得到（在 spotcheck.html）
     $('listStore').hidden = isMgr(); $('listStoreLb').hidden = isMgr();   // 店長固定自己門市（資料庫只給自己門市），不顯示門市篩選
     $('roleNote').textContent = isCS() ? '黃單排名可下載圖片或 PDF；健檢單可下載 PDF（用該季登記紀錄現算，不另存、不計分）。'

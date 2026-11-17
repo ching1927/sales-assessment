@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>編輯紀錄／下載管制 樣品（假資料）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#E7E9EE;font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;color:#111;line-height:1.5;padding:16px}
+.wrap{max-width:960px;margin:0 auto}
+.tip{font-size:12.5px;color:#6B7280;margin-bottom:10px}
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tab{font:inherit;font-size:14px;font-weight:700;padding:8px 16px;border-radius:999px;border:1px solid #0A0A0A;background:#fff;cursor:pointer}
+.tab.on{background:#0A0A0A;color:#D9FF00}
+.panel{background:#fff;border-radius:14px;padding:18px 22px;margin-bottom:14px;display:none}
+.panel.on{display:block}
+h3{font-size:18px;font-weight:800;margin-bottom:4px}
+.sub{font-size:13px;color:#6B7280}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+.bar label{font-size:13px;color:#4A4F5A}
+select{font:inherit;font-size:14px;padding:6px 10px;border:1px solid #D5D9E0;border-radius:8px;background:#fff}
+.sp{flex:1}
+.btn{font:inherit;font-size:14px;font-weight:700;padding:7px 14px;border-radius:10px;border:1px solid #0A0A0A;background:#fff;cursor:pointer}
+.btn.p{background:#0A0A0A;color:#D9FF00}
+.btn.sm{font-size:13px;padding:5px 11px}
+.btn[disabled]{border-color:#C9CED6;color:#9AA1AD;background:#F3F5F8;cursor:not-allowed}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{background:#F3F5F8;font-size:12.5px;padding:8px 8px;text-align:center;border-bottom:1px solid #E3E7ED}
+td{padding:9px 8px;border-bottom:1px solid #E3E7ED;text-align:center}
+td.l,th.l{text-align:left}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px}
+.tag.ok{background:#EAF2EE;color:#226347}.tag.wait{background:#F3F5F8;color:#6B7280}.tag.b{background:#EAF1FB;color:#1F5FB4}
+.rec{background:#F7F9FC;border-radius:10px;padding:12px 14px;margin:12px 0;font-size:14.5px;line-height:1.8}
+.rec .txt{white-space:pre-wrap}
+.ver{border-left:3px solid #D9FF00;background:#fff;padding:8px 12px;margin:8px 0;font-size:14px;border-radius:0 8px 8px 0;box-shadow:0 0 0 1px #E3E7ED inset}
+.ver.cur{border-left-color:#1F6FD1}
+.ver .h{font-size:12.5px;color:#6B7280;margin-bottom:2px}
+.lock{font-size:12px;color:#8A6D00;margin-top:3px}
+.note{font-size:12.5px;color:#6B7280;margin-top:10px;line-height:1.7}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:16px}
+.dlg.on{display:flex}
+.dlg .box{background:#fff;border-radius:14px;padding:20px 22px;max-width:520px;width:100%;max-height:90vh;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="tip">樣品（假資料、假姓名）。上方三個分頁對應這次要做的三個畫面；按鈕與選單可以點，但不會真的下載或存檔。</p>
+<div class="tabs">
+  <button class="tab on" data-p="p1">① 輔導紀錄＋編輯紀錄</button>
+  <button class="tab" data-p="p2">② 健檢單：開放日期＋一鍵下載（店長／客服）</button>
+  <button class="tab" data-p="p3">③ 客服：各店下載紀錄</button>
+</div>
+
+<!-- ① -->
+<div class="panel on" id="p1">
+  <h3>改善單：輔導紀錄</h3>
+  <p class="sub">店長仍可編輯；每次按「儲存」都會多一筆版本，舊內容不會被蓋掉。客服部與該店店長都看得到。</p>
+  <div class="rec">
+    <b>輔導紀錄</b>　<span class="tag ok">已輔導</span><br>
+    輔導日期：2026-11-12<br>回填人：示範B-小店長<br>最後編輯：2026-11-16 18:40（共編輯 2 次）<br>
+    備註：<span class="txt">已跟小明一對一聊過，回覆前先把客人問題讀完，這週再觀察。補充：週三已再確認一次。</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn p" type="button" onclick="document.getElementById('edDlg').classList.add('on')">編輯輔導紀錄</button>
+    <button class="btn" type="button" onclick="document.getElementById('hsDlg').classList.add('on')">編輯紀錄（3 筆）</button>
+  </div>
+  <p class="note">・「編輯紀錄」會列出每一版：誰改的、什麼時候、當時的內容。<br>・輔導日期若有被改，也一併記在版本裡。</p>
+</div>
+
+<!-- ② -->
+<div class="panel" id="p2">
+  <h3>健檢單下載</h3>
+  <p class="sub">季度健檢單隔季 10 號起開放（Q1→4/10、Q2→7/10、Q3→10/10）；第四季與年度→隔年 1/10。客服部不受限制。</p>
+  <div class="bar">
+    <label>看的人 <select id="who"><option value="mgr">店長：示範B店</option><option value="cs">客服部</option></select></label>
+    <label>情境日期（今天） <select id="today">
+      <option value="2026-11-17">2026-11-17</option>
+      <option value="2026-04-05">2026-04-05（Q1 還沒開放）</option>
+      <option value="2026-04-12">2026-04-12（Q1 已開放）</option>
+      <option value="2027-01-12">2027-01-12（Q4、年度已開放）</option></select></label>
+    <label>期間 <select id="per"><option value="Q1">2026 第1季</option><option value="Q3">2026 第3季</option><option value="Q4" selected>2026 第4季＋年度</option></select></label>
+    <span class="sp"></span>
+    <button class="btn p" id="zipBtn" type="button">一鍵下載全店季度健檢單（ZIP）</button>
+    <button class="btn p" id="zipYBtn" type="button">一鍵下載全店年度健檢單（ZIP）</button>
+  </div>
+  <div id="lockMsg" class="lock" style="margin:-4px 0 8px"></div>
+  <table><thead><tr><th class="l">姓名</th><th>登記次數</th><th>下載</th></tr></thead><tbody id="tb2"></tbody></table>
+  <p class="note">・還沒到開放日：按鈕變灰，旁邊寫「幾月幾日開放」。<br>・一鍵下載＝把這間店、全部人員的健檢單打包成一個 ZIP，按一次記 1 次。<br>・季度與年度分開：第四季時有「季度」「年度」兩顆一鍵下載鈕，各自一個 ZIP、各自記次數；其他季只有季度那顆。</p>
+</div>
+
+<!-- ③ -->
+<div class="panel" id="p3">
+  <h3>各店健檢單下載紀錄（客服部才看得到）</h3>
+  <p class="sub">哪一間店、什麼時候、誰下載、下載了什麼。單人下載和一鍵下載分開記。</p>
+  <div class="bar">
+    <label>門市 <select id="f3"><option value="">全部門市</option><option>示範A店</option><option>示範B店</option><option>示範C店</option></select></label>
+    <label>方式 <select id="m3"><option value="">全部</option><option>一鍵下載</option><option>單人下載</option></select></label>
+  </div>
+  <table style="margin-bottom:14px"><thead><tr><th class="l">門市</th><th>總次數</th><th>一鍵下載</th><th>單人下載</th><th>最近一次</th></tr></thead><tbody id="sum3"></tbody></table>
+  <table><thead><tr><th>下載時間</th><th class="l">門市</th><th class="l">下載人</th><th>方式</th><th class="l">內容</th></tr></thead><tbody id="log3"></tbody></table>
+</div>
+</div>
+
+<!-- 編輯對話框 -->
+<div class="dlg" id="edDlg"><div class="box">
+  <h3>編輯輔導紀錄</h3><p class="sub" style="margin-bottom:10px">小明（MI-9001）</p>
+  <label class="sub">輔導日期</label><br><input type="date" value="2026-11-12" style="font:inherit;padding:6px;margin:4px 0 10px;border:1px solid #D5D9E0;border-radius:8px"><br>
+  <label class="sub">備註</label><br>
+  <textarea rows="4" style="width:100%;font:inherit;padding:8px;border:1px solid #D5D9E0;border-radius:8px;margin:4px 0">已跟小明一對一聊過，回覆前先把客人問題讀完，這週再觀察。補充：週三已再確認一次。</textarea>
+  <p class="note" style="margin:0 0 10px">按「儲存」會新增一筆編輯紀錄，原本的內容仍可在「編輯紀錄」查到。</p>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" type="button" onclick="this.closest('.dlg').classList.remove('on')">取消</button><button class="btn p" type="button" onclick="this.closest('.dlg').classList.remove('on');alert('樣品：正式版這裡會新增一筆編輯紀錄')">儲存</button></div>
+</div></div>
+
+<!-- 歷史對話框 -->
+<div class="dlg" id="hsDlg"><div class="box">
+  <h3>輔導紀錄・編輯紀錄</h3><p class="sub" style="margin-bottom:8px">小明（MI-9001）｜由新到舊</p>
+  <div class="ver cur"><div class="h">第 3 版（目前）｜2026-11-16 18:40｜示範B-小店長</div>輔導日期 2026-11-12<br>已跟小明一對一聊過，回覆前先把客人問題讀完，這週再觀察。補充：週三已再確認一次。</div>
+  <div class="ver"><div class="h">第 2 版｜2026-11-13 09:10｜示範B-小店長</div>輔導日期 2026-11-12<br>已跟小明一對一聊過，回覆前先把客人問題讀完，這週再觀察。</div>
+  <div class="ver"><div class="h">第 1 版（首次回填）｜2026-11-12 20:05｜示範B-小店長</div>輔導日期 2026-11-12<br>已跟小明聊過。</div>
+  <div style="text-align:right;margin-top:10px"><button class="btn" type="button" onclick="this.closest('.dlg').classList.remove('on')">關閉</button></div>
+</div></div>
+
+<script>
+function $(i){return document.getElementById(i)}
+document.querySelectorAll('.tab').forEach(function(b){b.onclick=function(){
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});b.classList.add('on');
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});$(b.dataset.p).classList.add('on')}});
+
+// ② 開放日期：Q1→4/10、Q2→7/10、Q3→10/10、Q4與年度→隔年1/10
+var OPEN={Q1:'2026-04-10',Q2:'2026-07-10',Q3:'2026-10-10',Q4:'2027-01-10',Y:'2027-01-10'};
+var PPL=[['小明',9],['小華',7],['小美',11],['小安',6]];
+function md(s){var a=s.split('-');return +a[0]+'/'+(+a[1])+'/'+(+a[2])}
+function render2(){
+  var cs=$('who').value==='cs',today=$('today').value,per=$('per').value;
+  function ok(k){return cs||today>=OPEN[k]}
+  function btn(label,k){return ok(k)?'<button class="btn sm" type="button">'+label+'</button>':'<button class="btn sm" disabled>'+label+'</button> <span class="lock">'+md(OPEN[k])+' 開放</span>'}
+  $('tb2').innerHTML=PPL.map(function(p){
+    var h=btn(per==='Q4'?'下載季度健檢單':'下載健檢單',per);
+    if(per==='Q4')h+=' '+btn('下載年度健檢單','Y');
+    return '<tr><td class="l"><b>'+p[0]+'</b></td><td>'+p[1]+'</td><td>'+h+'</td></tr>'}).join('');
+  $('zipBtn').disabled=!ok(per);
+  $('zipYBtn').style.display=per==='Q4'?'':'none';
+  $('zipYBtn').disabled=!ok('Y');
+  $('lockMsg').textContent=cs?'客服部不受開放日期限制，隨時可下載。':(ok(per)?'':('這個期間的健檢單 '+md(OPEN[per])+' 起開放下載。'));
+}
+['who','today','per'].forEach(function(i){$(i).onchange=render2});
+$('zipBtn').onclick=$('zipYBtn').onclick=function(){alert('樣品：正式版這裡會下載 ZIP，並記一筆「一鍵下載」到客服的下載紀錄')};
+render2();
+
+// ③ 假紀錄
+var LOG=[
+ ['2026-11-17 10:25','示範B店','示範B-小店長','一鍵下載','2026 年度｜全店 4 人'],
+ ['2026-11-17 10:21','示範B店','示範B-小店長','一鍵下載','2026 第3季｜全店 4 人'],
+ ['2026-11-15 16:02','示範A店','示範A-阿達','單人下載','小王｜2026 第3季'],
+ ['2026-11-14 09:48','示範A店','示範A-阿達','一鍵下載','2026 第3季｜全店 6 人'],
+ ['2026-11-12 14:30','示範C店','示範C-咖啡','單人下載','小林｜2026 第3季'],
+ ['2026-11-12 14:27','示範C店','示範C-咖啡','單人下載','小陳｜2026 第3季'],
+ ['2026-10-12 11:05','示範B店','示範B-小店長','一鍵下載','2026 第2季｜全店 4 人']];
+function render3(){
+  var f=$('f3').value,m=$('m3').value;
+  var rows=LOG.filter(function(r){return(!f||r[1]===f)&&(!m||r[3]===m)});
+  var stores=['示範A店','示範B店','示範C店'].filter(function(s){return!f||s===f});
+  $('sum3').innerHTML=stores.map(function(s){
+    var a=LOG.filter(function(r){return r[1]===s&&(!m||r[3]===m)});
+    var z=a.filter(function(r){return r[3]==='一鍵下載'}).length;
+    return '<tr><td class="l"><b>'+s+'</b></td><td>'+a.length+'</td><td>'+z+'</td><td>'+(a.length-z)+'</td><td>'+(a[0]?a[0][0]:'—')+'</td></tr>'}).join('');
+  $('log3').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td class="l">'+r[1]+'</td><td class="l">'+r[2]+'</td><td><span class="tag '+(r[3]==='一鍵下載'?'b':'wait')+'">'+r[3]+'</span></td><td class="l">'+r[4]+'</td></tr>'}).join('')||'<tr><td colspan="5" class="sub">沒有紀錄</td></tr>';
+}
+['f3','m3'].forEach(function(i){$(i).onchange=render3});render3();
+</script>
+</body>
+</html>

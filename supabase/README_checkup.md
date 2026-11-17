@@ -443,3 +443,13 @@ select
 - **網頁**：`checkup.html` 的「門市季次表」分頁改為「黃單排名」（網址 `#ranking`，舊網址 `#stores` 也開它），年度＋期間（第 1～4 季、全年）＋排序（平均每人／總張數），可下載圖片與 A4 一頁 PDF。**季次表的畫面已拿掉**（不能再改各門市 Q1～Q4、不再顯示四季統計卡）；`checkup_store_quarter` 資料表與 `checkup_quarters_list`、`checkup_quarter_set` 函式原樣保留（網頁仍呼叫 `checkup_quarters_list` 查門市名稱）。
 - **執行**：在 `noredticket_schema.sql` 之後，貼 `yellow_ranking_schema.sql` 整份 → Run；再貼 `yellow_ranking_verify_fake.sql` 整份 → Run（全程 rollback，預期第一列「18/18 項通過」）。**網頁要在函式部署之後才上線**；函式沒部署時頁面會顯示「黃單排名功能尚未啟用」。
 - **限制**：人數是「目前」現況，查過去的季度時人數不是當時人數（黃單張數則是當時的）；人員換店後，舊單歸舊門市、人數歸新門市。
+
+## 十、健檢單下載管制與下載紀錄（2026-11 新增）
+
+- **規則（老闆定案）**：店長只能在開放日（台北時間、含當日）之後下載健檢單：Q1→當年 4/10、Q2→7/10、Q3→10/10；Q4 季度健檢單與年度健檢單→隔年 1/10。沒到日期按鈕灰掉並標「M/D 開放」，資料庫也會擋。客服部不受限；總公司主管比照客服部不受限。
+- **檔案**：`checkup_download_schema.sql`（可重複執行，不動既有資料）、`checkup_download_verify_fake.sql`（全程 rollback，預期第一列「78/78 項通過」）。
+- **資料表** `checkup_download_log`：只增不改（觸發器擋 update／delete／truncate），網頁角色完全沒有直接權限。
+- **函式**：`checkup_log_download(p_store, p_method, p_kind, p_year, p_quarter, p_employee_id, p_employee_name, p_people_count)`（店長限自己門市、日期未到丟「這份健檢單 M/D 起開放下載」）；`checkup_download_summary(p_method)` 各店彙總、`checkup_download_list(p_store, p_method, p_limit)` 明細，兩者只有客服部讀得到，其他角色「沒有權限」。
+- **網頁**（`checkup.html`）：健檢單分頁每人下載鈕、一鍵下載全店季度／年度 ZIP（JSZip 3.10.1，首次按才從 cdnjs 載入；客服部選全部門市時 ZIP 內依門市分資料夾）；新增「下載紀錄」分頁 `#downloads`（只有客服部）。**一律先記錄成功才產生檔案**。
+- **執行順序**：先貼 `checkup_download_schema.sql` 再上線網頁；函式沒部署時，下載會顯示「下載管制功能尚未啟用」並不產生檔案。
+- **已知限制**：記錄成功後若 PDF 產生失敗，紀錄仍在（記的是「按下載」）；客服部選全部門市的一鍵下載，每個門市各記一筆。

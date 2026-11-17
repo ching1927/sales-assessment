@@ -145,5 +145,15 @@
     coach: function (ticketId, coachedOn, note) {
       return wrap(sb.rpc('spot_coach', { p_ticket_id: ticketId, p_coached_on: coachedOn, p_note: note }));
     },
+    // 某張黃單的輔導紀錄版本（新到舊；客服部與該店店長，其他人資料庫回「沒有權限」）
+    coachVersions: function (ticketId) {
+      return wrap(sb.rpc('spot_coach_versions', { p_ticket_id: ticketId })).then(function (r) { return r.data || []; });
+    },
+    // 單據清單用：每張有版本的黃單的版本數與最後編輯時間，回傳 { 單據id: 統計列 }（需先執行 spot_coach_history_schema.sql）
+    coachStats: function () {
+      return wrap(sb.rpc('spot_coach_version_stats')).then(function (r) {
+        var m = {}; (r.data || []).forEach(function (x) { m[x.ticket_id] = x; }); return m;
+      });
+    },
   };
 })();

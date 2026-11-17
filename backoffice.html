@@ -111,6 +111,10 @@ dialog::backdrop{background:var(--scrim)}
 .rec{margin-top:var(--sp-3);padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.6}
 .rec b{color:var(--ink-2)}
 .rec .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+.ver{border-left:3px solid #D9FF00;padding:8px 12px;margin:8px 0;font-size:14px;line-height:1.6;border-radius:0 var(--r-sm) var(--r-sm) 0;box-shadow:var(--hairline)}
+.ver.cur{border-left-color:var(--accent)}
+.ver .h{font-size:12.5px;color:var(--ink-2);margin-bottom:2px}
+.ver .txt{white-space:pre-wrap;overflow-wrap:anywhere}
 .actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);justify-content:flex-end;margin-top:var(--sp-4)}
 .field{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-top:var(--sp-3)}
 .field textarea,.field input[type=date],.field select{display:block;width:100%;margin-top:6px;font-weight:400}
@@ -350,6 +354,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
   var reps = [], repById = {}, repsByEmp = {};      // 已送出的成績單（整理後）
   var dimByAid = {};                                 // 成績單 id → [{dim, pct}]
   var tickets = [];
+  var cverCache = {};     // 改善單 id → 輔導紀錄版本列（新到舊）；'load' 讀取中、'err' 讀不到（例如資料庫還沒執行 coach_history_schema.sql）
   var pendingBook = {};   // 「已輔導但尚未約考」：{ 改善單編號: 列 }（資料庫依身分過濾）
   var storeOpts = [], heatStores = [];
   var openSid = null, openTid = null, dyn = [], busy = false;
@@ -733,8 +738,15 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       '<dt>期限</dt><dd class="mono">' + esc(t.due_date) + '</dd>' +
       '<dt>改善面向</dt><dd>' + dimTags(t.target_dims) + '</dd></dl>';
     if (t.coached_on || t.coached_at || t.coach_note) {
-      h += '<div class="rec"><b>輔導紀錄</b><br>輔導日期：' + esc(t.coached_on || '—') + '<br>回填人：' + esc(who(t.coached_by, 'mgr')) + '<br>回填時間：' + esc(stamp(t.coached_at)) +
-        '<br>備註：<span class="txt">' + (t.coach_note ? esc(t.coach_note) : '（未填）') + '</span></div>';
+      var vs = cverCache[t.id], vn = Array.isArray(vs) ? vs.length : 0;
+      h += '<div class="rec"><b>輔導紀錄</b><br>輔導日期：' + esc(t.coached_on || '—');
+      if (vn) {   // 有版本：回填人＝第 1 版的編輯人；兩版以上再顯示最後編輯（次數＝第 1 版之後的編輯次數）
+        h += '<br>回填人：' + esc(editorText(vs[vn - 1])) + '<br>回填時間：' + esc(stamp(vs[vn - 1].edited_at));
+        if (vn > 1) h += '<br>最後編輯：' + esc(stamp(vs[0].edited_at)) + '（共編輯 ' + (vn - 1) + ' 次）' + esc(editorText(vs[0]));
+      } else {
+        h += '<br>回填人：' + esc(who(t.coached_by, 'mgr')) + '<br>回填時間：' + esc(stamp(t.coached_at));
+      }
+      h += '<br>備註：<span class="txt">' + (t.coach_note ? esc(t.coach_note) : '（未填）') + '</span></div>';
     }
     if (t.status === 'closed') {
       var cr = t.closed_by_assessment_id ? repById[t.closed_by_assessment_id] : null;
@@ -746,6 +758,9 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       h += '<div class="rec"><b>取消資訊</b><br>原因：<span class="txt">' + esc(t.cancel_reason || '—') + '</span><br>取消人：' + esc(who(t.cancelled_by, 'cs')) + '<br>取消時間：' + esc(stamp(t.cancelled_at)) + '</div>';
     }
     h += '<div class="actions">';
+    if (Array.isArray(cverCache[t.id]) && cverCache[t.id].length) {
+      h += '<button class="btn" type="button" data-act="cvhist">編輯紀錄（' + cverCache[t.id].length + ' 筆）</button>';
+    }
     if (isCS() && isOpenT(t)) {
       h += '<button class="btn" type="button" data-act="edit">編輯面向與期限</button><button class="btn primary" type="button" data-act="close">結案</button><button class="btn danger" type="button" data-act="cancel">取消改善單</button>';
     }
@@ -754,14 +769,30 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     }
     return h + '<button class="btn" type="button" data-closeB="1">關閉</button></div></div>';
   }
+  // 編輯人顯示「門市-暱稱」（資料庫算好的 editor_label）；沒有才退回舊的 who()
+  function editorText(v) { return v && v.editor_label ? v.editor_label : who(v && v.edited_by, 'mgr'); }
+  // 讀這張單的輔導紀錄版本（只有客服部與該店店長讀得到；讀不到就不顯示版本資訊，其餘照舊）
+  function ensureVers(t) {
+    if (!(t.coached_on || t.coached_at || t.coach_note)) return;
+    if (!(isCS() || (isMgr() && t.store_code === me.store_code))) return;
+    if (cverCache[t.id] === 'err') delete cverCache[t.id];
+    if (cverCache[t.id] !== undefined) return;
+    cverCache[t.id] = 'load';
+    BackofficeApi.coachVersions(t.id).then(function (rows) { cverCache[t.id] = rows; }, function () { cverCache[t.id] = 'err'; })
+      .then(function () {
+        var cur = openTid === t.id && $('dlgB').open && ticketById(t.id);
+        if (cur) $('dlgB').innerHTML = ticketDetailHtml(cur);
+      });
+  }
   function openTicket(id) {
     var t = ticketById(id); if (!t) return;
     openTid = id; $('dlgB').innerHTML = ticketDetailHtml(t); if (!$('dlgB').open) $('dlgB').showModal();
+    ensureVers(t);
   }
   function refreshB() {
     if (!$('dlgB').open) return;
     var t = openTid && ticketById(openTid);
-    if (t) $('dlgB').innerHTML = ticketDetailHtml(t); else $('dlgB').close();
+    if (t) { $('dlgB').innerHTML = ticketDetailHtml(t); ensureVers(t); } else $('dlgB').close();
   }
 
   // 動作對話框（點擊時才建立；不符權限的身分，函式一開始就擋掉，畫面上也不會有入口）
@@ -847,6 +878,18 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       submitAct(D, yes, '#xErr', function () { return BackofficeApi.cancelTicket(t.id, txt); }, '改善單已取消。');
     });
   }
+  // 編輯紀錄對話框：每一版由新到舊（唯讀）；沒有權限或讀不到版本時，詳情不會出現這個按鈕
+  function actHist(t) {
+    var vs = cverCache[t.id];
+    if (!Array.isArray(vs) || !vs.length) return;
+    var D = makeDlg('<h2>輔導紀錄・編輯紀錄</h2><p>' + esc(tName(t)) + '（' + esc(t.employee_id) + '）｜由新到舊</p>' +
+      vs.map(function (v) {
+        return '<div class="ver' + (v.is_current ? ' cur' : '') + '"><div class="h">' + esc(BackofficeApi.coachVersionTitle(v)) + '｜' + esc(stamp(v.edited_at)) + '｜' + esc(editorText(v)) + '</div>' +
+          '輔導日期 ' + esc(v.coached_on || '—') + '<br><span class="txt">' + esc(v.coach_note || '') + '</span></div>';
+      }).join('') +
+      '<div class="actions"><button class="btn" type="button" data-no="1">關閉</button></div>');
+    D.el.classList.add('wide');
+  }
   function actCounsel(t) {
     if (!isMgr() || t.store_code !== me.store_code || !isOpenT(t)) return;
     var openDate = dateOf(t.created_at), td = today(), had = t.status === 'coached';
@@ -860,7 +903,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       var date = D.q('#gDate').value, note = D.q('#gNote').value.trim(), err = D.q('#gErr'), now = today();
       var m = !date ? '請選擇輔導日期。' : date < openDate ? '輔導日期不可早於開單日（' + openDate + '）。' : date > now ? '輔導日期不可晚於今天。' : !note ? '輔導備註必填。' : '';
       if (m) { err.textContent = m; err.hidden = false; return; }
-      submitAct(D, D.q('#gOk'), '#gErr', function () { return BackofficeApi.markCoached(t.id, date, note); }, had ? '輔導紀錄已更新。' : '已回填為「已輔導」。',
+      submitAct(D, D.q('#gOk'), '#gErr', function () { return BackofficeApi.markCoached(t.id, date, note).then(function (r) { delete cverCache[t.id]; return r; }); }, had ? '輔導紀錄已更新。' : '已回填為「已輔導」。',
         had ? '' : CoachedCore.requestsUrl(t.id));   // 第一次按「已輔導」成功後直接帶去待考回報（編輯既有紀錄不跳轉）
     });
   }
@@ -930,7 +973,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     var a = e.target.closest('[data-act]'); if (!a) return;
     var t = ticketById(openTid); if (!t) return;
     var k = a.dataset.act;
-    if (k === 'edit') actEdit(t); else if (k === 'close') actClose(t); else if (k === 'cancel') actCancel(t); else if (k === 'counsel') actCounsel(t);
+    if (k === 'edit') actEdit(t); else if (k === 'close') actClose(t); else if (k === 'cancel') actCancel(t); else if (k === 'counsel') actCounsel(t); else if (k === 'cvhist') actHist(t);
   });
   BackofficeApi.onSignedOut(function () { goLogin(''); });
 

@@ -78,6 +78,11 @@ label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-
 .regfoot{display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3);flex-wrap:wrap}
 .log{font-size:13px;color:var(--ink-2);margin-top:var(--sp-3);line-height:1.7}
 .txt{white-space:pre-wrap;overflow-wrap:anywhere}
+/* 輔導紀錄編輯版本（樣品：編輯紀錄與下載管制樣品 ①） */
+.ver{border-left:3px solid var(--ci-yellow);background:var(--surface-solid);padding:8px 12px;margin:8px 0;font-size:14px;line-height:1.6;border-radius:0 var(--r-sm) var(--r-sm) 0;box-shadow:inset 0 0 0 1px var(--ink-line)}
+.ver.cur{border-left-color:var(--accent)}
+.ver .vh{font-size:12.5px;color:var(--ink-3);margin-bottom:2px}
+.verlist{max-height:60vh;overflow-y:auto}
 /* 頁內分頁（與 checkup.html 同一組四個膠囊：登記、抽查紀錄在本頁切換，黃單排名、健檢單是連結） */
 .tophead{margin:0 0 var(--sp-4)}
 .pgtabs{display:flex;gap:6px;padding:5px;border-radius:var(--r-pill);background:var(--track);width:max-content;max-width:100%;overflow-x:auto}
@@ -273,11 +278,47 @@ dialog::backdrop{background:var(--scrim)}
     });
   }
   function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+  // ==== coach-versions-core begin（純函式；tests/spot-coach-history.test.js 會擷取這一段測試，改動請維持無外部相依）====
+  // 台北時間「YYYY-MM-DD HH:mm」；無法解析回「—」
+  function fmtTaipei(iso) {
+    var d = new Date(iso);
+    if (!iso || isNaN(d.getTime())) return '—';
+    return d.toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 16);
+  }
+  // 清單用：由版本統計一列算出「最後編輯：時間（共編輯 N 次）」與「編輯紀錄（N 筆）」；沒有版本回 null
+  function coachEditInfo(stat) {
+    var n = stat && Number(stat.version_count);
+    if (!n || n < 1) return null;
+    return { lastText: n > 1 ? '最後編輯：' + fmtTaipei(stat.last_edited_at) + '（共編輯 ' + (n - 1) + ' 次）' : '', btnText: '編輯紀錄（' + n + ' 筆）', count: n };
+  }
+  // 編輯人顯示：「門市-暱稱」（資料庫算好）；空白時退而用信箱 @ 前面；都沒有回「—」
+  function editorText(v) {
+    var l = v && v.editor_label ? String(v.editor_label).trim() : '';
+    if (l) return l;
+    var m = v && v.edited_by ? String(v.edited_by).split('@')[0].trim() : '';
+    return m || '—';
+  }
+  // 版本標頭：第 N 版（目前／首次回填）｜時間｜編輯人
+  function versionHead(v) {
+    var tags = [];
+    if (v.is_current) tags.push('目前');
+    if (Number(v.version_no) === 1) tags.push('首次回填');
+    return '第 ' + v.version_no + ' 版' + (tags.length ? '（' + tags.join('、') + '）' : '') + '｜' + fmtTaipei(v.edited_at) + '｜' + editorText(v);
+  }
+  // 版本清單（rows 新到舊）→ HTML；內容一律跳脫
+  function versionsHtml(rows) {
+    if (!rows || !rows.length) return '<p class="sub">目前沒有編輯紀錄。</p>';
+    return rows.map(function (v) {
+      return '<div class="ver' + (v.is_current ? ' cur' : '') + '"><div class="vh">' + esc(versionHead(v)) + '</div>輔導日期 ' + esc(v.coached_on) + '<div class="txt">' + esc(v.coach_note) + '</div></div>';
+    }).join('');
+  }
+  // ==== coach-versions-core end ====
   function today() { return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Taipei' }).slice(0, 10); }
 
   // ====== 狀態 ======
   var me = null, stores = [], storeName = {};
   var statusRows = [], tickets = [], cands = [], msgById = {}, insList = [], insById = {};
+  var coachStats = null;   // 黃單輔導版本統計 { 單據id: 統計列 }；null＝資料庫函式尚未啟用或讀取失敗，畫面就不顯示版本資訊
   var busy = false, dyn = [], insShown = 30;
   var INS_PAGE = 30;
   var regId = '', shots = [], shotChain = Promise.resolve(), shotBusy = 0;
@@ -515,6 +556,8 @@ dialog::backdrop{background:var(--scrim)}
       var coach = vd ? '<span class="sub">—</span>'
         : t.coached_on ? '<span class="tag ok">已輔導</span> <span class="mono">' + esc(t.coached_on) + '</span><div class="sub txt">' + esc(t.coach_note || '') + '</div>'
         : '<span class="sub">尚未輔導</span>';
+      var ci = vd || !coachStats ? null : coachEditInfo(coachStats[t.id]);
+      if (ci) coach += (ci.lastText ? '<div class="sub">' + esc(ci.lastText) + '</div>' : '') + '<button class="btn sm" data-hist="' + esc(t.id) + '" type="button">' + esc(ci.btnText) + '</button>';
       var ops = '';
       if (canCoach(t)) ops += '<button class="btn sm" data-coach="' + esc(t.id) + '" type="button">' + (t.coached_on ? '編輯輔導' : '回填輔導') + '</button> ';
       if (canVoid(t)) ops += '<button class="btn sm outdanger" data-void="' + esc(t.id) + '" type="button">作廢</button>';
@@ -634,18 +677,31 @@ dialog::backdrop{background:var(--scrim)}
       submitAct(D, D.q('#cOk'), '#cErr', function () { return SpotApi.coach(t.id, date, note); }, had ? '輔導紀錄已更新。' : '已回填輔導。');
     });
   }
+  // 編輯紀錄：新到舊列出每一版（客服部與該店店長；資料庫另外把關）
+  function showCoachHistory(t) {
+    var D = makeDlg('<h2>輔導紀錄・編輯紀錄</h2><p>' + esc(t.employee_label || t.employee_id) + '（' + esc(t.employee_id) + '）｜由新到舊</p>' +
+      '<div class="verlist" id="hsList"><p class="sub">載入中…</p></div><div class="msg err" id="hsErr" role="alert" hidden></div>' +
+      '<div class="actions"><button class="btn" type="button" data-no="1">關閉</button></div>');
+    D.el.style.maxWidth = '560px';
+    SpotApi.coachVersions(t.id).then(function (rows) { D.q('#hsList').innerHTML = versionsHtml(rows); },
+      function (e) { D.q('#hsList').innerHTML = ''; var g = D.q('#hsErr'); g.textContent = errText(e); g.hidden = false; });
+  }
   // ====== 載入 ======
   function renderAll() {
     applyRole(); fillStoreFilter(); renderStatus(); fillEmpFilter(); renderTickets(); renderInspections();
   }
   function reloadAll(withCands) {
     var jobs = [SpotApi.loadStatus(), SpotApi.loadTickets(), SpotApi.loadInspections()];
-    if (withCands && isCS()) jobs.push(SpotApi.loadCandidates());
-    return Promise.all(jobs).then(function (r) {
+    var cs = withCands && isCS();
+    if (cs) jobs.push(SpotApi.loadCandidates());
+    // 版本統計只有客服部與店長讀得到；讀不到（函式未啟用等）就不顯示版本資訊，不影響頁面
+    var stat = (isCS() || isMgr()) ? SpotApi.coachStats().catch(function () { return null; }) : Promise.resolve(null);
+    return Promise.all([Promise.all(jobs), stat]).then(function (rr) {
+      var r = rr[0]; coachStats = rr[1];
       statusRows = r[0]; tickets = r[1].filter(function (t) { return t.kind === '黃'; });   // 只顯示黃單（紅單已停用）
       msgById = {}; insById = {}; insList = r[2];
       r[2].forEach(function (i) { msgById[i.id] = i.message; insById[i.id] = i; });
-      if (r[3]) { cands = r[3]; fillCands(); }
+      if (cs) { cands = r[3]; fillCands(); }
       renderAll();
     });
   }
@@ -710,6 +766,7 @@ dialog::backdrop{background:var(--scrim)}
     var b = e.target.closest('button'); if (!b) return;
     var t;
     if (b.dataset.coach) { t = ticketById(b.dataset.coach); if (t) actCoach(t); }
+    else if (b.dataset.hist) { t = ticketById(b.dataset.hist); if (t) showCoachHistory(t); }
     else if (b.dataset.void) { t = ticketById(b.dataset.void); if (t) actVoid(t); }
   });
   SpotApi.onSignedOut(function () { goLogin(''); });
