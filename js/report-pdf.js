@@ -133,7 +133,7 @@
         '<text x="' + (L0 - 8) + '" y="' + (Y(v) + 4) + '" font-size="12" text-anchor="end" fill="var(--ink-2)">' + v + '</text>';
     });
     // 標籤位置交給 ReportPdfCore.trendLabelLayout 避讓：合格線文字不壓資料點／折線，資料點標籤不壓合格線文字
-    var PL = [[70, '新人合格線 70'], [85, '正式合格線 85']];
+    var PL = [[70, '新人合格線 70']];
     var lay = Core.trendLabelLayout({ lineX: { l: L0, r: W - R }, bounds: { l: L0, r: W - 2, t: 2, b: H - B - 2 },
       lines: PL.map(function (l) { return { y: Y(l[0]), text: l[1] }; }),
       points: points.map(function (r, k) { return { x: xs[k], y: Y(r.total), score: fmt(r.total), verdict: (showVerdict || k === curIdx) ? (r.verdict || '') : '' }; }) });
