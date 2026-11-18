@@ -258,7 +258,7 @@
   function totalSvg(qs, R) {
     var ts = scoreOf(totalModel(qs)), em = ts ? emphOf(ts) : {};
     return radarSvg([{ scores: ts, color: COLORS.blue, fill: 'rgba(31,111,209,.12)', width: 2.5, dots: true, dotColors: dotColorsOf(em) }],
-      { labelIdx: 0, R: R || 160, fs: 18, emph: em, tagMode: 'replace', subSingle: true });
+      { labelIdx: 0, R: R || 160, fs: 18, emph: em, tagMode: 'replace' });
   }
 
   // 各面向的具體建議（草稿，老闆之後會確認文字；日後只要改這張表）

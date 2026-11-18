@@ -226,8 +226,8 @@ eq((TS.svg.match(/★ 全年強項/g) || []).length, 2, '強項並列兩個都�
 eq((TS.svg.match(/▲ 最需要加強/g) || []).length, 1, '最弱標 ▲ 最需要加強');
 ok(TS.svg.indexOf('fill="' + S.COLORS.greenTx + '"') > 0 && TS.svg.indexOf('fill="' + S.COLORS.redTx + '"') > 0, '強項標籤綠色、最弱標籤紅色');
 ok(TS.svg.indexOf('fill="' + S.COLORS.green + '" stroke="#fff"') > 0 && TS.svg.indexOf('fill="' + S.COLORS.red + '" stroke="#fff"') > 0, '強項點綠色、最弱點紅色');
-ok(TS.svg.indexOf('文字正確通順，排版方便易…') > 0 && TS.svg.indexOf('預先評估客訴風險，避免不…') > 0, '過長副標單行加「…」截斷');
-ok(TS.svg.indexOf('排版方便易讀') < 0, '被截斷的副標完整文字不在圖上（表格才有）');
+ok(TS.svg.indexOf('易…') < 0 && TS.svg.indexOf('不…') < 0, '過長副標不再被「…」截斷');
+ok(TS.svg.indexOf('排版方便易讀') > 0, '過長副標完整折行顯示在圖上');
 ok(TS.svg.indexOf('聽懂客戶需求') < 0, '有強調標籤的面向以標籤取代副標');
 texts(TS.svg).forEach(function (t) { ok(t.l >= 0 && t.r <= TS.width, '全年綜合星狀圖文字不被裁切：' + t.txt); });
 ok(S.totalSvg([null, null, null, { checks: 5, weak: 0, counts: [0, 0, 0, 0, 0, 0, 0] }]).svg.indexOf('最需要加強') < 0, '全 100%：沒有最弱標示');
