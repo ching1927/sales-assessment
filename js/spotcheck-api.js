@@ -79,7 +79,7 @@
     },
 
     // ---- 讀取（RLS 已依角色過濾）----
-    // 每位正式人員的當月黃單數（資料庫仍回傳舊的紅單、回考核期欄位，畫面不用）
+    // 每位正式人員的當月異常回覆數（資料庫仍回傳舊的紅單、回考核期欄位，畫面不用）
     loadStatus: function () {
       return wrap(sb.rpc('spot_status')).then(function (r) { return r.data || []; });
     },
@@ -94,7 +94,7 @@
           .order('issued_on', { ascending: false }).order('created_at', { ascending: false }).order('id').range(from, to);
       });
     },
-    // 抽查紀錄：訊息（LINE 聊天室網址）用來對應黃單的 inspection_id；面向、說明、截圖路徑給畫面顯示；
+    // 抽查紀錄：訊息（LINE 聊天室網址）用來對應異常回覆的 inspection_id；面向、說明、截圖路徑給畫面顯示；
     // total_score 只有舊紀錄有值（舊制七面向分數）；RLS 已依角色過濾（店長只有自己門市）。不讀 levels、不讀考官信箱。
     loadInspections: function () {
       return pageAll(function (from, to) {
@@ -145,11 +145,11 @@
     coach: function (ticketId, coachedOn, note) {
       return wrap(sb.rpc('spot_coach', { p_ticket_id: ticketId, p_coached_on: coachedOn, p_note: note }));
     },
-    // 某張黃單的輔導紀錄版本（新到舊；客服部與該店店長，其他人資料庫回「沒有權限」）
+    // 某張異常回覆的輔導紀錄版本（新到舊；客服部與該店店長，其他人資料庫回「沒有權限」）
     coachVersions: function (ticketId) {
       return wrap(sb.rpc('spot_coach_versions', { p_ticket_id: ticketId })).then(function (r) { return r.data || []; });
     },
-    // 單據清單用：每張有版本的黃單的版本數與最後編輯時間，回傳 { 單據id: 統計列 }（需先執行 spot_coach_history_schema.sql）
+    // 單據清單用：每張有版本的異常回覆的版本數與最後編輯時間，回傳 { 單據id: 統計列 }（需先執行 spot_coach_history_schema.sql）
     coachStats: function () {
       return wrap(sb.rpc('spot_coach_version_stats')).then(function (r) {
         var m = {}; (r.data || []).forEach(function (x) { m[x.ticket_id] = x; }); return m;

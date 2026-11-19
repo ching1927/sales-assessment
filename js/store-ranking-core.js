@@ -1,9 +1,9 @@
 /*
- * 各門市黃單排名的純函式（不連資料庫、不碰畫面）。資料來源是資料庫函式 checkup_yellow_ranking（supabase/yellow_ranking_schema.sql）。
+ * 各門市異常回覆預警榜的純函式（不連資料庫、不碰畫面）。資料來源是資料庫函式 checkup_yellow_ranking（supabase/yellow_ranking_schema.sql）。
  * 瀏覽器：window.StoreRankingCore；Node：module.exports。
  *
  * 用法：
- *   StoreRankingCore.PERIODS / SORTS                  期間（Q1~Q4、Y 全年）與排序方式（avg 平均每人、tot 黃單總張數）
+ *   StoreRankingCore.PERIODS / SORTS                  期間（Q1~Q4、Y 全年）與排序方式（avg 平均每人、tot 異常回覆總張數）
  *   StoreRankingCore.periodRange(year, period)        { start:'YYYY-MM-DD', end:'YYYY-MM-DD' }（日曆季／全年，含頭尾）；不合法回 null
  *   StoreRankingCore.periodLabel(year, period)        '2026 年 第4季'／'2026 年 全年'
  *   StoreRankingCore.defaultPeriod(nowMs)             台北今天所在的 { year, period }（period 為 'Q1'~'Q4'）
@@ -11,11 +11,11 @@
  *   StoreRankingCore.rank(rows, sortKey, myStore)     整理資料庫回傳的列 -> 排名後的列
  *        每列 { store_code, store_name, tickets, headcount, avg(null＝人數為 0), rank(null＝沒有名次), mine, barPct }
  *        sortKey 'avg'（預設）：平均每人少的在前；人數為 0 的門市沒有平均、沒有名次，排最後
- *        sortKey 'tot'：黃單總張數少的在前
+ *        sortKey 'tot'：異常回覆總張數少的在前
  *        名次：同值並列（1、2、2、4）；同名次的門市依門市固定順序排
  *   StoreRankingCore.summary(ranked, sortKey)         { best, worst, total }；best／worst 為 { names:[…], value:'0.29 張／人' } 或 null
  *   StoreRankingCore.formatAvg(row)                   平均每人（小數 2 位）；沒有人數回 '—'
- *   StoreRankingCore.fileBase(year, period)           下載檔名（不含副檔名）：門市黃單排名_2026_第4季
+ *   StoreRankingCore.fileBase(year, period)           下載檔名（不含副檔名）：門市異常回覆預警榜_2026_第4季
  */
 (function (root) {
   var isNode = typeof module !== 'undefined' && module.exports;
@@ -96,7 +96,7 @@
     return list;
   }
 
-  // 摘要：黃單最少（第一名並列都列出）、黃單最多（最後名次並列都列出）、全公司黃單總張數
+  // 摘要：異常回覆最少（第一名並列都列出）、異常回覆最多（最後名次並列都列出）、全公司異常回覆總張數
   function summary(ranked, sortKey) {
     var key = sortKey === 'tot' ? 'tot' : 'avg';
     var ranks = (ranked || []).filter(function (r) { return r.rank != null; });
@@ -112,7 +112,7 @@
   }
 
   function fileBase(year, period) {
-    return '門市黃單排名_' + year + '_' + (period === 'Y' ? '全年' : '第' + String(period).slice(1) + '季');
+    return '門市異常回覆預警榜_' + year + '_' + (period === 'Y' ? '全年' : '第' + String(period).slice(1) + '季');
   }
 
   var api = {

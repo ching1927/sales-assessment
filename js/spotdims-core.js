@@ -86,7 +86,7 @@
     d = d || {};
     var lines = ['已登記：' + label + '，' + day + '，判定「' + verdictLabel(verdict) + '」；可改善面向 ' +
       (d.dims_count != null ? d.dims_count : 0) + ' 項、截圖 ' + (d.shots_count != null ? d.shots_count : 0) + ' 張。'];
-    if (d.yellow_id) lines.push('已開立一張黃單。');
+    if (d.yellow_id) lines.push('已列為一次異常回覆。');
     return lines;
   }
 

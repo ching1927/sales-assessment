@@ -76,7 +76,7 @@
 - `assess_start`：以 spotcheck 版為基礎，只多一段 `elsif period_status = '考核期'`（probation_since 為空）→ 新人／自動，不管到職日、不用手動指定。
 - `assess_submit`：以 spotcheck 版為基礎；總分、判定、`weakest_dims`、`item_count` 只用核心題組，追加題一樣要評完才能送出且照常寫入各自的 item_score；送出後依規則 1、3 轉已上線、記 `passed_on`、新增待開通（`on conflict do nothing`＋唯一索引保證同一張成績單一筆）。**回考核期通過分支有守門（審查建議）**：先鎖員工列，只有員工目前 `probation_since` 有值或 `period_status = '考核期'` 才清除、轉已上線、設 `passed_on`、新增待開通；否則（已取消回考核期，或另一張草稿已先通過）只正常送出成績單、不再新增待開通、不改 `passed_on`。新人分支原本就有同樣守門，兩個分支規則一致。`spot_probations` 改已通過的既有更新照舊（不受守門影響）。
 - `assess_weak_profile`、`exam_req_candidates`、`exam_req_create`、`exam_req_badge`：以各自最後生效版本為基礎，只改規格要求的部分。
-- **`spot_register`**（以 `url_patch.sql` 版為基礎）：只改一行——觸發回考核期時 `update employees set probation_since = v_today` 改成同時 `period_status = '考核期'`。其餘（資格檢查、黃單／紅單／回考核期規則、回傳）逐字不變。
+- **`spot_register`**（以 `url_patch.sql` 版為基礎）：只改一行——觸發回考核期時 `update employees set probation_since = v_today` 改成同時 `period_status = '考核期'`。其餘（資格檢查、異常回覆／紅單／回考核期規則、回傳）逐字不變。
 - **`spot_register` 資格檢查**（同一個函式，審查建議）：「該員工目前在考核期，不能抽查」的條件由 `probation_since is not null` 改成 `probation_since is not null or period_status = '考核期'`（到職超過 90 天但仍是考核期、未填到職日的考核期人員都被擋）；其餘條件與訊息不動。
 - **`spot_candidates`**（以 `spotcheck_schema.sql` 版為基礎，審查建議）：名單條件多一行 `and e.period_status <> '考核期'`，其餘不動。（`spot_status` 沒有改。）
 - **`spot_cancel_probation`**（以 `spotcheck_schema.sql` 版為基礎）：只改一行——取消清除 `probation_since` 時同時把 `period_status` 設回 `已上線`。「已通過不可取消」「已取消不可重複取消」「原因必填」「有別筆進行中就不清除」等既有規則不變。

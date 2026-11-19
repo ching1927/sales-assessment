@@ -71,14 +71,14 @@
     roster: function (year, quarter) {
       return wrap(sb.rpc('checkup_roster', { p_year: year, p_quarter: quarter })).then(function (r) { return r.data || []; });
     },
-    // 各門市黃單排名（只有彙總：門市、黃單張數、人數；三種角色都看得到全部門市）。start、end：YYYY-MM-DD，含頭尾。
+    // 各門市異常回覆預警榜（只有彙總：門市、異常回覆張數、人數；三種角色都看得到全部門市）。start、end：YYYY-MM-DD，含頭尾。
     // 資料庫函式還沒部署時（42883／PGRST202）回傳固定的繁中提示，不顯示英文錯誤
     yellowRanking: function (start, end) {
       return sb.rpc('checkup_yellow_ranking', { p_from: start, p_to: end }).then(function (r) {
         if (r.error) {
           var c = String(r.error.code || ''), m = String(r.error.message || '').toLowerCase();
           if (c === '42883' || c === 'PGRST202' || m.indexOf('could not find the function') >= 0 || m.indexOf('does not exist') >= 0) {
-            var e = new Error('黃單排名功能尚未啟用，請聯絡客服部。'); e.userMessage = e.message; e.notDeployed = true; throw e;
+            var e = new Error('異常回覆預警榜功能尚未啟用，請聯絡客服部。'); e.userMessage = e.message; e.notDeployed = true; throw e;
           }
           fail(r.error);
         }

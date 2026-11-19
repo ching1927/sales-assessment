@@ -1,4 +1,4 @@
-/* 門市黃單排名純函式測試：node tests/store-ranking-core.test.js
+/* 門市異常回覆預警榜純函式測試：node tests/store-ranking-core.test.js
  * 「現在」一律傳固定值，結果可重現。 */
 var assert = require('node:assert');
 var R = require('../js/store-ranking-core.js');
@@ -21,8 +21,8 @@ eq(R.periodRange(2026, ''), null, '空期間');
 eq(R.periodRange('abc', 'Q1'), null, '不合法的年度');
 eq(R.periodLabel(2026, 'Q4'), '2026 年 第4季', '季標題');
 eq(R.periodLabel(2026, 'Y'), '2026 年 全年', '全年標題');
-eq(R.fileBase(2026, 'Q4'), '門市黃單排名_2026_第4季', '季檔名');
-eq(R.fileBase(2026, 'Y'), '門市黃單排名_2026_全年', '全年檔名');
+eq(R.fileBase(2026, 'Q4'), '門市異常回覆預警榜_2026_第4季', '季檔名');
+eq(R.fileBase(2026, 'Y'), '門市異常回覆預警榜_2026_全年', '全年檔名');
 
 // ---- 預設期間與年度選單（台北時間）----
 eq(R.defaultPeriod(Date.parse('2026-11-16T10:00:00+08:00')), { year: 2026, period: 'Q4' }, '11 月是第 4 季');
@@ -93,9 +93,9 @@ eq(JSON.stringify(src), copy, '不改動傳入的列');
 
 // ---- 摘要 ----
 var SM = R.summary(A, 'avg');
-eq(SM.best, { names: ['花蓮'], value: '每人 0.14 張' }, '黃單最少：花蓮');
-eq(SM.worst, { names: ['台南'], value: '每人 0.80 張' }, '黃單最多：台南');
-eq(SM.total, 28, '全公司黃單總張數');
+eq(SM.best, { names: ['花蓮'], value: '每人 0.14 張' }, '異常回覆最少：花蓮');
+eq(SM.worst, { names: ['台南'], value: '每人 0.80 張' }, '異常回覆最多：台南');
+eq(SM.total, 28, '全公司異常回覆總張數');
 var SMT = R.summary(T, 'tot');
 eq(SMT.best, { names: ['花蓮'], value: '1 張' }, '總張數：最少');
 eq(SMT.worst, { names: ['台南'], value: '12 張' }, '總張數：最多');

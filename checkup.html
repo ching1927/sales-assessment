@@ -66,7 +66,7 @@ th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-sh
 
 .prevhead{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin-bottom:var(--sp-3)}
 .prevhead .grow{flex:1}
-/* 黃單排名（版面本身的樣式在 js/store-ranking-view.js，網頁與下載共用） */
+/* 異常回覆預警榜（版面本身的樣式在 js/store-ranking-view.js，網頁與下載共用） */
 #rkSheet{min-width:640px;border:1px solid var(--ink-line);border-radius:var(--r-sm);padding:var(--sp-4)}
 
 dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
@@ -132,26 +132,26 @@ dialog::backdrop{background:var(--scrim)}
         <a class="pgtab" role="tab" aria-selected="false" href="spotcheck.html#records">登記歷程</a>
         <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢單</button>
         <button type="button" class="pgtab" id="tabDl" role="tab" data-pane="paneDl" aria-selected="false" hidden>下載紀錄</button>
-        <button type="button" class="pgtab on" role="tab" data-pane="paneRank" aria-selected="true">門市黃單排行榜</button>
+        <button type="button" class="pgtab on" role="tab" data-pane="paneRank" aria-selected="true">異常回覆預警榜</button>
       </div>
     </div>
 
-    <!-- ① 黃單排名：各門市在該期間被開的黃單數量（資料庫函式彙總，三種角色都看得到全部門市的張數，看不到黃單內容） -->
+    <!-- ① 異常回覆預警榜：各門市在該期間被列為異常回覆的數量（資料庫函式彙總，三種角色都看得到全部門市的張數，看不到異常回覆內容） -->
     <section class="pane" id="paneRank" role="tabpanel">
       <section class="glass panel">
         <div class="prevhead">
           <label for="rkYear" class="sub">年度</label><select id="rkYear" class="ctrl"></select>
           <label for="rkPeriod" class="sub">期間</label><select id="rkPeriod" class="ctrl"></select>
           <label for="rkSort" class="sub">排序</label>
-          <select id="rkSort" class="ctrl"><option value="avg">平均每人張數（預設）</option><option value="tot">黃單總張數</option></select>
+          <select id="rkSort" class="ctrl"><option value="avg">平均每人張數（預設）</option><option value="tot">異常回覆總張數</option></select>
           <span class="grow sub" id="rkInfo" aria-live="polite"></span>
           <button type="button" class="btn" id="rkPng" disabled>下載圖片</button>
           <button type="button" class="btn primary" id="rkPdf" disabled>下載 PDF</button>
         </div>
-        <p class="sub" style="margin-bottom:var(--sp-3)">期間是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以黃單開單日計；被作廢的黃單不算，人員換門市時黃單算開單當時的門市。</p>
+        <p class="sub" style="margin-bottom:var(--sp-3)">期間是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以異常回覆的開單日計；被作廢的異常回覆不算，人員換門市時算開單當時所屬的門市。</p>
         <div class="msg err" id="rkMsg" role="alert" hidden></div>
         <div class="msg info" id="rkDlMsg" role="status" hidden></div>
-        <div class="scroll" tabindex="0" aria-label="各門市黃單排名，可左右捲動"><div class="srk" id="rkSheet"></div></div>
+        <div class="scroll" tabindex="0" aria-label="各門市異常回覆預警榜，可左右捲動"><div class="srk" id="rkSheet"></div></div>
         <div class="empty" id="rkEmpty" hidden>這個期間沒有門市資料。</div>
       </section>
     </section>
@@ -236,7 +236,7 @@ dialog::backdrop{background:var(--scrim)}
   var me = null;
   var qrows = [];          // checkup_quarters_list 的結果（只用來查門市名稱，健檢單分頁的門市顯示與篩選用）
   var sheets = [], sheetSeq = 0, sheetsLoaded = false;   // 健檢單清單（現算自抽查紀錄）
-  var rankRows = [], rankSeq = 0, rankLoaded = false, rankBusy = false;   // 黃單排名（資料庫函式彙總）
+  var rankRows = [], rankSeq = 0, rankLoaded = false, rankBusy = false;   // 異常回覆預警榜（資料庫函式彙總）
   var now = C.taipeiYearQuarter();
   var dlLoaded = false, dlSeq = 0, dlStoreOpts = null;   // 下載紀錄分頁
   var dlBusy = false;                                    // 單人下載或 ZIP 產生中（共用同一份隱藏版面，一次只做一件）
@@ -284,7 +284,7 @@ dialog::backdrop{background:var(--scrim)}
   }
   window.addEventListener('hashchange', openByHash);
 
-  // ====== ① 黃單排名（資料庫函式 checkup_yellow_ranking 彙總；三種角色都看得到全部門市的張數，沒有黃單內容）======
+  // ====== ① 異常回覆預警榜（資料庫函式 checkup_yellow_ranking 彙總；三種角色都看得到全部門市的張數，沒有異常回覆內容）======
   function rkPeriod() { return $('rkPeriod').value; }
   function rkYear() { return Number($('rkYear').value); }
   function rkSort() { return $('rkSort').value === 'tot' ? 'tot' : 'avg'; }
@@ -312,7 +312,7 @@ dialog::backdrop{background:var(--scrim)}
       rankRows = rows; renderRank(false);
     }, function (e) {
       if (seq !== rankSeq) return;
-      showMsg('rkMsg', e && e.notDeployed ? errText(e) : '讀取黃單排名失敗：' + errText(e));
+      showMsg('rkMsg', e && e.notDeployed ? errText(e) : '讀取異常回覆預警榜失敗：' + errText(e));
       rankRows = []; renderRank(false);
       rankLoaded = false;                 // 下次切回這個分頁再試一次
     });
@@ -531,9 +531,9 @@ dialog::backdrop{background:var(--scrim)}
     $('tabDl').hidden = !isCS();       // 下載紀錄分頁只有客服部看得到
     $('tabReg').hidden = !isCS();      // 登記分頁只有客服部看得到（在 spotcheck.html）
     $('listStore').hidden = isMgr(); $('listStoreLb').hidden = isMgr();   // 店長固定自己門市（資料庫只給自己門市），不顯示門市篩選
-    $('roleNote').textContent = isCS() ? '黃單排名可下載圖片或 PDF；健檢單可下載 PDF（用該季登記紀錄現算，不另存、不計分）。'
-      : me.role === 'store_manager' ? '黃單排名可看到所有門市的名次與張數，但看不到黃單內容；健檢單只顯示自己門市，可下載 PDF。'
-      : '黃單排名可看到所有門市的名次與張數並下載；健檢單可查看與下載 PDF。';
+    $('roleNote').textContent = isCS() ? '異常回覆預警榜可下載圖片或 PDF；健檢單可下載 PDF（用該季登記紀錄現算，不另存、不計分）。'
+      : me.role === 'store_manager' ? '異常回覆預警榜可看到所有門市的名次與張數，但看不到異常回覆內容；健檢單只顯示自己門市，可下載 PDF。'
+      : '異常回覆預警榜可看到所有門市的名次與張數並下載；健檢單可查看與下載 PDF。';
   }
 
   $('logout').addEventListener('click', doLogout);
@@ -557,7 +557,7 @@ dialog::backdrop{background:var(--scrim)}
       $('listQ').innerHTML = C.QUARTERS.map(function (n) { return '<option value="' + n + '">Q' + n + '</option>'; }).join('');
       $('listYear').value = String(now.year); $('listQ').value = String(now.quarter);
       $('loading').hidden = true; $('app').hidden = false;
-      // 黃單排名的年度與期間下拉：預設今天（台北時間）所在的年與季
+      // 異常回覆預警榜的年度與期間下拉：預設今天（台北時間）所在的年與季
       var dp = SR.defaultPeriod();
       $('rkYear').innerHTML = SR.yearOptions().map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
       $('rkPeriod').innerHTML = SR.PERIODS.map(function (p) { return '<option value="' + p + '">' + (p === 'Y' ? '全年' : '第' + p.slice(1) + '季') + '</option>'; }).join('');

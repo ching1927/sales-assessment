@@ -1,4 +1,4 @@
-/* 黃單輔導紀錄編輯版本的畫面純函式測試：node tests/spot-coach-history.test.js
+/* 異常回覆輔導紀錄編輯版本的畫面純函式測試：node tests/spot-coach-history.test.js
  * 函式寫在 spotcheck.html 的 coach-versions-core 區段（esc 一併擷取其定義），這裡擷取後執行；
  * 另外對整份頁面的內嵌 script 做語法檢查，並確認 API 層與頁面接線存在。 */
 var assert = require('node:assert');

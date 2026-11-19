@@ -83,7 +83,7 @@ label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-
 .ver.cur{border-left-color:var(--accent)}
 .ver .vh{font-size:12.5px;color:var(--ink-3);margin-bottom:2px}
 .verlist{max-height:60vh;overflow-y:auto}
-/* 頁內分頁（與 checkup.html 同一組四個膠囊：登記、抽查紀錄在本頁切換，黃單排名、健檢單是連結） */
+/* 頁內分頁（與 checkup.html 同一組四個膠囊：登記、抽查紀錄在本頁切換，異常回覆預警榜、健檢單是連結） */
 .tophead{margin:0 0 var(--sp-4)}
 .pgtabs{display:flex;gap:6px;padding:5px;border-radius:var(--r-pill);background:var(--track);width:max-content;max-width:100%;overflow-x:auto}
 .pgtab{padding:9px 22px;border-radius:var(--r-pill);border:0;background:transparent;font-size:15px;font-weight:700;color:var(--ink-2);cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none;display:inline-block}
@@ -160,7 +160,7 @@ dialog::backdrop{background:var(--scrim)}
         <button type="button" class="pgtab" id="tabReg" role="tab" data-pane="paneReg" aria-selected="false" hidden>登記</button>
         <button type="button" class="pgtab" role="tab" data-pane="paneRecords" aria-selected="false">登記歷程</button>
         <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#list">健檢單</a>
-        <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#ranking">門市黃單排行榜</a>
+        <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#ranking">異常回覆預警榜</a>
       </div>
     </div>
 
@@ -176,7 +176,7 @@ dialog::backdrop{background:var(--scrim)}
         </div>
         <label class="lb" for="rMsg">訊息抽檢-LINE聊天室網址</label>
         <input class="ctrl" type="url" id="rMsg" autocomplete="off" placeholder="https://chat.line.biz/...">
-        <label class="lb" for="rWhy" id="rWhyLb" style="margin-top:var(--sp-3)">原因（判定待加強回覆時必填，會寫進黃單）</label>
+        <label class="lb" for="rWhy" id="rWhyLb" style="margin-top:var(--sp-3)">原因（判定待加強回覆時必填，會寫進異常回覆）</label>
         <textarea class="ctrl" id="rWhy" placeholder="例：沒有確認客人需求就直接報價"></textarea>
         <div class="sec-t" id="rDimsT">可改善面向（可複選，不打分數；判定優良回覆也可以勾）</div>
         <div class="chips" id="rDims" role="group" aria-labelledby="rDimsT"></div>
@@ -203,8 +203,8 @@ dialog::backdrop{background:var(--scrim)}
     <!-- ② 抽查紀錄：頂端「門市」下拉同時篩選下面三個區塊 -->
     <section class="pane" id="paneRecords" role="tabpanel" hidden>
     <section class="glass intro">
-      <b>規則：</b>登記對象是「正式業務」。客服部每次登記判定「優良回覆／待加強回覆」，並勾選<b>可改善面向</b>（可複選、不打分數）、附上截圖與說明；判定<b>待加強回覆</b>就開一張<b>黃單</b>（觀察單）。
-      黃單依日曆月累計，作為輔導與追蹤的依據。評錯的單可作廢（寫原因、不刪除）；店長可為黃單回填輔導紀錄。
+      <b>規則：</b>登記對象是「正式業務」。客服部每次登記判定「優良回覆／待加強回覆」，並勾選<b>可改善面向</b>（可複選、不打分數）、附上截圖與說明；判定<b>待加強回覆</b>就列為一次<b>異常回覆</b>（觀察單）。
+      異常回覆依日曆月累計，作為輔導與追蹤的依據。評錯的單可作廢（寫原因、不刪除）；店長可為異常回覆回填輔導紀錄。
     </section>
 
     <section class="toolbar glass" id="rcTool" aria-label="門市篩選（套用到下面三個區塊）">
@@ -216,14 +216,14 @@ dialog::backdrop{background:var(--scrim)}
     <section class="tablebox glass">
       <div class="scroll" tabindex="0" aria-label="人員登記狀態表，可左右捲動">
         <table style="min-width:640px">
-          <thead><tr><th>人員</th><th>門市</th><th>本月黃單</th><th>狀態</th></tr></thead>
+          <thead><tr><th>人員</th><th>門市</th><th>本月異常回覆</th><th>狀態</th></tr></thead>
           <tbody id="stBody"></tbody>
         </table>
       </div>
       <div class="empty" id="stEmpty" hidden>目前沒有可顯示的人員</div>
     </section>
 
-    <h2 class="sec">單據清單（黃單）</h2>
+    <h2 class="sec">單據清單（異常回覆）</h2>
     <section class="toolbar glass" aria-label="篩選">
       <select class="ctrl grow" id="fEmp" aria-label="人員篩選"></select>
       <select class="ctrl" id="fStatus" aria-label="狀態篩選"><option value="">全部狀態</option><option value="有效">有效</option><option value="作廢">已作廢</option></select>
@@ -318,7 +318,7 @@ dialog::backdrop{background:var(--scrim)}
   // ====== 狀態 ======
   var me = null, stores = [], storeName = {};
   var statusRows = [], tickets = [], cands = [], msgById = {}, insList = [], insById = {};
-  var coachStats = null;   // 黃單輔導版本統計 { 單據id: 統計列 }；null＝資料庫函式尚未啟用或讀取失敗，畫面就不顯示版本資訊
+  var coachStats = null;   // 異常回覆輔導版本統計 { 單據id: 統計列 }；null＝資料庫函式尚未啟用或讀取失敗，畫面就不顯示版本資訊
   var busy = false, dyn = [], insShown = 30;
   var INS_PAGE = 30;
   var regId = '', shots = [], shotChain = Promise.resolve(), shotBusy = 0;
@@ -365,7 +365,7 @@ dialog::backdrop{background:var(--scrim)}
     });
     $('stBody').innerHTML = rows.map(function (r) {
       var y = Number(r.yellow_month) || 0;
-      var st = y > 0 ? '<span class="tag y">本月有黃單</span>' : '<span class="tag ok">正常</span>';
+      var st = y > 0 ? '<span class="tag y">本月有異常回覆</span>' : '<span class="tag ok">正常</span>';
       return '<tr><td><b>' + esc(r.employee_label || r.employee_id) + '</b> <span class="mono sub">' + esc(r.employee_id) + '</span></td><td>' + esc(sName(r.store_code)) + '</td>' +
         '<td><b>' + y + '</b> 張</td><td>' + st + '</td></tr>';
     }).join('');
@@ -384,7 +384,7 @@ dialog::backdrop{background:var(--scrim)}
   }
   function verdictOptions(withAll) {
     return (withAll ? '<option value="">全部判定</option>' : '') + SpotDims.VERDICTS.map(function (v) {
-      return '<option value="' + esc(v.value) + '">' + esc(v.label + (!withAll && v.value === '不適當' ? '（開黃單）' : '')) + '</option>';
+      return '<option value="' + esc(v.value) + '">' + esc(v.label + (!withAll && v.value === '不適當' ? '（列為異常回覆）' : '')) + '</option>';
     }).join('');
   }
   function buildForm() {
@@ -415,7 +415,7 @@ dialog::backdrop{background:var(--scrim)}
     $('cntS').textContent = shots.length;
   }
   function syncWhyLabel() {
-    $('rWhyLb').textContent = $('rVerdict').value === '不適當' ? '原因（必填，會寫進黃單）' : '原因（判定待加強回覆時必填，會寫進黃單）';
+    $('rWhyLb').textContent = $('rVerdict').value === '不適當' ? '原因（必填，會寫進異常回覆）' : '原因（判定待加強回覆時必填，會寫進異常回覆）';
   }
 
   // ---- 截圖：縮圖後先放在記憶體，按「登記」才上傳（上傳到 Storage 的 spot/{抽查id}/）----
@@ -531,7 +531,7 @@ dialog::backdrop{background:var(--scrim)}
     $('fEmp').innerHTML = '<option value="">全部人員</option>' + arr.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.label + '（' + a.id + '）') + '</option>'; }).join('');
     if (cur && seen[cur]) $('fEmp').value = cur;
   }
-  // 聊天室欄：黃單用 inspection_id 對應抽查訊息；只有 http／https 開頭才成連結，否則純文字；查無則「—」
+  // 聊天室欄：異常回覆用 inspection_id 對應抽查訊息；只有 http／https 開頭才成連結，否則純文字；查無則「—」
   function chatCell(t) {
     if (t.kind !== '黃' || !t.inspection_id) return '<span class="sub">—</span>';
     var m = msgById[t.inspection_id];
@@ -562,7 +562,7 @@ dialog::backdrop{background:var(--scrim)}
       if (canCoach(t)) ops += '<button class="btn sm" data-coach="' + esc(t.id) + '" type="button">' + (t.coached_on ? '編輯輔導' : '回填輔導') + '</button> ';
       if (canVoid(t)) ops += '<button class="btn sm outdanger" data-void="' + esc(t.id) + '" type="button">作廢</button>';
       return '<tr class="' + (vd ? 'void' : '') + '"><td class="mono ' + (vd ? 'strike' : '') + '">' + esc(t.issued_on) + '</td>' +
-        '<td><span class="tag y">黃單</span></td>' +
+        '<td><span class="tag y">異常回覆</span></td>' +
         '<td class="' + (vd ? 'strike' : '') + '">' + esc(t.employee_label || t.employee_id) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td>' +
         '<td>' + esc(sName(t.store_code)) + '</td><td class="wrap">' + reason + '</td>' +
         '<td class="nostrike">' + chatCell(t) + '</td>' +
@@ -574,7 +574,7 @@ dialog::backdrop{background:var(--scrim)}
     $('tEmpty').hidden = list.length > 0;
     $('tCount').textContent = '共 ' + list.length + ' 張';
   }
-  // 抽查的面向標籤、說明、截圖按鈕（單據清單的黃單用）；沒資料回空字串
+  // 抽查的面向標籤、說明、截圖按鈕（單據清單的異常回覆用）；沒資料回空字串
   function dimTags(dims) {
     return '<div class="dimtags">' + dims.map(function (d) { return '<span class="tag">' + esc(d) + '</span>'; }).join('') + '</div>';
   }
@@ -698,7 +698,7 @@ dialog::backdrop{background:var(--scrim)}
     var stat = (isCS() || isMgr()) ? SpotApi.coachStats().catch(function () { return null; }) : Promise.resolve(null);
     return Promise.all([Promise.all(jobs), stat]).then(function (rr) {
       var r = rr[0]; coachStats = rr[1];
-      statusRows = r[0]; tickets = r[1].filter(function (t) { return t.kind === '黃'; });   // 只顯示黃單（紅單已停用）
+      statusRows = r[0]; tickets = r[1].filter(function (t) { return t.kind === '黃'; });   // 只顯示異常回覆（紅單已停用）
       msgById = {}; insById = {}; insList = r[2];
       r[2].forEach(function (i) { msgById[i.id] = i.message; insById[i.id] = i; });
       if (cs) { cands = r[3]; fillCands(); }

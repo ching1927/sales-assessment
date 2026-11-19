@@ -1,5 +1,5 @@
 /*
- * 各門市黃單排名：畫面與下載（checkup.html「黃單排名」分頁）。純邏輯在 js/store-ranking-core.js。
+ * 各門市異常回覆預警榜：畫面與下載（checkup.html「異常回覆預警榜」分頁）。純邏輯在 js/store-ranking-core.js。
  * 同一份 HTML 同時用在網頁上顯示與下載（PNG 圖片、A4 一頁 PDF），所以看到什麼就下載到什麼。
  * html2canvas 1.4.1、jsPDF 2.5.1 只在第一次按下載時才動態載入（沿用 CheckupSheetPdf 的載入器，cdnjs、固定版本）。
  * 不把排名內容寫進 console 或瀏覽器儲存。版面照 樣品/黃單門市排名樣品.html。
@@ -66,12 +66,12 @@
         '<td>' + r.tickets + '</td><td>' + r.headcount + '</td><td><b>' + (r.avg == null ? '<span class="none">—</span>' : Core.formatAvg(r)) + '</b></td>' +
         '<td class="bc"><div class="track"><div class="fill" style="width:' + r.barPct + '%"></div></div></td></tr>';
     }).join('');
-    return '<div class="hd"><img class="logo" src="' + LOGO + '" alt=""><small>YELLOW TICKET RANKING</small><h3>各門市黃單排名｜' + esc(Core.periodLabel(m.year, m.period)) + '</h3>' +
-      '<p>黃單＝待加強回覆開出的單；被作廢的不算；依開單當時所屬門市計算。名次越前＝' + (key === 'avg' ? '平均每人黃單越少' : '黃單越少') + '。</p></div>' +
-      '<div class="sum">' + cardHtml('g', '黃單最少', sm.best) + cardHtml('r', '黃單最多', sm.worst) +
-      '<div class="sc b"><small>全公司黃單</small><b>' + sm.total + ' 張</b></div></div>' +
-      '<table><thead><tr><th>名次</th><th class="nm">門市</th><th>黃單張數</th><th>人數</th><th>平均每人</th><th>視覺比較（' + (key === 'avg' ? '平均每人' : '黃單總張數') + '）</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-      '<p class="hint">・名次：' + (key === 'avg' ? '平均每人張數' : '黃單總張數') + '少的在前，相同並列。<br>・人數＝目前在職且已上線的業務人數。<br>・只顯示各門市的張數彙總，不含黃單內容與人員姓名。</p>' +
+    return '<div class="hd"><img class="logo" src="' + LOGO + '" alt=""><small>REPLY ALERT BOARD</small><h3>各門市異常回覆預警榜｜' + esc(Core.periodLabel(m.year, m.period)) + '</h3>' +
+      '<p>異常回覆＝判定為待加強回覆的單；被作廢的不算；依開單當時所屬門市計算。名次越前＝' + (key === 'avg' ? '平均每人異常回覆越少' : '異常回覆越少') + '。</p></div>' +
+      '<div class="sum">' + cardHtml('g', '異常回覆最少', sm.best) + cardHtml('r', '異常回覆最多', sm.worst) +
+      '<div class="sc b"><small>全公司異常回覆</small><b>' + sm.total + ' 張</b></div></div>' +
+      '<table><thead><tr><th>名次</th><th class="nm">門市</th><th>異常回覆張數</th><th>人數</th><th>平均每人</th><th>視覺比較（' + (key === 'avg' ? '平均每人' : '異常回覆總張數') + '）</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<p class="hint">・名次：' + (key === 'avg' ? '平均每人張數' : '異常回覆總張數') + '少的在前，相同並列。<br>・人數＝目前在職且已上線的業務人數。<br>・只顯示各門市的張數彙總，不含異常回覆內容與人員姓名。</p>' +
       '<p class="gen">本表由系統自動彙整，僅供改善參考，不計分。　產生日期 ' + esc(m.generated || '') + '　由 貳輪嶼 製作</p>';
   }
 
