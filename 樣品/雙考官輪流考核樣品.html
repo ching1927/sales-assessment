@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>雙考官輪流考核樣品（假資料）</title>
+<style>
+/* 公版 tokens（未改值）＋ CI 黑藍黃白覆寫（與 app.css 相同） */
+:root{
+  --glass-bg:rgba(255,255,255,0.62);--glass-bg-strong:rgba(255,255,255,0.80);--glass-blur:24px;--glass-sat:160%;
+  --rim:rgba(255,255,255,0.9);--specular:inset 0 1px 1px rgba(255,255,255,0.9);--hairline:0 0 0 0.5px rgba(15,23,42,0.06);
+  --shadow:0 8px 30px rgba(17,24,39,0.08);--shadow-lg:0 20px 60px rgba(17,24,39,0.16);
+  --r-sm:10px;--r-ctrl:14px;--r-card:28px;--r-pill:999px;
+  --ink-3:#94A3B8;--ink-line:rgba(15,23,42,0.08);
+  --success:#16A34A;--warning:#D97706;--danger:#DC2626;
+  --success-soft:rgba(22,163,74,0.12);--warning-soft:rgba(217,119,6,0.12);--danger-soft:rgba(220,38,38,0.10);
+  --track:rgba(15,23,42,0.10);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang TC","Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",monospace;
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-6:24px;--sp-8:32px;
+  --ease:cubic-bezier(.22,1,.36,1);--dur-micro:250ms;
+  --ci-black:#0A0A0A;--ci-blue:#0669EB;--ci-yellow:#D9FF00;
+  --accent:#0669EB;--accent-deep:#0553BC;--accent-soft:rgba(6,105,235,.12);
+  --ink:#0A0A0A;--ink-2:#4A4F5A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(60% 40% at 90% 0%,rgba(6,105,235,.08),transparent 60%),radial-gradient(50% 40% at 0% 100%,rgba(217,255,0,.12),transparent 60%),linear-gradient(180deg,#FAFAFA 0%,#F0F2F5 100%)}
+.glass{background:var(--glass-bg);backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border:0.5px solid var(--rim);box-shadow:var(--specular),var(--hairline),var(--shadow);border-radius:var(--r-card);position:relative;overflow:hidden}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 26%)}
+.glass>*{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.foot{text-align:center;color:var(--ink-3);font-size:12px;margin:var(--sp-8) 0 var(--sp-4)}
+
+/* 導覽列（沿用 app.css） */
+.ab-bar{position:sticky;top:0;z-index:50;background:var(--ci-black);box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.ab-in{max-width:1320px;margin:0 auto;padding:0 var(--sp-4);height:64px;display:flex;align-items:center;gap:var(--sp-4)}
+.ab-brand img{height:38px;width:auto;display:block}
+.ab-brand{display:flex;align-items:center;flex:none;color:#fff;font-weight:800;text-decoration:none}
+.ab-tabs{display:flex;gap:2px;padding:4px;border-radius:var(--r-pill);background:rgba(255,255,255,.09);margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.ab-tabs::-webkit-scrollbar{display:none}
+.ab-tab{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r-pill);font-size:14px;font-weight:600;color:rgba(255,255,255,.74);text-decoration:none;white-space:nowrap}
+.ab-tab svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ab-tab.on{background:var(--ci-yellow);color:var(--ci-black);box-shadow:0 2px 12px rgba(217,255,0,.35)}
+.ab-me{display:flex;align-items:center;gap:var(--sp-3);flex:none}
+.ab-role{display:inline-block;padding:2px 9px;border-radius:var(--r-pill);background:var(--ci-yellow);color:var(--ci-black);font-size:12px;font-weight:700}
+.ab-avatar{width:34px;height:34px;border-radius:50%;background:var(--ci-yellow);color:var(--ci-black);font-weight:700;font-size:14px;display:grid;place-items:center}
+@media (max-width:1340px){.ab-in{flex-wrap:wrap;height:auto;padding-top:10px;padding-bottom:10px;row-gap:10px}.ab-me{margin-left:auto}.ab-tabs{order:3;width:100%;margin:0}}
+.wrap{max-width:1000px;margin:0 auto;padding:0 var(--sp-4)}
+.ab-hero{position:relative;overflow:hidden;margin:var(--sp-6) 0 var(--sp-4);padding:var(--sp-6) var(--sp-8);border-radius:var(--r-card);background:linear-gradient(135deg,#0A0A0A 0%,#14171F 100%);color:#fff;box-shadow:var(--shadow)}
+.ab-hero::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--ci-yellow)}
+.ab-crumb{font-size:12px;font-weight:700;color:var(--ci-yellow);letter-spacing:1.5px;margin-bottom:var(--sp-2)}
+.ab-hero h1{font-size:28px;font-weight:800;letter-spacing:-.3px;line-height:1.25}
+@media (max-width:640px){.ab-hero{padding:var(--sp-4) var(--sp-6)}.ab-hero h1{font-size:22px}}
+
+/* 樣品切換列 */
+.sw{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;margin-bottom:var(--sp-3);scrollbar-width:thin}
+.sw button{flex:none;padding:8px 14px;min-height:40px;border-radius:var(--r-pill);border:1px solid var(--ink-line);background:#fff;font-size:14px;font-weight:700;color:var(--ink-2)}
+.sw button[aria-pressed="true"]{background:var(--ci-black);color:var(--ci-yellow);border-color:var(--ci-black)}
+.sample-tip{font-size:13px;color:var(--ink-2);background:var(--warning-soft);border-radius:var(--r-ctrl);padding:8px 12px;margin-bottom:var(--sp-4);line-height:1.5}
+
+/* 共用元件 */
+.btn{padding:9px 16px;min-height:44px;border-radius:var(--r-ctrl);border:0.5px solid var(--rim);background:var(--glass-bg-strong);font-weight:700;font-size:15px;color:var(--ink);box-shadow:var(--hairline);transition:transform var(--dur-micro) var(--ease)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:var(--specular),0 6px 18px var(--accent-soft)}
+.btn.sm{min-height:36px;padding:5px 12px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.panel{padding:var(--sp-6);margin-bottom:var(--sp-4)}
+.panel h2{font-size:19px;margin-bottom:var(--sp-2);line-height:1.35}
+.hint{font-size:13px;color:var(--ink-2);line-height:1.6}
+.tag{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:12px;font-weight:700;white-space:nowrap}
+.tag.blue{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.yel{background:var(--ci-yellow);color:var(--ci-black)}
+.tag.gray{background:var(--track);color:var(--ink-2)}
+.tag.ok{background:var(--success-soft);color:var(--success)}
+.tag.warn{background:var(--warning-soft);color:var(--warning)}
+.row{display:flex;gap:var(--sp-3);flex-wrap:wrap;align-items:center}
+.navrow{display:flex;gap:var(--sp-3);justify-content:space-between;flex-wrap:wrap;margin-top:var(--sp-4)}
+.bar{height:12px;border-radius:var(--r-pill);background:var(--track);overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--ci-blue);border-radius:var(--r-pill)}
+
+/* 1 抽籤 */
+.spin{display:flex;flex-direction:column;align-items:center;gap:14px;padding:32px 0;font-weight:700;font-size:18px}
+.spin .ring{width:44px;height:44px;border-radius:50%;border:5px solid var(--track);border-top-color:var(--ci-blue);animation:rot .9s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.draw{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin:var(--sp-4) 0}
+.dcard{border-radius:var(--r-card);padding:var(--sp-4) var(--sp-6);background:#fff;border:1.5px solid var(--ink-line)}
+.dcard.e1{border-color:var(--ci-blue)}
+.dcard.e2{border-color:var(--ci-black);background:var(--ci-black);color:#fff}
+.dcard small{font-size:13px;font-weight:700;opacity:.8}
+.dcard .nm{font-size:28px;font-weight:800;letter-spacing:1px;margin:4px 0}
+.dcard .tk{font-size:14px;line-height:1.5}
+.lock{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700;background:var(--ci-yellow);color:var(--ci-black);padding:10px 14px;border-radius:var(--r-ctrl)}
+.lock svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.demo-only{border:1px dashed var(--ink-3);border-radius:var(--r-ctrl);padding:10px 12px;margin-top:var(--sp-4);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+@media (max-width:480px){.draw{grid-template-columns:1fr}}
+
+/* 2 總覽 */
+.role-banner{background:var(--ci-black);color:#fff;border-radius:var(--r-card);padding:var(--sp-4) var(--sp-6);margin-bottom:var(--sp-4);border-left:6px solid var(--ci-yellow)}
+.role-banner b{font-size:19px;line-height:1.4}
+.role-banner .sub{font-size:13px;opacity:.8;margin-top:4px}
+.prog2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-top:var(--sp-3)}
+.prog2 div{background:var(--track);border-radius:var(--r-ctrl);padding:8px 12px;font-size:13px;line-height:1.5}
+.prog2 b{font-size:15px}
+.glist{list-style:none;display:grid;gap:var(--sp-2);margin-top:var(--sp-3)}
+.gi{display:flex;align-items:center;gap:var(--sp-3);padding:12px 14px;border-radius:var(--r-ctrl);background:#fff;border:1.5px solid var(--ink-line)}
+.gi .ck{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--track);color:transparent}
+.gi .ck svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.gi.done .ck{background:var(--success);color:#fff}
+.gi .tx{flex:1;min-width:0;line-height:1.4}
+.gi .tx b{display:block;font-size:15px;overflow-wrap:anywhere}
+.gi .tx span{font-size:12px;color:var(--ink-2)}
+.gi.lock-o{background:#E5E7EB;border-color:#E5E7EB;filter:grayscale(1);color:#6B7280}
+.gi.lock-o .tx span{color:#6B7280}
+.gi.mine{border-color:var(--ci-blue)}
+@media (max-width:480px){.gi{flex-wrap:wrap}.gi .btn{width:100%}.prog2{grid-template-columns:1fr}}
+
+/* 3 評分 */
+.dim{padding:12px 0;border-bottom:1px solid var(--ink-line)}
+.dim:last-of-type{border-bottom:none}
+.dimhead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:8px}
+.dimhead b{font-size:15px}.dimhead .pt{font-size:13px;color:var(--ink-2);white-space:nowrap}
+.lvrow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.lv{min-height:48px;padding:4px 2px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:var(--glass-bg-strong);font-weight:700;font-size:13px;line-height:1.2}
+.lv[aria-pressed="true"].top{background:#10B981;border-color:#10B981;color:#fff}
+.lv[aria-pressed="true"].mid{background:#F59E0B;border-color:#F59E0B;color:#fff}
+.lv[aria-pressed="true"].low{background:#EF4444;border-color:#EF4444;color:#fff}
+.lv[aria-pressed="true"].na{background:#9CA3AF;border-color:#9CA3AF;color:#fff}
+.g3-note{margin-top:8px}
+.g3-note label{display:block;font-size:13px;font-weight:700;margin-bottom:4px;color:#DC2626}
+.g3-note textarea,.ctrl{width:100%;min-height:64px;font:inherit;font-size:16px;padding:8px 10px;border-radius:14px;border:1.5px solid var(--ink-line);resize:vertical;background:#fff}
+.g3-note textarea{border-color:#DC2626}
+input.ctrl{min-height:44px}
+.ex{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-top:var(--sp-2)}
+.ex figure{margin:0}
+.ex button.pic{display:block;width:100%;padding:0;border:1.5px solid var(--ink-line);border-radius:var(--r-ctrl);overflow:hidden;background:#fff;position:relative}
+.ex button.pic .zoom{position:absolute;right:8px;bottom:8px;background:var(--ci-black);color:var(--ci-yellow);font-size:12px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill)}
+.ex figcaption{font-size:13px;color:var(--ink-2);margin-top:4px;text-align:center}
+.ex svg{display:block;width:100%;height:auto}
+.coedit{display:flex;gap:10px;align-items:center;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:14px;line-height:1.5;padding:10px 14px;border-radius:var(--r-ctrl);margin-bottom:var(--sp-3)}
+.coedit .dot{width:10px;height:10px;border-radius:50%;background:var(--success);flex:none;box-shadow:0 0 0 4px var(--success-soft)}
+.saved{position:fixed;right:12px;bottom:12px;z-index:60;background:var(--ci-black);color:#fff;font-size:13px;font-weight:700;padding:8px 14px;border-radius:var(--r-pill);box-shadow:var(--shadow-lg);display:flex;gap:8px;align-items:center}
+.saved svg{width:14px;height:14px;stroke:var(--ci-yellow);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.lightbox{position:fixed;inset:0;z-index:100;background:rgba(10,10,10,.85);display:grid;place-items:center;padding:16px}
+.lightbox .in{background:#fff;border-radius:var(--r-ctrl);width:min(720px,100%);max-height:92vh;overflow:auto;padding:12px}
+.lightbox svg{display:block;width:100%;height:auto}
+.lightbox .btn{margin-top:10px;width:100%}
+
+/* 4 送出頁 */
+.switch{display:inline-flex;border-radius:var(--r-pill);background:var(--track);padding:4px;gap:2px;flex-wrap:wrap}
+.switch button{border:0;background:transparent;padding:8px 14px;border-radius:var(--r-pill);font-weight:700;font-size:14px;color:var(--ink-2);min-height:40px}
+.switch button[aria-pressed="true"]{background:var(--ci-black);color:var(--ci-yellow)}
+.chk{list-style:none;display:grid;gap:8px;margin:var(--sp-3) 0}
+.chk li{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:var(--r-ctrl);background:#fff;border:1.5px solid var(--ink-line);line-height:1.5;font-size:15px}
+.chk li.bad{border-color:var(--danger);background:var(--danger-soft)}
+.chk li.good{border-color:var(--success)}
+.done-card{background:var(--success-soft);border:1.5px solid var(--success);border-radius:var(--r-card);padding:var(--sp-4) var(--sp-6);line-height:1.6;margin-top:var(--sp-3)}
+
+/* 5 成績單 */
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:15px;line-height:1.5;margin:var(--sp-3) 0}
+.kv dt{color:var(--ink-2);font-weight:700}
+.kv dd{overflow-wrap:anywhere}
+.examiners{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--ink-line);text-align:left;white-space:nowrap}
+th{font-weight:700;letter-spacing:.3px;background:rgba(15,23,42,.04)}
+td.num,th.num{text-align:right}
+.g3t{font-weight:700}.g3t.top{color:#10B981}.g3t.mid{color:#F59E0B}.g3t.low{color:#EF4444}
+
+/* 6 題庫 */
+.field{display:block;font-weight:700;font-size:14px;margin:var(--sp-3) 0 4px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--sp-3);margin-top:var(--sp-2)}
+.th{border:1.5px solid var(--ink-line);border-radius:var(--r-ctrl);background:#fff;padding:8px}
+.th .im{border-radius:10px;overflow:hidden;border:1px solid var(--ink-line)}
+.th svg{display:block;width:100%;height:auto}
+.th .nm{font-size:12px;color:var(--ink-2);margin:6px 0;overflow-wrap:anywhere}
+.th .ops{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.th .ops button{min-height:36px;border-radius:10px;border:1px solid var(--ink-line);background:#fff;font-size:13px;font-weight:700;padding:0 2px}
+.th .ops button.del{color:var(--danger)}
+.upl{display:grid;place-items:center;min-height:120px;border:2px dashed var(--ink-3);border-radius:var(--r-ctrl);background:rgba(255,255,255,.6);font-weight:700;color:var(--ink-2);font-size:14px;padding:8px;text-align:center;line-height:1.5}
+.steprow{padding:10px 12px;border-radius:var(--r-sm);background:var(--track);font-size:13px;line-height:1.5;margin-top:8px}
+</style>
+</head>
+<body>
+<header class="ab-bar">
+  <div class="ab-in">
+    <a class="ab-brand" href="#" aria-label="貳輪嶼 MOTOR ISLAND"><img src="../img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND"></a>
+    <nav class="ab-tabs" aria-label="主要功能">
+      <a class="ab-tab" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>人員名冊</a>
+      <a class="ab-tab on" href="#" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>進行考核</a>
+      <a class="ab-tab" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>成績單&amp;考核後台</a>
+      <a class="ab-tab" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>待考回報</a>
+      <a class="ab-tab" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>登記&amp;健檢</a>
+      <a class="ab-tab" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>題庫管理</a>
+    </nav>
+    <div class="ab-me"><span class="ab-role">考官</span><div class="ab-avatar" aria-hidden="true">P</div></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="ab-hero">
+    <div class="ab-crumb">考核　/　進行考核　/　雙考官輪流（樣品）</div>
+    <h1>雙考官輪流考核樣品</h1>
+  </section>
+
+  <div class="sample-tip">這是純畫面樣品：全部是假資料，按鈕只負責切換畫面，不會存任何東西。請用下面的分頁依序看七個規則。</div>
+  <div class="sw" id="sw" role="group" aria-label="樣品分頁">
+    <button type="button" data-p="draw" aria-pressed="true">1 開考抽籤</button>
+    <button type="button" data-p="over" aria-pressed="false">2 考核總覽</button>
+    <button type="button" data-p="score" aria-pressed="false">3 題組評分＋暫存</button>
+    <button type="button" data-p="submit" aria-pressed="false">4 送出頁</button>
+    <button type="button" data-p="report" aria-pressed="false">5 成績單</button>
+    <button type="button" data-p="bank" aria-pressed="false">6 題庫圖片欄</button>
+  </div>
+
+  <!-- 1 抽籤 -->
+  <section class="panel glass" id="p-draw">
+    <h2>開始考核：抽考官分工</h2>
+    <p class="hint">受考人：示範員工（新人）　／　示範門市</p>
+    <div id="drawStage"></div>
+  </section>
+
+  <!-- 2 總覽 -->
+  <section id="p-over" hidden>
+    <div class="role-banner" id="roleBanner"></div>
+    <div class="panel glass">
+      <h2>整體進度：6 題組完成 <span id="doneN">3</span> 題</h2>
+      <div class="bar" aria-hidden="true"><i style="width:50%"></i></div>
+      <div class="prog2" id="prog2"></div>
+      <ul class="glist" id="glist"></ul>
+      <p class="hint" style="margin-top:12px">灰色的題組是另一位考官負責，你只能看、不能評分。</p>
+    </div>
+  </section>
+
+  <!-- 3 評分 -->
+  <section id="p-score" hidden>
+    <div class="coedit" role="status"><span class="dot"></span><span>另一位考官也在這張考核上，最後更新：考官1 UNA 剛剛</span></div>
+    <div class="panel glass">
+      <h2>評分：保固與例外說明</h2>
+      <div class="row"><span class="tag blue">進階</span><span class="tag yel">考官2 PENNY 負責</span><span class="hint" style="margin:0;font-family:var(--mono)">ADV-02</span></div>
+      <p class="hint" style="margin-top:12px">七個面向各選一個等級。「不適用」每個題組最多 2 個。</p>
+      <div id="dims"></div>
+
+      <h3 style="font-size:16px;margin-top:var(--sp-4)">範例圖片</h3>
+      <p class="hint">這個題組的估價範例，點圖可以放大。</p>
+      <div class="ex" id="exBox"></div>
+
+      <label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填）</label>
+      <textarea class="ctrl" id="noteBox" placeholder="例如：第 2 步回答不夠具體"></textarea>
+      <div class="navrow">
+        <button class="btn" type="button" data-go="over">返回總覽</button>
+        <button class="btn primary" type="button" data-go="over">完成這個題組</button>
+      </div>
+    </div>
+    <div class="saved" id="savedChip" role="status" aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span id="savedTxt">已自動暫存 12:34</span></div>
+  </section>
+
+  <!-- 4 送出頁 -->
+  <section class="panel glass" id="p-submit" hidden>
+    <h2>送出考核</h2>
+    <p class="hint">樣品用開關：切換下面兩種狀態來看。</p>
+    <div class="switch" id="subSw" role="group" aria-label="送出狀態切換">
+      <button type="button" data-s="miss" aria-pressed="true">還差 2 題未完成</button>
+      <button type="button" data-s="all" aria-pressed="false">全部完成</button>
+    </div>
+    <ul class="chk" id="chk"></ul>
+    <div class="row"><button class="btn primary" type="button" id="subBtn" disabled>送出考核</button><span class="hint" id="subHint"></span></div>
+    <div class="done-card" id="subDone" hidden><b>已送出。</b><br>兩位考官的評分合在一起，只產生 1 張成績單。<br><button class="btn sm" type="button" data-go="report" style="margin-top:8px">看成績單</button></div>
+  </section>
+
+  <!-- 5 成績單 -->
+  <section class="panel glass" id="p-report" hidden>
+    <h2>成績單</h2>
+    <dl class="kv">
+      <dt>受考人</dt><dd>示範員工（新人）／示範門市</dd>
+      <dt>考核日期</dt><dd>2026-11-24</dd>
+      <dt>考官</dt>
+      <dd>考官1 UNA（基礎）、考官2 PENNY（進階＋綜合）
+        <div class="examiners"><span class="tag blue">考官1 UNA・基礎 3 題</span><span class="tag yel">考官2 PENNY・進階 2 題＋綜合 1 題</span></div></dd>
+      <dt>總分</dt><dd><b style="font-size:22px">86.5</b> 分（假資料）</dd>
+    </dl>
+    <div class="scroll"><table>
+      <thead><tr><th>題組</th><th>考官</th><th>等級</th><th class="num">分數</th></tr></thead>
+      <tbody id="rtb"></tbody>
+    </table></div>
+  </section>
+
+  <!-- 6 題庫 -->
+  <section class="panel glass" id="p-bank" hidden>
+    <h2>編輯題組（題庫管理）</h2>
+    <label class="field" for="bTitle">題組名稱</label>
+    <input class="ctrl" id="bTitle" type="text" value="保固與例外說明" maxlength="100">
+    <label class="field" for="bCat">分類</label>
+    <input class="ctrl" id="bCat" type="text" value="進階">
+    <div class="steprow"><b>步驟 1</b>　客人詢問保固範圍，說明哪些情況不在保固內。</div>
+    <div class="steprow"><b>步驟 2</b>　客人追問例外，確認怎麼回覆才不會誤導。</div>
+    <label class="field">範例圖片（選填；可上傳多張）</label>
+    <p class="hint">考官評分時，會在這個題組旁邊看到這些圖。可以刪除、用箭頭調整順序。</p>
+    <div class="thumbs" id="thumbs"></div>
+    <div class="navrow"><button class="btn primary" type="button">儲存</button><button class="btn" type="button">取消</button></div>
+  </section>
+  <p class="foot">由 貳輪嶼 製作</p>
+</div>
+
+<div class="lightbox" id="lb" hidden role="dialog" aria-modal="true" aria-label="放大看範例圖片"><div class="in"><div id="lbBox"></div><button class="btn" type="button" id="lbClose">關閉</button></div></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var CK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  // ===== 假資料 =====
+  var GROUPS = [
+    { n: '基礎 1：報價基本流程', cat: '基礎', ex: 1, done: true,  lv: '優良',   sc: '13.0' },
+    { n: '基礎 2：車況詢問',     cat: '基礎', ex: 1, done: true,  lv: '尚可',   sc: '10.5' },
+    { n: '基礎 3：保養項目說明', cat: '基礎', ex: 1, done: false, lv: '優良',   sc: '12.5' },
+    { n: '進階 1：改裝報價議價', cat: '進階', ex: 2, done: true,  lv: '優良',   sc: '14.0' },
+    { n: '進階 2：保固與例外說明', cat: '進階', ex: 2, done: false, lv: '尚可', sc: '11.0' },
+    { n: '綜合 1：整合估價情境', cat: '綜合', ex: 2, done: false, lv: '待加強', sc: '9.5' }
+  ];
+  var DRAWS = [
+    { e1: 'UNA', e2: 'PENNY' },
+    { e1: 'PENNY', e2: 'UNA' }
+  ];
+  var drawIdx = 0, drawn = false;
+  var ME = 'PENNY';
+
+  // ===== 分頁切換 =====
+  var PAGES = ['draw', 'over', 'score', 'submit', 'report', 'bank'];
+  function show(p) {
+    PAGES.forEach(function (k) { $('p-' + k).hidden = (k !== p); });
+    Array.prototype.forEach.call($('sw').children, function (b) { b.setAttribute('aria-pressed', String(b.dataset.p === p)); });
+    if (p === 'over') renderOver();
+    window.scrollTo(0, 0);
+  }
+  $('sw').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) show(b.dataset.p); });
+  document.addEventListener('click', function (e) { var g = e.target.closest('[data-go]'); if (g) show(g.dataset.go); });
+
+  // ===== 1 抽籤 =====
+  function renderDraw() {
+    var st = $('drawStage'), d = DRAWS[drawIdx];
+    if (!drawn) {
+      st.innerHTML = '<p class="hint">按下開始後，系統會自動決定這張考核由誰考哪些題組。</p><button class="btn primary" type="button" id="startBtn" style="margin-top:12px">開始考核</button>';
+      $('startBtn').onclick = function () { spin(); };
+      return;
+    }
+    st.innerHTML = '<div class="draw">' +
+      '<div class="dcard e1"><small>考官1</small><div class="nm">' + d.e1 + '</div><div class="tk">基礎　3 題</div></div>' +
+      '<div class="dcard e2"><small>考官2</small><div class="nm">' + d.e2 + '</div><div class="tk">進階 2 題＋綜合 1 題</div></div></div>' +
+      '<div class="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>抽籤後鎖定，不能重抽</div>' +
+      '<div class="navrow"><span></span><button class="btn primary" type="button" data-go="over">進入考核</button></div>' +
+      '<div class="demo-only"><span class="tag gray">樣品專用</span><button class="btn sm" type="button" id="reBtn">重新抽籤</button><span class="hint">只是為了展示兩種結果，正式版沒有這個按鈕。</span></div>';
+    $('reBtn').onclick = function () { drawIdx = 1 - drawIdx; spin(); };
+  }
+  function spin() {
+    $('drawStage').innerHTML = '<div class="spin" role="status"><div class="ring"></div>系統抽籤中…</div>';
+    setTimeout(function () { drawn = true; renderDraw(); }, 1200);
+  }
+
+  // ===== 2 總覽（PENNY 視角，依抽籤結果決定自己是考官 1 或 2） =====
+  function myNo() { var d = DRAWS[drawIdx]; return d.e1 === ME ? 1 : 2; }
+  function nameOf(n) { var d = DRAWS[drawIdx]; return n === 1 ? d.e1 : d.e2; }
+  function renderOver() {
+    var no = myNo(), me = no === 1;
+    $('roleBanner').innerHTML = '<b>你是考官' + no + '：負責' + (me ? '基礎 3' : '進階 2＋綜合 1') + '</b>' +
+      '<div class="sub">另一位考官：考官' + (3 - no) + ' ' + nameOf(3 - no) + '（負責' + (me ? '進階 2＋綜合 1' : '基礎 3') + '）</div>';
+    var d1 = GROUPS.filter(function (g) { return g.ex === 1 && g.done; }).length;
+    var d2 = GROUPS.filter(function (g) { return g.ex === 2 && g.done; }).length;
+    $('prog2').innerHTML = '<div><b>考官1 ' + nameOf(1) + '</b><br>基礎 3 題：完成 ' + d1 + ' 題</div><div><b>考官2 ' + nameOf(2) + '</b><br>進階＋綜合 3 題：完成 ' + d2 + ' 題</div>';
+    $('glist').innerHTML = GROUPS.map(function (g) {
+      var mine = g.ex === no;
+      var meta = mine ? ('你負責・' + (g.done ? '已完成' : '還沒評')) : ('考官' + g.ex + ' ' + nameOf(g.ex) + ' 負責');
+      var act = mine ? '<button class="btn sm' + (g.done ? '' : ' primary') + '" type="button" data-go="score">' + (g.done ? '查看' : '評分') + '</button>'
+                     : '<span class="tag gray">唯讀</span>';
+      return '<li class="gi' + (g.done ? ' done' : '') + (mine ? ' mine' : ' lock-o') + '"><span class="ck">' + CK + '</span>' +
+        '<div class="tx"><b>' + g.n + '</b><span>' + meta + '</span></div>' + act + '</li>';
+    }).join('');
+  }
+
+  // ===== 3 評分 =====
+  var DIMS = [['資訊正確性', 15], ['預設訊息運用', 10], ['問題掌握', 20], ['主動引導', 15], ['風險意識', 15], ['語氣與禮貌', 15], ['文字品質', 10]];
+  var LVS = [['優良', 'top'], ['尚可', 'mid'], ['待加強', 'low'], ['不適用', 'na']];
+  var cur = ['優良', '尚可', '優良', '待加強', '', '優良', '優良'];
+  function noteHtml(i) {
+    var c = cur[i];
+    if (c !== '尚可' && c !== '待加強') return '';
+    return '<div class="g3-note"><label>請寫下為什麼是' + c + '（必填）</label><textarea placeholder="例如：沒有先確認客人的行車狀況就直接報價"></textarea></div>';
+  }
+  function renderDims() {
+    $('dims').innerHTML = DIMS.map(function (d, i) {
+      var c = cur[i];
+      return '<div class="dim"><div class="dimhead"><b>' + d[0] + '（配分 ' + d[1] + '）</b><span class="pt">' + (c ? (c === '不適用' ? '不適用' : '已評分') : '尚未評分') + '</span></div>' +
+        '<div class="lvrow" role="group" aria-label="' + d[0] + '等級">' + LVS.map(function (l) {
+          return '<button type="button" class="lv ' + l[1] + '" data-i="' + i + '" data-lv="' + l[0] + '" aria-pressed="' + (c === l[0]) + '">' + l[0] + '</button>';
+        }).join('') + '</div>' + noteHtml(i) + '</div>';
+    }).join('');
+  }
+  $('dims').addEventListener('click', function (e) {
+    var b = e.target.closest('.lv'); if (!b) return;
+    var keep = $('dims').scrollTop;
+    cur[+b.dataset.i] = b.dataset.lv; renderDims(); touchSaved();
+  });
+  $('p-score').addEventListener('input', function () { touchSaved(); });
+  function touchSaved() {
+    var t = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    $('savedTxt').textContent = '已自動暫存 ' + p(t.getHours()) + ':' + p(t.getMinutes());
+  }
+
+  // 估價單示意圖（純示意，無真實人名電話）
+  function sheet(kind) {
+    var rows = kind === 1
+      ? [['車輛檢查工資', '600'], ['機油 1 瓶', '450'], ['空濾更換', '380'], ['保固加購（半年）', '1,200']]
+      : [['煞車來令片（前）', '900'], ['工資', '500'], ['零件運送', '100'], ['保固說明：消耗品不在內', '—']];
+    var t = kind === 1 ? '估價單　範例 A' : '估價單　範例 B';
+    var s = '<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' + t + '">' +
+      '<rect width="320" height="240" fill="#fff"/><rect x="0" y="0" width="320" height="38" fill="#0A0A0A"/>' +
+      '<text x="14" y="25" font-size="16" font-weight="700" fill="#D9FF00">' + t + '</text>' +
+      '<text x="14" y="58" font-size="11" fill="#4A4F5A">客戶：＿＿＿＿＿＿　　車型：＿＿＿＿＿＿</text>' +
+      '<line x1="14" y1="68" x2="306" y2="68" stroke="#0669EB" stroke-width="1.5"/>' +
+      '<text x="14" y="84" font-size="11" font-weight="700" fill="#0A0A0A">項目</text><text x="260" y="84" font-size="11" font-weight="700" fill="#0A0A0A">金額</text>';
+    rows.forEach(function (r, i) {
+      var y = 108 + i * 28;
+      s += '<line x1="14" y1="' + (y + 8) + '" x2="306" y2="' + (y + 8) + '" stroke="#E5E7EB"/>' +
+        '<text x="14" y="' + y + '" font-size="12" fill="#0A0A0A">' + r[0] + '</text>' +
+        '<text x="306" y="' + y + '" font-size="12" text-anchor="end" fill="#0A0A0A">' + r[1] + '</text>';
+    });
+    s += '<rect x="196" y="206" width="110" height="24" rx="6" fill="#D9FF00"/><text x="251" y="223" font-size="13" font-weight="700" text-anchor="middle" fill="#0A0A0A">合計（示意）</text></svg>';
+    return s;
+  }
+  $('exBox').innerHTML = [1, 2].map(function (k) {
+    return '<figure><button type="button" class="pic" data-k="' + k + '" aria-label="放大看估價範例 ' + (k === 1 ? 'A' : 'B') + '">' + sheet(k) + '<span class="zoom">點圖放大</span></button><figcaption>估價範例 ' + (k === 1 ? 'A' : 'B') + '</figcaption></figure>';
+  }).join('');
+  $('exBox').addEventListener('click', function (e) {
+    var b = e.target.closest('.pic'); if (!b) return;
+    $('lbBox').innerHTML = sheet(+b.dataset.k); $('lb').hidden = false; $('lbClose').focus();
+  });
+  function closeLb() { $('lb').hidden = true; }
+  $('lbClose').onclick = closeLb;
+  $('lb').addEventListener('click', function (e) { if (e.target === $('lb')) closeLb(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+
+  // ===== 4 送出頁 =====
+  var subState = 'miss', sent = false;
+  function renderSubmit() {
+    var miss = subState === 'miss';
+    $('subSw').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.s === subState)); });
+    $('chk').innerHTML =
+      '<li class="' + (miss ? 'bad' : 'good') + '"><span class="tag ' + (miss ? 'warn' : 'ok') + '">考官1 UNA</span><span>基礎 3 題：' + (miss ? '還差 2 題未完成（基礎 2、基礎 3）' : '3 題全部完成') + '</span></li>' +
+      '<li class="good"><span class="tag ok">考官2 PENNY</span><span>進階 2 題＋綜合 1 題：3 題全部完成</span></li>';
+    $('subBtn').disabled = miss || sent;
+    $('subHint').textContent = miss ? '兩位考官都完成，才能送出。' : (sent ? '' : '兩位考官都完成了，可以送出。');
+    $('subDone').hidden = !sent;
+  }
+  $('subSw').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; subState = b.dataset.s; sent = false; renderSubmit(); });
+  $('subBtn').onclick = function () { sent = true; renderSubmit(); };
+
+  // ===== 5 成績單 =====
+  var LVK = { '優良': 'top', '尚可': 'mid', '待加強': 'low' };
+  $('rtb').innerHTML = GROUPS.map(function (g, i) {
+    var ex = g.ex === 1 ? '<span class="tag blue">考官1 UNA</span>' : '<span class="tag yel">考官2 PENNY</span>';
+    return '<tr><td>' + g.n + '</td><td>' + ex + '</td><td><span class="g3t ' + LVK[g.lv] + '">' + g.lv + '</span></td><td class="num">' + g.sc + '</td></tr>';
+  }).join('');
+
+  // ===== 6 題庫圖片欄 =====
+  var thumbs = [{ k: 1, name: '估價範例A.png' }, { k: 2, name: '估價範例B.png' }];
+  function renderThumbs() {
+    $('thumbs').innerHTML = thumbs.map(function (t, i) {
+      return '<div class="th"><div class="im">' + sheet(t.k) + '</div><div class="nm">' + (i + 1) + '．' + t.name + '</div>' +
+        '<div class="ops"><button type="button" data-a="up" data-i="' + i + '" aria-label="往前移"' + (i === 0 ? ' disabled' : '') + '>前移</button>' +
+        '<button type="button" data-a="dn" data-i="' + i + '" aria-label="往後移"' + (i === thumbs.length - 1 ? ' disabled' : '') + '>後移</button>' +
+        '<button type="button" class="del" data-a="del" data-i="' + i + '">刪除</button></div></div>';
+    }).join('') + '<button type="button" class="upl" id="uplBtn">＋ 上傳圖片<br><small>（樣品不會真的上傳）</small></button>';
+  }
+  $('thumbs').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'uplBtn') { return; }
+    var i = +b.dataset.i, a = b.dataset.a;
+    if (a === 'del') thumbs.splice(i, 1);
+    else if (a === 'up' && i > 0) { var x = thumbs[i]; thumbs[i] = thumbs[i - 1]; thumbs[i - 1] = x; }
+    else if (a === 'dn' && i < thumbs.length - 1) { var y = thumbs[i]; thumbs[i] = thumbs[i + 1]; thumbs[i + 1] = y; }
+    renderThumbs();
+  });
+
+  renderDraw(); renderDims(); renderSubmit(); renderThumbs();
+  window.__duo = { show: show };
+})();
+</script>
+</body>
+</html>

@@ -13,7 +13,10 @@
  *                                                -> { totalDiff, rows:[{name, cur, prev, diff}], best, worst }
  *                                                   best／worst = { names:[...], value } 或 null（沒有進步／退步面向）
  *   ReportPdfCore.trendSeries(list, currentId)   歷次走勢（全部歷次）-> { points:[...], curIdx }
- *   ReportPdfCore.itemRows(items, opts)          每題得分列；opts.showTitle 為 false 時完全不帶題名與面向備註；opts.showNote 為 true（店長／主管完整版）才多帶題組備註 note
+ *   ReportPdfCore.dualInfo(a)                    雙考官資訊：a = { is_dual, slot1_name, slot2_name }；不是雙考官或缺暱稱（舊資料、資料庫未啟用）回 null，否則 { slots:[{no,name,scope}] }
+ *   ReportPdfCore.examinerText(a)                成績單「考官」欄文字：'考官1 UNA（基礎）、考官2 PENNY（進階＋綜合）'；非雙考官回 ''（呼叫端退回現行顯示）
+ *   ReportPdfCore.slotLabel(a, slot)             題組旁標示 '考官1'／'考官2'；非雙考官或 slot 不是 1／2 回 ''
+ *   ReportPdfCore.itemRows(items, opts)          每題得分列；opts.dual 為雙考官資訊時，核心題組多帶 slot（1／2，由 items[].slot 來）；opts.showTitle 為 false 時完全不帶題名與面向備註；opts.showNote 為 true（店長／主管完整版）才多帶題組備註 note
  *   ReportPdfCore.buildReport(input)             把資料整理成 PDF 要畫的內容 -> { ok, model } 或 { ok:false, error }
  *   ReportPdfCore.layoutPages(blocks, contentH)  分頁分配：以區塊／表格列為單位，不切半；換頁處重印表頭；算各頁剩餘高度分配
  *   ReportPdfCore.trendLabelLayout(o)            走勢圖標籤避讓（合格線文字與資料點標籤互相、與折線、資料點都不重疊）-> { lines, points }
@@ -94,6 +97,22 @@
     return { points: points, curIdx: curIdx };
   }
 
+  // 雙考官：只有 is_dual 為 true 且兩位暱稱都有才算（缺欄位一律當單人，行為與現行完全相同）
+  var SCOPES = ['基礎', '進階＋綜合'];
+  function dualInfo(a) {
+    if (!a || a.is_dual !== true) return null;
+    var n1 = String(a.slot1_name == null ? '' : a.slot1_name).trim(), n2 = String(a.slot2_name == null ? '' : a.slot2_name).trim();
+    if (!n1 || !n2) return null;
+    return { slots: [{ no: 1, name: n1, scope: SCOPES[0] }, { no: 2, name: n2, scope: SCOPES[1] }] };
+  }
+  function examinerText(a) {
+    var d = dualInfo(a);
+    return d ? d.slots.map(function (s) { return '考官' + s.no + ' ' + s.name + '（' + s.scope + '）'; }).join('、') : '';
+  }
+  function slotLabel(a, slot) {
+    return dualInfo(a) && (Number(slot) === 1 || Number(slot) === 2) ? '考官' + Number(slot) : '';
+  }
+
   // 每題得分列：核心題組依 seq 在前，加考題在後。非客服部（showTitle 不為 true）完全不帶 title 欄位。
   function itemRows(items, opts) {
     var showTitle = !!(opts && opts.showTitle);
@@ -110,6 +129,7 @@
         levels: DIMS.map(function (d) { return (it.levels || {})[d.name] || '—'; }),
         score: it.item_score == null ? null : Number(it.item_score)
       };
+      if (opts && opts.dual && !it.isExtra) { var sl = slotLabel(opts.dual, it.slot); if (sl) row.slot = Number(it.slot); }
       if (showTitle) {
         row.title = it.title || '';
         // 三級制面向備註（只有客服部的資料才帶；舊單沒有就不加這個欄位）
@@ -142,7 +162,8 @@
     }
     var passLine = raw.pass_line || Scoring.verdictFor(cur.total, cur.tenure).passLine;
     var coreN = items.filter(function (it) { return !it.isExtra; }).length;
-    var rows = itemRows(items, { showTitle: input.showTitle, showNote: input.showNote });
+    var dual = dualInfo(input.dual || raw) ? (input.dual || raw) : null;
+    var rows = itemRows(items, { showTitle: input.showTitle, showNote: input.showNote, dual: dual });
     var model = {
       generated: taipeiToday(input.nowMs),
       person: {
@@ -158,6 +179,7 @@
       prevDate: prev ? prev.date : '', prevTotal: prev ? prev.total : null,
       compare: compare(rates.rows, prevRates && prevRates.rows, cur.total, prev ? prev.total : 0),
       showTitle: !!input.showTitle,
+      examiners: dual ? examinerText(dual) : '',
       items: rows,
       hasExtra: rows.some(function (r) { return r.isExtra; }),
       trend: trendSeries(list, cur.id)
@@ -276,6 +298,7 @@
     ROW_EXTRA_MAX: ROW_EXTRA_MAX,
     taipeiToday: taipeiToday, taipeiDate: taipeiDate,
     eligibleAssessments: eligibleAssessments, dimRates: dimRates, compare: compare,
+    dualInfo: dualInfo, examinerText: examinerText, slotLabel: slotLabel,
     trendSeries: trendSeries, itemRows: itemRows, buildReport: buildReport, layoutPages: layoutPages, trendLabelLayout: trendLabelLayout
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

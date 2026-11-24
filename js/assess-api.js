@@ -60,6 +60,29 @@
   }
   function userError(text) { var e = new Error(text); e.userMessage = text; e.kind = 'app'; return e; }
 
+  // ---- 雙考官（資料庫尚未執行 dual_examiner_schema.sql 時，單人流程照常運作）----
+  var DUAL_OFF = '雙考官功能尚未啟用';
+  var DUAL_COL_RE = /is_dual|slot1_name|slot2_name|examiner_slot/;
+  // 查詢多帶雙考官欄位：build(extraCols) 回傳查詢；欄位不存在（資料庫還沒升級）就退回不帶的版本
+  function withDualCols(build, extraCols) {
+    return build(extraCols).then(function (r) {
+      if (r && r.error && (r.error.code === '42703' || DUAL_COL_RE.test(String(r.error.message || '')))) return build('');
+      return r;
+    });
+  }
+  function isNotEnabled(err) {
+    var code = err && err.code ? String(err.code) : '';
+    var msg = err && err.message ? String(err.message) : '';
+    return code === 'PGRST202' || code === '42883' || code === 'PGRST205' || /Could not find the (function|table)|does not exist/i.test(msg);
+  }
+  // 呼叫雙考官資料庫函式：函式不存在回「雙考官功能尚未啟用」，其餘沿用既有錯誤處理
+  function dualRpc(name, args) {
+    return sb.rpc(name, args).then(function (r) {
+      if (r.error) { if (isNotEnabled(r.error)) throw userError(DUAL_OFF); fail(r.error); }
+      return r;
+    }, function (e) { fail(e); });
+  }
+
   // 分頁讀完：build(from, to) 回傳一個 supabase 查詢
   function pageAll(build) {
     var all = [];
@@ -76,20 +99,23 @@
 
   // ---- 簽名網址（快取，過期自動重取）----
   var urlCache = {};
-  function signedUrl(path) {
-    var c = urlCache[path];
+  var SAMPLE_BUCKET = 'question-samples';   // 題組範例圖片（supabase/question_images_schema.sql）
+  // 預設 bucket（assess-notes）的快取鍵維持原本的 path；其他 bucket 前面加 bucket 名，避免不同 bucket 同路徑互撞
+  function ckey(path, bucket) { return bucket && bucket !== BUCKET ? bucket + '|' + path : path; }
+  function signedUrl(path, bucket) {
+    var k = ckey(path, bucket), c = urlCache[k];
     if (c && Date.now() - c.at < URL_REUSE_MS) return Promise.resolve(c.url);
-    return wrap(sb.storage.from(BUCKET).createSignedUrl(path, URL_TTL)).then(function (r) {
+    return wrap(sb.storage.from(bucket || BUCKET).createSignedUrl(path, URL_TTL)).then(function (r) {
       var u = r.data && (r.data.signedUrl || r.data.signedURL);
       if (!u) throw userError('圖片暫時無法顯示，請稍後再試。');
-      urlCache[path] = { url: u, at: Date.now() };
+      urlCache[k] = { url: u, at: Date.now() };
       return u;
     });
   }
-  function forgetUrl(path) { delete urlCache[path]; }
+  function forgetUrl(path, bucket) { delete urlCache[ckey(path, bucket)]; }
   // 只看快取（重畫畫面時避免縮圖閃一下）；沒有或快過期回 null
-  function peekUrl(path) {
-    var c = urlCache[path];
+  function peekUrl(path, bucket) {
+    var c = urlCache[ckey(path, bucket)];
     return c && Date.now() - c.at < URL_REUSE_MS ? c.url : null;
   }
 
@@ -241,17 +267,22 @@
     },
 
     // 我的進行中草稿
+    // 帶 is_dual：頁面用它把「我開的雙考官草稿」從單人草稿清單濾掉（改由 myDraftsDual 顯示）
     myDrafts: function (email) {
-      return wrap(sb.from('assessments')
-        .select('id,employee_id,employee_label,store_code,tenure,tenure_source,created_at,kind,checkup_year,checkup_quarter')
-        .eq('status', 'draft').eq('examiner_email', email.toLowerCase()).order('created_at', { ascending: false }))
+      return wrap(withDualCols(function (x) {
+        return sb.from('assessments')
+          .select('id,employee_id,employee_label,store_code,tenure,tenure_source,created_at,kind,checkup_year,checkup_quarter' + (x ? ',' + x : ''))
+          .eq('status', 'draft').eq('examiner_email', email.toLowerCase()).order('created_at', { ascending: false });
+      }, 'is_dual'))
         .then(function (r) { return r.data || []; });
     },
     // 載入一張草稿：考核本身＋題組（備註在 assessment_items.note；機密表只取名稱、步驟）＋圖片
     loadDraft: function (assessmentId) {
-      return wrap(sb.from('assessments')
-        .select('id,employee_id,employee_label,store_code,examiner_email,status,tenure,tenure_source,created_at,extra_started_at')
-        .eq('id', assessmentId).maybeSingle()).then(function (r) {
+      return wrap(withDualCols(function (x) {
+        return sb.from('assessments')
+          .select('id,employee_id,employee_label,store_code,examiner_email,status,tenure,tenure_source,created_at,extra_started_at' + (x ? ',' + x : ''))
+          .eq('id', assessmentId).maybeSingle();
+      }, 'is_dual,slot1_name,slot2_name')).then(function (r) {
         var a = r.data;
         if (!a || a.status !== 'draft') throw userError('找不到這張草稿，可能已被放棄或已送出。');
         return window.AssessApi.loadItemsFull(assessmentId).then(function (items) { return { a: a, items: items }; });
@@ -259,9 +290,11 @@
     },
     // 客服部用：題組（含 levels、分數）＋機密（題組名稱、步驟）＋備註＋圖片
     loadItemsFull: function (assessmentId) {
-      return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,note,note_url,is_extra')
-        .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
+      return wrap(withDualCols(function (x) {
+        return sb.from('assessment_items')
+          .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,note,note_url,is_extra' + (x ? ',' + x : ''))
+          .eq('assessment_id', assessmentId).order('seq');
+      }, 'examiner_slot')).then(function (r) {
         var items = r.data || [];
         var ids = items.map(function (i) { return i.id; });
         if (!ids.length) return [];
@@ -274,7 +307,7 @@
           return items.map(function (i) {
             var s = sec[i.id] || {};
             return {
-              id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {}, isExtra: !!i.is_extra,
+              id: i.id, seq: i.seq, category: i.category, code: i.code, levels: i.levels || {}, isExtra: !!i.is_extra, examinerSlot: i.examiner_slot == null ? null : i.examiner_slot,
               item_score: i.item_score, dim_points: i.dim_points, na_dims: i.na_dims, weakest_dims: i.weakest_dims,
               title: s.title || '', steps: Array.isArray(s.steps) ? s.steps : [], dimNotes: s.dim_notes && typeof s.dim_notes === 'object' ? s.dim_notes : {}, note: i.note || '', note_url: i.note_url || '',
               imgs: res[1][i.id] || []
@@ -285,9 +318,11 @@
     },
     // 送出後只讀題組分數（不含機密）
     loadItemScores: function (assessmentId) {
-      return wrap(sb.from('assessment_items')
-        .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,is_extra')
-        .eq('assessment_id', assessmentId).order('seq')).then(function (r) {
+      return wrap(withDualCols(function (x) {
+        return sb.from('assessment_items')
+          .select('id,seq,category,code,levels,item_score,dim_points,na_dims,weakest_dims,is_extra' + (x ? ',' + x : ''))
+          .eq('assessment_id', assessmentId).order('seq');
+      }, 'examiner_slot')).then(function (r) {
         return (r.data || []).map(function (i) { i.isExtra = !!i.is_extra; return i; });
       });
     },
@@ -341,6 +376,68 @@
       return wrap(sb.rpc('checkup_begin', { p_employee: employeeId, p_year: year, p_quarter: quarter })).then(function (r) { return r.data; });
     },
 
+    // ---- 雙考官輪流考核（規格：supabase/dual_examiner_schema.sql；資料庫沒升級時回「雙考官功能尚未啟用」）----
+    // 我是不是考官名單內的人（只有名單內的人才看得到「開始雙考官考核」）；讀不到一律當不是，不擋單人流程
+    isExaminer: function (email) {
+      return sb.from('assess_examiner_pool').select('email,active').eq('email', String(email || '').toLowerCase()).maybeSingle()
+        .then(function (r) { return !r.error && !!(r.data && r.data.active); }, function () { return false; });
+    },
+    // 開考＋抽籤＋抽題一次完成；已有雙考官草稿會回既有那張（existing=true）。回傳 { assessment_id, existing, my_slot, slots, items }
+    startDual: function (employeeId, tenureOverride) {
+      return dualRpc('assess_start_dual', { p_employee_id: employeeId, p_tenure_override: tenureOverride || null }).then(function (r) {
+        var d = Array.isArray(r.data) ? r.data[0] : r.data;
+        if (!d || !d.assessment_id) throw userError('開考後沒有收到考核編號，請重新整理頁面確認草稿清單。');
+        return d;
+      });
+    },
+    // 我是考官之一的雙考官草稿（含別人開、輪到我考的）；不含信箱。資料庫沒升級時回空陣列
+    myDraftsDual: function () {
+      return dualRpc('assess_my_drafts', {}).then(function (r) { return Array.isArray(r.data) ? r.data : []; },
+        function (e) { if (e && e.userMessage === DUAL_OFF) return []; throw e; });
+    },
+    // 這張雙考官考核的兩位考官：{ my_slot, slots:[{ slot, name, scope, submittedAt, lastSavedAt }] }；信箱只用來認出自己，不回傳
+    loadExaminers: function (assessmentId, email) {
+      return wrap(sb.from('assessment_examiners').select('slot,email,display_name,scope,submitted_at,last_saved_at')
+        .eq('assessment_id', assessmentId).order('slot')).then(function (r) {
+        var me = String(email || '').toLowerCase(), my = null;
+        var slots = (r.data || []).map(function (x) {
+          if (String(x.email || '').toLowerCase() === me) my = x.slot;
+          return { slot: x.slot, name: x.display_name, scope: x.scope, submittedAt: x.submitted_at || null, lastSavedAt: x.last_saved_at || null };
+        });
+        return { my_slot: my, slots: slots };
+      });
+    },
+    // 送出我的題組：回傳 { done, waiting_for_slot }；兩位都送出（done）才產生成績單
+    submitPart: function (assessmentId) {
+      return dualRpc('assess_submit_part', { p_assessment_id: assessmentId }).then(function (r) { return Array.isArray(r.data) ? r.data[0] : r.data; });
+    },
+    // 撤回我的送出（整張完成前才可以）
+    unsubmitPart: function (assessmentId) {
+      return dualRpc('assess_unsubmit_part', { p_assessment_id: assessmentId }).then(function (r) { return r.data; });
+    },
+    // 題組範例圖片（客服部才讀得到）：{ [item_id]: [{ id, path, mime, size }] }，依 sort_order。
+    // 經 assessment_item_secrets 取 item→question_id，再讀 question_images。資料表或機密表讀不到（例如尚未貼 question_images_schema.sql）一律靜默回 {}，不影響評分
+    sampleImages: function (itemIds) {
+      var DCore = window.AssessDualCore;
+      if (!itemIds || !itemIds.length || !DCore) return Promise.resolve({});
+      return Promise.resolve(sb.from('assessment_item_secrets').select('item_id,question_id').in('item_id', itemIds)).then(function (r1) {
+        if (!r1 || r1.error) return {};
+        var seen = {}, qids = [];
+        (r1.data || []).forEach(function (s) { if (s.question_id != null && !seen[s.question_id]) { seen[s.question_id] = 1; qids.push(s.question_id); } });
+        if (!qids.length) return {};
+        return Promise.resolve(sb.from('question_images').select('id,question_id,storage_path,mime,size_bytes,sort_order')
+          .in('question_id', qids).order('sort_order')).then(function (r2) {
+          return DCore.groupSamples(r1.data, r2 && !r2.error ? (r2.data || []) : []);
+        });
+      }).then(function (m) { return m; }, function () { return {}; });
+    },
+    SAMPLE_BUCKET: SAMPLE_BUCKET,
+    // 雙考官兩位都送出後，讀成績單摘要（總分、判定、及格線、最弱面向）
+    loadSummaryOf: function (assessmentId) {
+      return wrap(sb.from('assessment_summaries').select('id,employee_id,tenure,total_score,verdict,pass_line,weakest_dims,item_count')
+        .eq('id', assessmentId).maybeSingle()).then(function (r) { return r.data || null; });
+    },
+
     // ---- Storage（bucket assess-notes）----
     uploadImage: function (path, blob, mime) {
       return wrap(sb.storage.from(BUCKET).upload(path, blob, { contentType: mime, upsert: false }));
@@ -349,7 +446,7 @@
     removeFiles: function (paths) {
       if (!paths || !paths.length) return Promise.resolve({ ok: true, removed: 0 });
       var store = sb.storage.from(BUCKET);
-      paths.forEach(forgetUrl);
+      paths.forEach(function (p) { forgetUrl(p); });
       return store.remove(paths).then(function (r) {
         if (r.error) return { ok: false, removed: 0 };
         var gone = {};

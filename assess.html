@@ -195,6 +195,61 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   .script .sclose{display:none}
   .script-btn,.script-back{display:none!important}
 }
+/* 雙考官輪流考核（仿 樣品/雙考官輪流考核樣品.html） */
+.tag.blue{background:var(--accent-soft);color:var(--accent-deep)}
+.tag.yel{background:var(--ci-yellow);color:var(--ci-black)}
+.tag.gray{background:var(--track);color:var(--ink-2)}
+.draw{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin:var(--sp-4) 0}
+.dcardx{border-radius:var(--r-card);padding:var(--sp-4) var(--sp-6);background:#fff;border:1.5px solid var(--ink-line)}
+.dcardx.e1{border-color:var(--ci-blue)}
+.dcardx.e2{border-color:var(--ci-black);background:var(--ci-black);color:#fff}
+.dcardx small{font-size:13px;font-weight:700;opacity:.8}
+.dcardx .nm{font-size:28px;font-weight:800;letter-spacing:1px;margin:4px 0}
+.dcardx .tk{font-size:14px;line-height:1.5}
+.dcardx .me{display:inline-block;margin-top:6px;padding:2px 10px;border-radius:var(--r-pill);background:var(--ci-yellow);color:var(--ci-black);font-size:12px;font-weight:700}
+.lock{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700;background:var(--ci-yellow);color:var(--ci-black);padding:10px 14px;border-radius:var(--r-ctrl)}
+.lock svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.role-banner{background:var(--ci-black);color:#fff;border-radius:var(--r-card);padding:var(--sp-4) var(--sp-6);margin-bottom:var(--sp-4);border-left:6px solid var(--ci-yellow)}
+.role-banner b{font-size:19px;line-height:1.4}
+.role-banner .sub{font-size:13px;opacity:.8;margin-top:4px}
+.prog2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-top:var(--sp-3)}
+.prog2 div{background:var(--track);border-radius:var(--r-ctrl);padding:8px 12px;font-size:13px;line-height:1.5}
+.prog2 b{font-size:15px}
+.glist{list-style:none;display:grid;gap:var(--sp-2);margin-top:var(--sp-3)}
+.gi{display:flex;align-items:center;gap:var(--sp-3);padding:12px 14px;border-radius:var(--r-ctrl);background:#fff;border:1.5px solid var(--ink-line)}
+.gi .ck{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--track);color:transparent}
+.gi .ck svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.gi.done .ck{background:var(--success);color:#fff}
+.gi .tx{flex:1;min-width:0;line-height:1.4}
+.gi .tx b{display:block;font-size:15px;overflow-wrap:anywhere}
+.gi .tx span{font-size:12px;color:var(--ink-2)}
+.gi.lock-o{background:#E5E7EB;border-color:#E5E7EB;color:#6B7280}
+.gi.lock-o .tx b{color:#4B5563}
+.gi.lock-o .tx span{color:#6B7280}
+.gi.lock-o .ck{background:#D1D5DB}
+.gi.lock-o.done .ck{background:#6B7280;color:#fff}
+.gi.mine{border-color:var(--ci-blue)}
+.coedit{display:flex;gap:10px;align-items:center;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:14px;line-height:1.5;padding:10px 14px;border-radius:var(--r-ctrl);margin-bottom:var(--sp-3)}
+.coedit .dot{width:10px;height:10px;border-radius:50%;background:var(--success);flex:none;box-shadow:0 0 0 4px var(--success-soft)}
+.done-card{background:var(--success-soft);border:1.5px solid var(--success);border-radius:var(--r-card);padding:var(--sp-4) var(--sp-6);line-height:1.6;margin-top:var(--sp-3)}
+.ro .lv{cursor:default;pointer-events:none}
+.ro .lv[aria-pressed="false"]{opacity:.45}
+.tabs button.ro-tab{background:#E5E7EB;color:#6B7280}
+.rolock{background:var(--track);color:var(--ink-2);font-weight:700;font-size:14px;padding:10px 14px;border-radius:var(--r-ctrl);margin:var(--sp-3) 0 0;line-height:1.5}
+.rotext{width:100%;min-height:64px;padding:8px 10px;border-radius:var(--r-ctrl);border:1.5px solid var(--ink-line);background:#F3F4F6;font-size:15px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.ex{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--sp-3);margin-top:var(--sp-2)}
+.ex figure{margin:0}
+.ex button.pic{display:block;width:100%;padding:0;border:1.5px solid var(--ink-line);border-radius:var(--r-ctrl);overflow:hidden;background:#fff;position:relative}
+.ex button.pic img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--track)}
+.ex button.pic .zoom{position:absolute;right:8px;bottom:8px;background:var(--ci-black);color:var(--ci-yellow);font-size:12px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill)}
+.ex figcaption{font-size:13px;color:var(--ink-2);margin-top:4px;text-align:center}
+.chk{list-style:none;display:grid;gap:8px;margin:var(--sp-3) 0}
+.chk li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-start;padding:10px 14px;border-radius:var(--r-ctrl);background:#fff;border:1.5px solid var(--ink-line);line-height:1.5;font-size:15px}
+.chk li.bad{border-color:var(--danger);background:var(--danger-soft)}
+.chk li.good{border-color:var(--success)}
+.chk li .tag{flex:none}
+.chk li span.tx{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+@media (max-width:480px){.draw{grid-template-columns:1fr}.gi{flex-wrap:wrap}.gi .btn{width:100%}.prog2{grid-template-columns:1fr}}
 @media (max-width:480px){
   .top h1{font-size:19px}
   .steps li{font-size:12px;padding:8px 2px}
@@ -273,9 +328,21 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   <div class="dlg">
     <h2>放棄這次考核？</h2>
     <p>放棄後，這位考生這次的評分、備註與附圖都會刪除，已抽出的題組不算已抽過，會回到題池。此動作無法復原。</p>
+    <p id="dlgDual" hidden style="margin-top:8px;color:var(--danger);font-weight:700">這是雙考官考核：這張考核兩位考官的進度都會消失。若已有考官送出自己的題組，要先撤回送出才能放棄。</p>
     <div class="actions">
       <button class="btn" type="button" id="dlgNo">繼續考核</button>
       <button class="btn danger" type="button" id="dlgYes">確定放棄</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgUnsub">
+  <div class="dlg">
+    <h2>撤回送出？</h2>
+    <p>撤回後，你負責的題組會恢復成可以修改，要重新按「送出我的題組」才算交卷。另一位考官的進度與送出狀態不受影響。</p>
+    <div class="actions">
+      <button class="btn" type="button" id="unsubNo">不撤回</button>
+      <button class="btn primary" type="button" id="unsubYes">確定撤回</button>
     </div>
   </div>
 </dialog>
@@ -287,6 +354,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 <script src="js/suggest.js"></script>
 <script src="js/requests-core.js"></script>
 <script src="js/assess-checkup-core.js"></script>
+<script src="js/assess-dual-core.js"></script>
 <script src="js/assess-api.js"></script>
 <script>
 (function () {
@@ -297,6 +365,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var MAX_NA = 2;
   var STEP_NAMES = ['固定 3 題組', '評分', '弱項追加題', '送出結果'];
   var CK_STEP_NAMES = ['固定 3 題組', '評分', '結算', '送出結果'];   // 健檢沒有弱項追加題
+  var DUAL_STEP_NAMES = ['抽籤分工', '考核總覽', '評分', '送出結果'];   // 雙考官輪流考核
+  var DC = AssessDualCore;
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
   // 健檢模式：網址 mode=checkup（assess.html?mode=checkup&emp=…&year=…&quarter=…）；一般考核時 CK 為 null，其餘程式照舊
   var CKP = AssessCheckupCore.parseParams(location.search);
   var CK = CKP.isCheckup ? CKP : null;
@@ -322,6 +393,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   var email = '';
   var storeName = {};
+  var dualDrafts = [], canDual = false, expandKind = 'single', rowKind = 'single';   // 雙考官：我是考官之一的草稿、我能不能開雙考官考核、展開的是哪種開考、正在開始的是哪種
   var candidates = [], drafts = [], reqMap = {};   // reqMap：員編 -> 未結案的待考回報（待處理、已排定）
   var expandId = null, rowBusy = null, rowErr = {}, storeSel = '';   // 選考生：展開手動指定的那列、正在開始的那列、各列錯誤、門市篩選
   var STORE_ORDER = ['總公司', '中和', '新莊', '樹林', '桃園中壢', '新竹', '旗艦', '南台中', '太平', '台南', '高雄', '花蓮'];
@@ -332,7 +404,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   var finished = null;       // 送出後的資料庫結果
   var abandonTarget = null;  // 要放棄的考核 id
 
-  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false, coreFail: '', manual: false, weakInfo: null, ex: null, extraStart: '', badNotes: {} }; }
+  function fresh() { return { step: 1, aid: null, emp: null, cats: [], catInfo: null, items: [], cur: 0, drawn: false, coreFail: '', manual: false, weakInfo: null, ex: null, extraStart: '', badNotes: {}, dual: null, savedAt: '' }; }
   var S = fresh();
 
   function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
@@ -372,16 +444,23 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     else {
       el.classList.remove('warn');
       if (hasUnsaved()) el.textContent = '暫存中…';
-      else el.textContent = (S.aid && S.savedOnce) ? '已自動暫存' : '';
+      else el.textContent = (S.aid && S.savedOnce) ? '已自動暫存' + (S.dual && S.savedAt ? ' ' + DC.hm(S.savedAt) : '') : '';
     }
     syncPending();
   }
   // 依目前狀態更新「前往結算」「送出成績單」按鈕與原因
   function syncPending() {
     var why = pendingReason();
-    if (!$('fixbar').hidden) { $('fixGo').disabled = !!why || !canAdvance(); $('fixWhy').textContent = why; }
+    if (!$('fixbar').hidden) { $('fixGo').disabled = S.dual ? false : (!!why || !canAdvance()); $('fixWhy').textContent = why; }   // 雙考官：按鈕是「返回總覽」，隨時可按
     var sbtn = $('submitBtn');
     if (sbtn) { sbtn.disabled = busy || !!why; $('submitWhy').textContent = why; }
+    var dbtn = $('dsubBtn');   // 雙考官：送出頁的「送出我的題組」
+    if (dbtn && S.dual) {
+      var sv = DC.submitView(S.items, S.dual);
+      dbtn.disabled = busy || !!why || !sv.canSubmit;
+      $('dsubWhy').textContent = why || sv.hint;
+      $('dsubWhy').style.color = !why && sv.canSubmit ? 'var(--ink-2)' : 'var(--warning)';
+    }
   }
   function markDirty(it) {
     dirty[it.id] = true;
@@ -414,7 +493,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       return AssessApi.saveItem(id, lv, note, noteUrl, sendNotes).then(function () {
         if (epoch !== saveEpoch) return;   // 在途請求的回呼：放棄後忽略
         if (sendNotes) it.hadDimNotes = Object.keys(sendNotes).length > 0;
-        saving--; saveFailed = false; S.savedOnce = true; updateSaved();
+        saving--; saveFailed = false; S.savedOnce = true; if (S.dual) S.savedAt = new Date().toISOString(); updateSaved();
       }, function (err) {
         if (epoch !== saveEpoch) return;
         saving--; dirty[id] = true; saveFailed = true;
@@ -460,10 +539,11 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function coreDone() { var c = coreItems(); return c.length > 0 && c.every(function (i) { return itemDone(i); }); }
   // 評分畫面底下的主按鈕能不能按：還沒追加時看核心題組（按下去是分析弱項），有追加題時看全部（按下去是前往結算）
   function canAdvance() { return extraItems().length ? allDone() : coreDone(); }
-  function labelOf(it) { var list = it.isExtra ? extraItems() : coreItems(); return (it.isExtra ? '追加題 ' : '題組 ') + (list.indexOf(it) + 1); }
+  function labelOf(it) { if (S.dual) return DC.groupLabel(S.items, it); var list = it.isExtra ? extraItems() : coreItems(); return (it.isExtra ? '追加題 ' : '題組 ') + (list.indexOf(it) + 1); }
   function sfx(it) { return it.isExtra ? '（不算總分）' : ''; }
   // 步驟列（固定 3 題組／評分／弱項追加題／送出結果）目前在第幾格
   function barStep() {
+    if (S.dual) return S.step === 6 ? 1 : S.step === 7 ? 2 : S.step === 8 ? 4 : 3;   // 雙考官：抽籤分工／考核總覽／評分／送出結果（8＝送出頁）
     if (CK) return S.step === 4 ? 3 : S.step === 3 ? 2 : 1;   // 健檢：固定 3 題組／評分／結算／送出結果
     if (S.step === 4) return 4;
     if (S.step === 5) return 3;
@@ -486,7 +566,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // ====== 畫面 ======
   function renderStepbar() {
     var cur = finished ? 4 : barStep();
-    $('stepbar').innerHTML = (CK ? CK_STEP_NAMES : STEP_NAMES).map(function (n, i) {
+    $('stepbar').innerHTML = (S.dual ? DUAL_STEP_NAMES : CK ? CK_STEP_NAMES : STEP_NAMES).map(function (n, i) {
       var k = i + 1, c = (k === cur && !finished) ? 'cur' : (k < cur || finished) ? 'done' : '';
       return '<li class="' + c + '"' + (k === cur ? ' aria-current="step"' : '') + '><span class="n">' + k + (c === 'done' ? '（完成）' : '') + '</span>' + n + '</li>';
     }).join('');
@@ -504,7 +584,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   function renderStep1() {
     var h = '';
-    if (drafts.length) {
+    if (drafts.length || dualDrafts.length) {
       h += '<section class="panel glass"><h2>我的進行中草稿</h2><p class="hint">這些考核還沒送出，可以繼續或放棄。</p>';
       drafts.forEach(function (d) {
         var isCk = d.kind === 'checkup';   // 健檢草稿：標示「健檢」，「繼續」改連到健檢模式網址（不走一般考核流程）
@@ -519,6 +599,18 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
             : '<button type="button" class="btn sm primary" data-act="resume" data-id="' + esc(d.id) + '">繼續</button>') +
           '<button type="button" class="link warn" data-act="dropdraft" data-id="' + esc(d.id) + '">放棄</button></div></div>';
       });
+      // 雙考官草稿：含別人開、輪到我考的；對方只顯示暱稱
+      dualDrafts.forEach(function (row) {
+        var x = DC.draftInfo(row);
+        h += '<div class="dcard"><div class="l1"><span>' + esc(row.employee_label) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(row.employee_id) + '</span>' +
+          '<span class="tag yel">雙考官</span><span class="tag blue">' + esc(x.label) + '</span>' +
+          '<span class="tag gray">' + (x.openedByMe ? '我開的' : '輪到我考') + '</span>' +
+          (x.mySubmitted ? '<span class="tag on">你已送出</span>' : '') + (x.otherSubmitted ? '<span class="tag on">對方已送出</span>' : '') + '</div>' +
+          '<div class="l2">' + esc(storeName[row.store_code] || row.store_code) + '・開始於 ' + esc(stamp(row.created_at)) + '・另一位考官：' + esc(x.otherName) +
+          '・進度：你 ' + esc(x.myProg) + '、' + esc(x.otherName) + ' ' + esc(x.otherProg) + ' 題組</div>' +
+          '<div class="ops"><button type="button" class="btn sm primary" data-act="dresume" data-id="' + esc(x.id) + '">繼續</button>' +
+          '<button type="button" class="link warn" data-act="dropdraft" data-id="' + esc(x.id) + '">放棄</button></div></div>';
+      });
       h += '</section>';
     }
     // 門市選項：只列候選名單裡實際有人的門市，依固定順序，後面顯示人數
@@ -527,7 +619,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     codes.sort(function (a, b) { return storeRank(a) - storeRank(b) || (a < b ? -1 : a > b ? 1 : 0); });
     if (storeSel && !counts[storeSel]) storeSel = '';
     var dis = (busy || rowBusy) ? ' disabled' : '';
-    h += '<section class="panel glass"><h2>選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。按「準備考核・去抽題」就會開始這位考生的考核，並自動抽出固定核心題組（預設基礎、進階、綜合各 1 題），直接進入評分。</p>' +
+    h += '<section class="panel glass"><h2>選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。按「準備考核・去抽題」就會開始這位考生的考核，並自動抽出固定核心題組（預設基礎、進階、綜合各 1 題），直接進入評分。' + (canDual ? '考官名單內的人還可以按「開始雙考官考核」：系統抽籤決定兩位考官，一次考基礎 3＋進階 2＋綜合 1，兩位各評自己的題組。' : '') + '</p>' +
       '<select class="ctrl" id="storeSel" aria-label="門市" style="width:100%;margin-bottom:var(--sp-3)">' +
       '<option value="">全部門市</option>' + codes.map(function (c) {
         return '<option value="' + esc(c) + '"' + (c === storeSel ? ' selected' : '') + '>' + esc(storeName[c] || c) + '（' + counts[c] + '）</option>';
@@ -539,7 +631,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       h += '<div class="pwrap"><div class="prow"><div class="pinfo">' +
         '<div class="l1"><span>' + esc(nameOf(p)) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(p.id) + '</span><span class="tag ' + (TAG[tg] || 'unk') + '">' + esc(tg || '未填到職日') + '</span>' + reqTag(p.id) + '</div>' +
         '<div class="l2">' + esc(storeName[p.store_code] || p.store_code) + '・' + esc(p.job_title) + '・到職日 ' + (p.hire_date ? esc(p.hire_date) + '（第 ' + daysSince(p.hire_date) + ' 天）' : '未填') + '</div></div>' +
-        '<button type="button" class="btn primary pgo" data-act="prep" data-id="' + esc(p.id) + '" aria-expanded="' + (open ? 'true' : 'false') + '"' + dis + '>' + (mine ? '開始中…' : '準備考核・去抽題') + '</button></div>';
+        '<button type="button" class="btn primary pgo" data-act="prep" data-id="' + esc(p.id) + '" aria-expanded="' + (open && expandKind === 'single' ? 'true' : 'false') + '"' + dis + '>' + (mine && rowKind !== 'dual' ? '開始中…' : '準備考核・去抽題') + '</button>' +
+        (canDual ? '<button type="button" class="btn pgo" data-act="dprep" data-id="' + esc(p.id) + '" aria-expanded="' + (open && expandKind === 'dual' ? 'true' : 'false') + '"' + dis + '>' + (mine && rowKind === 'dual' ? '抽籤抽題中…' : '開始雙考官考核') + '</button>' : '') + '</div>';
       if (open && !p.hire_date) {
         h += '<div class="pmanual"><div class="msg warn">請先指定身分：這位考生到職日空白，系統無法判斷新人或正式。成績單會標示「手動指定」。再按一次「準備考核・去抽題」可取消。</div>' +
           '<div class="seg" role="group" aria-label="手動指定身分">' +
@@ -637,6 +730,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   // 面向備註欄：只有選「尚可」「待加強」才出現；新人考核紅字必填（去空白後不是空的即可，無字數下限），其他考核選填
   function dimNoteHtml(it, dim, cur) {
     if (!G3.noteApplies(cur)) return '';
+    if (isRo(it)) { var rv = (it.dimNotes && it.dimNotes[dim]) || ''; return rv ? '<div class="g3-note"><label>考官備註（唯讀）</label><div class="rotext">' + esc(rv) + '</div></div>' : ''; }
     var idx = S.items.indexOf(it), req = G3.noteRequired(S.emp.tenure, cur);
     var bad = req && S.badNotes[it.id + '|' + dim];
     var val = (it.dimNotes && it.dimNotes[dim]) || '';
@@ -649,6 +743,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function allMissingNotes() {
     var out = [];
     S.items.forEach(function (it) {
+      if (S.dual && it.slot !== S.dual.mySlot) return;   // 雙考官：對方題組的備註由對方負責
       var m = G3.missingNotes(S.emp && S.emp.tenure, it.levels, it.dimNotes);
       if (m.length) out.push({ item: it, dims: m });
     });
@@ -669,11 +764,29 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     return true;
   }
 
+  // ---- 雙考官：唯讀判斷與小元件 ----
+  function isRo(it) { return !!S.dual && !DC.editable(S.dual, it); }   // 對方題組、或自己已送出：只能看
+  function ownerTag(it) { return '<span class="tag ' + (it.slot === 1 ? 'blue' : 'yel') + '">' + esc(DC.slotTitle(S.dual, it.slot)) + ' 負責</span>'; }
+  function coEditHtml() { return '<div class="coedit" role="status"><span class="dot"></span><span id="coedit">' + esc(DC.coEditText(S.dual)) + '</span></div>'; }
+  function roNoteHtml(it) {
+    return '<label class="hint" style="display:block;margin-top:14px;font-weight:600">考官備註（唯讀）</label><div class="rotext">' + (it.note ? esc(it.note) : '（沒有備註）') + '</div>' +
+      (it.noteUrl ? '<label class="hint" style="display:block;margin-top:10px;font-weight:600">備註網址（唯讀）</label><div class="rotext">' + esc(it.noteUrl) + '</div>' : '');
+  }
+  function roAttachHtml(it) {
+    var imgs = it.imgs || [];
+    if (!imgs.length) return '';
+    return '<div class="thumbs">' + imgs.map(function (m, i) {
+      var u = AssessApi.peekUrl(m.path);
+      return '<div class="thumb"><button type="button" class="tb" data-zoom="' + i + '" aria-label="放大檢視備註附圖 ' + (i + 1) + '"><img data-path="' + esc(m.path) + '"' + (u ? ' src="' + esc(u) + '"' : '') + ' alt="備註附圖 ' + (i + 1) + '"></button>' +
+        '<div class="sz">備註附圖 ' + (i + 1) + '・' + fmtSize(m.size || 0) + '</div></div>';
+    }).join('') + '</div>';
+  }
+
   function renderStep3() {
-    var it = S.items[S.cur];
-    var h = '<div class="tabs" role="group" aria-label="題組分頁">' + S.items.map(function (x, i) {
-      return '<button type="button" data-act="tab" data-i="' + i + '" aria-pressed="' + (i === S.cur) + '">' + labelOf(x) + '・' + esc(x.cat) +
-        '<small style="color:' + (itemDone(x) ? 'var(--success)' : 'var(--warning)') + '">' + (itemDone(x) ? '已評完' : '未評完') + '</small></button>';
+    var it = S.items[S.cur], ro = isRo(it);
+    var h = (S.dual ? coEditHtml() : '') + '<div class="tabs" role="group" aria-label="題組分頁">' + S.items.map(function (x, i) {
+      return '<button type="button" data-act="tab" data-i="' + i + '"' + (isRo(x) ? ' class="ro-tab"' : '') + ' aria-pressed="' + (i === S.cur) + '">' + labelOf(x) + (S.dual ? '' : '・' + esc(x.cat)) +
+        '<small style="color:' + (itemDone(x) ? 'var(--success)' : 'var(--warning)') + '">' + (isRo(x) ? '唯讀・' : '') + (itemDone(x) ? '已評完' : '未評完') + '</small></button>';
     }).join('') + '</div>';
     h += '<div class="split">' +
       '<aside class="script' + (scriptOpen ? ' open' : '') + '" id="scriptPane" aria-label="題組腳本"><div class="shead"><h2>題組腳本：' + esc(it.code) + ' ' + esc(it.name) + '<br><span class="tag new">' + esc(it.cat) + '</span></h2>' +
@@ -681,31 +794,66 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       it.steps.map(function (s, i) {
         return '<div class="sstep"><b class="no">步驟 ' + (i + 1) + '</b><b>考官操作</b>' + esc(s.op || '—') + '<b>考點</b>' + esc(s.point || '—') + '</div>';
       }).join('') + '</div></aside><div>';
-    h += '<section class="panel glass"><h2>評分：' + esc(it.name) + '</h2>' + (it.isExtra ? '<span class="tag extra">追加題・不算總分</span> ' : '') + '<span class="tag new">' + esc(it.cat) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' +
+    h += '<section class="panel glass"><h2>評分：' + esc(it.name) + '</h2>' + (it.isExtra ? '<span class="tag extra">追加題・不算總分</span> ' : '') + '<span class="tag new">' + esc(it.cat) + '</span> ' + (S.dual ? ownerTag(it) + ' ' : '') + '<span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' +
       (it.isExtra && S.extraStart ? '<div class="hint" style="margin:8px 0 0">追加開始時間：' + esc(stamp(S.extraStart).slice(11)) + '</div>' : '');
     var nas = naCount(it);
-    h += '<p class="hint" style="margin-top:12px">七個面向各選一個等級。「不適用」每個題組最多 ' + MAX_NA + ' 個。</p>';
+    h += ro ? '<div class="rolock">' + (S.dual.mySubmitted && it.slot === S.dual.mySlot ? '你已送出自己的題組，現在只能看，不能修改。' : '這是' + esc(DC.slotTitle(S.dual, it.slot)) + '負責的題組，你只能看已評的等級與備註，不能修改。') + '</div>'
+      : '<p class="hint" style="margin-top:12px">七個面向各選一個等級。「不適用」每個題組最多 ' + MAX_NA + ' 個。</p>';
     DIMS.forEach(function (d) {
       var cur = it.levels[d.name], pts = dimPts(it, d.name);
       var ptxt = !cur ? '尚未評分' : cur === NA ? '不適用' : fmt(pts) + ' / ' + d.weight + ' 分';
-      h += '<div class="dim"><div class="dimhead"><b>' + esc(d.name) + '（配分 ' + d.weight + '）</b><span class="pt">' + ptxt + '</span></div><div class="lvrow" role="group" aria-label="' + esc(d.name) + '等級">';
+      h += '<div class="dim"><div class="dimhead"><b>' + esc(d.name) + '（配分 ' + d.weight + '）</b><span class="pt">' + ptxt + '</span></div><div class="lvrow' + (ro ? ' ro' : '') + '" role="group" aria-label="' + esc(d.name) + '等級">';
       LV_LIST.forEach(function (lv) {
         var dis = (lv === NA && cur !== NA && nas >= MAX_NA);
-        h += '<button type="button" class="lv g3-b g3-' + G3.levelKind(lv) + '" data-act="lv" data-dim="' + esc(d.name) + '" data-lv="' + esc(lv) + '" aria-pressed="' + (cur === lv) + '"' + (dis ? ' disabled' : '') + '>' + esc(lv) + '</button>';
+        h += '<button type="button" class="lv g3-b g3-' + G3.levelKind(lv) + '"' + (ro ? ' tabindex="-1" aria-disabled="true"' : ' data-act="lv"') + ' data-dim="' + esc(d.name) + '" data-lv="' + esc(lv) + '" aria-pressed="' + (cur === lv) + '"' + (dis ? ' disabled' : '') + '>' + esc(lv) + '</button>';
       });
       h += '</div>' + dimNoteHtml(it, d.name, cur) + '</div>';
     });
     if (nas >= MAX_NA) h += '<div class="msg warn">此題組已有 ' + MAX_NA + ' 個面向標「不適用」，已達上限，其餘面向的「不適用」暫時不能選。要再選請先取消其中一個。</div>';
-    h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填；送出後總公司主管與該門市店長也看得到，請不要貼入題組腳本或考點原文）</label>' +
+    h += '<div id="sampleBox">' + sampleInner(it) + '</div>';   // 題組範例圖片（沒有圖或功能未啟用時是空的）
+    if (ro) h += roNoteHtml(it);
+    else h += '<label class="hint" style="display:block;margin-top:14px;font-weight:600" for="noteBox">考官備註（選填；送出後總公司主管與該門市店長也看得到，請不要貼入題組腳本或考點原文）</label>' +
       '<textarea class="ctrl" id="noteBox" data-note="' + S.cur + '" placeholder="例如：第 2 步回答不夠具體">' + esc(it.note || '') + '</textarea>' +
       '<label class="hint" style="display:block;margin-top:10px;font-weight:600" for="noteUrlBox">備註網址（非必填）</label>' +
       '<input class="ctrl" type="url" id="noteUrlBox" data-note="' + S.cur + '" autocomplete="off" placeholder="https://..." value="' + esc(it.noteUrl || '') + '" style="width:100%">' +
       '<div class="msg err" id="noteUrlErr" role="alert"' + (noteUrlError(it.noteUrl) ? '' : ' hidden') + '>' + esc(noteUrlError(it.noteUrl)) + '</div>';
-    h += attachHtml(it);
-    h += '<div class="navrow"><button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
+    h += ro ? roAttachHtml(it) : attachHtml(it);
+    h += '<div class="navrow">' + (S.dual ? '<button class="btn" type="button" data-act="dover">返回總覽</button>' : '') + '<button class="btn" type="button" data-act="prevItem"' + (S.cur === 0 ? ' disabled' : '') + '>上一個題組</button>' +
       '<button class="btn" type="button" data-act="nextItem"' + (S.cur === S.items.length - 1 ? ' disabled' : '') + '>下一個題組</button></div></section></div></div>';
     $('stage').innerHTML = h;
     hydrateImages($('stage'));
+    loadSamples();
+  }
+
+  // ---- 題組範例圖片（資料庫 question_images，bucket question-samples；考官只讀）----
+  function sampleInner(it) {
+    var list = it.samples || [];
+    if (!list.length) return '';
+    var B = AssessApi.SAMPLE_BUCKET;
+    return '<h3 style="font-size:16px;margin-top:var(--sp-4)">範例圖片</h3><p class="hint">這個題組的估價範例，點圖可以放大。</p><div class="ex">' + list.map(function (m, i) {
+      var u = AssessApi.peekUrl(m.path, B);
+      return '<figure><button type="button" class="pic" data-sample="' + i + '" aria-label="放大檢視範例圖片 ' + (i + 1) + '"><img data-path="' + esc(m.path) + '" data-bucket="' + esc(B) + '"' + (u ? ' src="' + esc(u) + '"' : '') + ' alt="範例圖片 ' + (i + 1) + '"><span class="zoom">點圖放大</span></button><figcaption>範例圖片 ' + (i + 1) + '</figcaption></figure>';
+    }).join('') + '</div>';
+  }
+  function updateSamples() {
+    var box = $('sampleBox'), it = S.items[S.cur];
+    if (!box || !it || S.step !== 3 || finished) return;
+    box.innerHTML = sampleInner(it);
+    hydrateImages(box);
+  }
+  // 還沒讀過範例圖片的題組一次讀齊；讀不到（含功能未啟用）一律當沒有圖，不重試、不影響評分。健檢不顯示
+  var samplePending = false;
+  function loadSamples() {
+    if (CK || samplePending || !S.aid) return;
+    var ids = S.items.filter(function (x) { return x.samples === undefined; }).map(function (x) { return x.id; });
+    if (!ids.length) return;
+    var aid = S.aid; samplePending = true;
+    AssessApi.sampleImages(ids).then(function (m) { return m || {}; }, function () { return {}; }).then(function (map) {
+      samplePending = false;
+      if (S.aid !== aid) return;
+      ids.forEach(function (id) { var x = itemById(id); if (x) x.samples = map[id] || []; });
+      updateSamples();
+    });
   }
 
   function renderBar() {
@@ -722,6 +870,13 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       var sum = 0;
       DIMS.forEach(function (d) { var p = dimPts(it, d.name); if (p !== null) sum += p; });
       txt = labelOf(it) + sfx(it) + ' 已評 ' + got + ' / 7 面向，累計 <b>' + fmt(sum) + '</b> 分（評完才有題組分數）';
+    }
+    if (S.dual) {   // 雙考官：只看自己負責的題組還剩幾個；主按鈕是「返回總覽」（送出在總覽頁）
+      var myLeft = DC.canSubmit(S.items, S.dual.mySlot).missing.length;
+      $('fixScore').innerHTML = (isRo(it) ? labelOf(it) + '（唯讀）' : txt) + '<br>' + (S.dual.mySubmitted ? '你的題組已送出' : myLeft ? '你負責的題組還有 ' + myLeft + ' 個沒評完' : '你負責的題組都評完了，可以回總覽送出');
+      $('fixGo').textContent = '返回總覽';
+      syncPending();
+      return;
     }
     var coreLeft = coreItems().filter(function (x) { return !itemDone(x); }).length, exLeft = extraItems().filter(function (x) { return !itemDone(x); }).length;
     if (CK) txt += '<br>' + (coreLeft ? '還有 ' + coreLeft + ' 個題組沒評完，不能結算' : '題組都已評完，可以前往結算');   // 健檢沒有弱項分析
@@ -823,6 +978,73 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     $('stage').innerHTML = h;
   }
 
+  // ====== 雙考官：抽籤結果頁（鎖定，沒有重抽）與考核總覽 ======
+  function renderDualDraw() {
+    var d = S.dual, e = S.emp, no = d.mySlot;
+    function card(n) {
+      return '<div class="dcardx e' + n + '"><small>考官' + n + '</small><div class="nm">' + esc(DC.nameOfSlot(d, n)) + '</div><div class="tk">' + esc(DC.scopeDesc(S.items, n)) + ' 題</div>' +
+        (n === no ? '<span class="me">這是你</span>' : '') + '</div>';
+    }
+    $('stage').innerHTML = '<section class="panel glass"><h2>抽籤結果：考官分工</h2>' +
+      '<p class="hint">受考人：' + esc(e.label) + '（' + esc(e.id) + '）' + esc(storeName[e.store] || e.store) + '・' + esc(e.tenure) + '。系統已完成抽籤與抽題，兩位考官各自用自己的帳號進來評分。</p>' +
+      '<div class="draw">' + card(1) + card(2) + '</div>' +
+      '<div class="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>抽籤後鎖定，不能重抽</div>' +
+      '<p class="hint" style="margin-top:12px"><b>你是考官' + no + '：負責' + esc(DC.scopeDesc(S.items, no)) + ' 題。</b>另一位考官：考官' + d.otherSlot + ' ' + esc(d.otherName) + '。</p>' +
+      '<div class="navrow"><span></span><button class="btn primary" type="button" data-act="dover">進入考核</button></div></section>';
+  }
+  function renderDualOver() {
+    var d = S.dual, no = d.mySlot, tp = DC.totalProgress(S.items), pct = tp.total ? Math.round(tp.done / tp.total * 100) : 0;
+    var chk = DC.canSubmit(S.items, no), e = S.emp;
+    var h = '<div class="role-banner"><b>你是考官' + no + '：負責' + esc(DC.scopeDesc(S.items, no)) + '</b>' +
+      '<div class="sub">受考人：' + esc(e.label) + '（' + esc(e.id) + '）・另一位考官：考官' + d.otherSlot + ' ' + esc(d.otherName) + '（負責' + esc(DC.scopeDesc(S.items, d.otherSlot)) + '）</div></div>';
+    h += coEditHtml();
+    h += '<div class="panel glass"><h2>整體進度：' + tp.total + ' 題組完成 ' + tp.done + ' 題</h2><div class="bar" style="height:12px;margin:8px 0" aria-hidden="true"><i style="width:' + pct + '%"></i></div><div class="prog2">' +
+      [1, 2].map(function (n) {
+        var p = DC.progress(S.items, n), sub = n === no ? d.mySubmitted : d.otherSubmitted;
+        return '<div><b>考官' + n + ' ' + esc(DC.nameOfSlot(d, n)) + (n === no ? '（你）' : '') + '</b><br>' + esc(DC.scopeDesc(S.items, n)) + ' 題：完成 ' + p.done + ' 題' + (sub ? '・<b style="color:var(--success)">已送出</b>' : '') + '</div>';
+      }).join('') + '</div><ul class="glist">' +
+      S.items.map(function (it, i) {
+        var mine = it.slot === no, done = DC.levelsDone(it.levels);
+        var meta = mine ? '你負責・' + (done ? '已完成' : '還沒評') : DC.slotTitle(d, it.slot) + ' 負責・' + (done ? '已評完' : '還沒評完');
+        var act = mine && !d.mySubmitted
+          ? '<button class="btn sm' + (done ? '' : ' primary') + '" type="button" data-act="dgo" data-i="' + i + '">' + (done ? '查看・修改' : '評分') + '</button>'
+          : '<button class="btn sm" type="button" data-act="dgo" data-i="' + i + '">查看（唯讀）</button>';
+        return '<li class="gi' + (done ? ' done' : '') + (mine ? ' mine' : ' lock-o') + '"><span class="ck">' + CHECK_SVG + '</span><div class="tx"><b>' + esc(labelOf(it)) + '：' + esc(it.name) + '</b><span>' + esc(meta) + '</span></div>' + act + '</li>';
+      }).join('') + '</ul><p class="hint" style="margin-top:12px">灰色的題組是另一位考官負責，你可以查看他的備註與已評等級，但不能修改。</p></div>';
+    var sv = DC.submitView(S.items, d);
+    h += '<section class="panel glass"><h2>送出我的題組</h2>';
+    if (d.mySubmitted) h += '<div class="done-card"><b>' + esc(sv.waiting) + '</b><br>你的題組現在只能看、不能改；兩位考官都送出後，才會合併產生 1 張成績單。</div>';
+    else h += '<p class="hint">評完自己負責的題組就可以送出；送出後這些題組就不能再修改（可以撤回）。兩位考官都送出，才會合併產生 1 張成績單。</p>' +
+      (chk.ok ? '<div class="msg ok" role="status">你負責的 ' + chk.total + ' 個題組都評完了。</div>' : '<div class="msg warn" role="status">' + esc(sv.hint) + '：' + esc(chk.missing.join('、')) + '。</div>');
+    h += '<div class="navrow"><span></span><button class="btn primary" type="button" data-act="dsubpage">前往送出頁</button></div></section>';
+    $('stage').innerHTML = h;
+  }
+  // 送出頁（仿樣品第 4 頁）：雙方進度＋送出我的題組／已送出等待對方＋撤回送出
+  function renderDualSubmit() {
+    var d = S.dual, e = S.emp, v = DC.submitView(S.items, d), no = d.mySlot;
+    var h = '<section class="panel glass"><h2>送出我的題組</h2>' +
+      '<p class="hint">受考人：' + esc(e.label) + '（' + esc(e.id) + '）。只送出你自己負責的題組；兩位考官都送出後，才會合併產生 1 張成績單。</p>' + coEditHtml() +
+      '<ul class="chk">' + [1, 2].map(function (n) {
+        var x = n === no ? v.mine : v.other, mine = n === no;
+        var cls = mine ? (x.missing.length ? 'bad' : 'good') : (x.missing.length ? '' : 'good');
+        return '<li class="' + cls + '"><span class="tag ' + (n === 1 ? 'blue' : 'yel') + '">考官' + n + ' ' + esc(DC.nameOfSlot(d, n)) + (mine ? '（你）' : '') + '</span><span class="tx">' + esc(x.scope) + ' 題：' +
+          (x.missing.length ? '還差 ' + x.missing.length + ' 題未完成（' + esc(x.missing.join('、')) + '）' : '全部完成') +
+          (x.submitted ? '・<b style="color:var(--success)">已送出</b>' : '') + '</span></li>';
+      }).join('') + '</ul>';
+    if (v.canUnsubmit) {
+      h += '<div class="done-card" role="status"><b>' + esc(v.waiting) + '</b><br>你的題組現在只能看、不能改。' + (d.otherSubmitted ? '' : '另一位考官送出後，才會合併產生 1 張成績單。') + '</div>' +
+        '<div class="navrow"><button class="btn" type="button" data-act="dover">返回總覽</button>' +
+        '<button class="btn" type="button" id="unsubBtn" data-act="dunsub"' + (busy ? ' disabled' : '') + '>撤回送出</button></div>' +
+        '<div class="hint" style="text-align:right;margin-top:8px">整張考核完成前，可以撤回自己的送出，改完再送。</div>';
+    } else {
+      h += '<div class="navrow"><button class="btn" type="button" data-act="dover">返回總覽</button>' +
+        '<button class="btn primary" type="button" id="dsubBtn" data-act="dsubmit"' + (busy || !v.canSubmit || pendingReason() ? ' disabled' : '') + '>送出我的題組</button></div>' +
+        '<div class="hint" id="dsubWhy" style="text-align:right;margin-top:8px;font-weight:600;color:' + (v.canSubmit && !pendingReason() ? 'var(--ink-2)' : 'var(--warning)') + '" aria-live="polite">' + esc(pendingReason() || v.hint) + '</div>';
+    }
+    h += '</section>';
+    $('stage').innerHTML = h;
+  }
+
   // 健檢進場面板：開始中、開始失敗（可重試）、已放棄（可重新開始）
   function renderCkPanel() {
     var p = ckPanel, back = '<a class="btn" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(AssessCheckupCore.LIST_URL) + '">回健檢名單</a>';
@@ -842,6 +1064,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     renderStepbar();
     if (CK && ckPanel && !finished) renderCkPanel();
     else if (finished) renderDone();
+    else if (S.dual && S.step === 6) renderDualDraw();
+    else if (S.dual && S.step === 7) renderDualOver();
+    else if (S.dual && S.step === 8) renderDualSubmit();
     else if (S.step === 1) renderStep1();
     else if (S.step === 2) renderStep2();
     else if (S.step === 3) renderStep3();
@@ -912,8 +1137,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function hydrateImages(root) {
     Array.prototype.forEach.call(root.querySelectorAll('img[data-path]'), function (img) {
       if (img.getAttribute('src')) return;
-      var path = img.getAttribute('data-path');
-      AssessApi.signedUrl(path).then(function (u) { if (img.isConnected) img.src = u; }, function () {});
+      var path = img.getAttribute('data-path'), bk = img.getAttribute('data-bucket') || undefined;
+      AssessApi.signedUrl(path, bk).then(function (u) { if (img.isConnected) img.src = u; }, function () {});
     });
   }
   // 簽名網址過期或失效時（圖片載入失敗），重取一次
@@ -921,9 +1146,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var img = e.target;
     if (!img || img.tagName !== 'IMG' || !img.hasAttribute('data-path') || img.getAttribute('data-retry')) return;
     img.setAttribute('data-retry', '1');
-    var path = img.getAttribute('data-path');
-    AssessApi.forgetUrl(path);
-    AssessApi.signedUrl(path).then(function (u) { img.src = u; }, function () {});
+    var path = img.getAttribute('data-path'), bk = img.getAttribute('data-bucket') || undefined;
+    AssessApi.forgetUrl(path, bk);
+    AssessApi.signedUrl(path, bk).then(function (u) { img.src = u; }, function () {});
   }, true);
 
   function updateAttach() {
@@ -1022,8 +1247,8 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     }).then(function () { updateAttach(); });
   }
 
-  function openLightbox(path, alt) {
-    AssessApi.signedUrl(path).then(function (u) {
+  function openLightbox(path, alt, bucket) {
+    AssessApi.signedUrl(path, bucket).then(function (u) {
       $('lbImg').src = u; $('lbImg').alt = alt;
       if (!$('lightbox').open) $('lightbox').showModal();
     }, function (err) { imgMsgs = [errText(err)]; updateAttach(); });
@@ -1033,17 +1258,23 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var cur = this.getAttribute('data-retry');
     if (cur || !this.getAttribute('data-path')) return;
     this.setAttribute('data-retry', '1');
-    var p = this.getAttribute('data-path');
-    AssessApi.forgetUrl(p);
-    AssessApi.signedUrl(p).then(function (u) { $('lbImg').src = u; }, function () {});
+    var p = this.getAttribute('data-path'), bk = this.getAttribute('data-bucket') || undefined;
+    AssessApi.forgetUrl(p, bk);
+    AssessApi.signedUrl(p, bk).then(function (u) { $('lbImg').src = u; }, function () {});
   });
   $('lbClose').addEventListener('click', function () { $('lightbox').close(); });
   $('lightbox').addEventListener('click', function (e) { if (e.target === $('lightbox')) $('lightbox').close(); });
-  $('lightbox').addEventListener('close', function () { $('lbImg').removeAttribute('src'); $('lbImg').removeAttribute('data-retry'); $('lbImg').removeAttribute('data-path'); });
+  $('lightbox').addEventListener('close', function () { $('lbImg').removeAttribute('src'); $('lbImg').removeAttribute('data-retry'); $('lbImg').removeAttribute('data-path'); $('lbImg').removeAttribute('data-bucket'); });
   $('attachFile').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
   $('stage').addEventListener('click', function (e) {
     if (e.target.closest('#pickBtn')) { $('attachFile').click(); return; }
+    var sz = e.target.closest('[data-sample]');   // 題組範例圖片放大（Esc 或「關閉」關閉）
+    if (sz) {
+      var sm = (S.items[S.cur].samples || [])[+sz.dataset.sample];
+      if (sm) { $('lbImg').setAttribute('data-path', sm.path); $('lbImg').setAttribute('data-bucket', AssessApi.SAMPLE_BUCKET); openLightbox(sm.path, '範例圖片 ' + (+sz.dataset.sample + 1), AssessApi.SAMPLE_BUCKET); }
+      return;
+    }
     var z = e.target.closest('[data-zoom]');
     if (z) {
       var m = (S.items[S.cur].imgs || [])[+z.dataset.zoom];
@@ -1086,7 +1317,10 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function loadStep1() {
     // 待考回報只用來標記與排序；讀取失敗就照原樣，不擋考核
     var reqJob = AssessApi.openRequests().then(function (x) { return x; }, function () { return []; });
-    return Promise.all([AssessApi.candidates(), AssessApi.myDrafts(email), reqJob]).then(function (r) {
+    // 雙考官草稿與「我是不是考官」讀不到就當沒有，不擋單人考核
+    var dualJob = AssessApi.myDraftsDual().then(function (x) { return x; }, function () { return []; });
+    var poolJob = AssessApi.isExaminer(email);
+    return Promise.all([AssessApi.candidates(), AssessApi.myDrafts(email), reqJob, dualJob, poolJob]).then(function (r) {
       candidates = r[0].slice().sort(function (a, b) {
         return storeRank(a.store_code) - storeRank(b.store_code) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
       });
@@ -1095,12 +1329,13 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         reqMap = RequestsCore.markReported(r[2]);
         candidates = RequestsCore.reportedFirst(candidates, reqMap, function (p) { return p.id; });
       } catch (e) { reqMap = {}; }
-      drafts = r[1];
+      drafts = r[1].filter(function (d) { return !d.is_dual; });   // 雙考官草稿改由 dualDrafts 顯示（含別人開、輪到我考的）
+      dualDrafts = r[3] || []; canDual = !!r[4];
       if (expandId && !personById(expandId)) expandId = null;
     });
   }
   function toStep1() {
-    S = fresh(); expandId = null; rowBusy = null; rowErr = {}; imgMsgs = []; resetSave();
+    S = fresh(); expandId = null; rowBusy = null; rowErr = {}; imgMsgs = []; resetSave(); stopPoll();
     return loadStep1().then(function () { render(); }, function (e) { notice('err', errText(e)); render(); });
   }
 
@@ -1110,7 +1345,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     Object.keys(r.levels || {}).forEach(function (k) {
       if (G3.isLegacyLevel(r.levels[k])) cleared.push(k); else lv[k] = r.levels[k];   // 改制前的舊草稿：舊等級不能送出，清掉讓考官重新評
     });
-    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: lv, dimNotes: dn, hadDimNotes: Object.keys(dn).length > 0, legacyCleared: cleared, note: r.note || '', noteUrl: r.note_url || '', imgs: r.imgs || [], isExtra: !!r.isExtra };
+    return { id: r.id, cat: r.category, code: r.code, name: r.title, steps: normSteps(r.steps), levels: lv, dimNotes: dn, hadDimNotes: Object.keys(dn).length > 0, legacyCleared: cleared, note: r.note || '', noteUrl: r.note_url || '', imgs: r.imgs || [], isExtra: !!r.isExtra, slot: r.examinerSlot == null ? null : r.examinerSlot };
   }
   function empFromDraft(a) {
     return { id: a.employee_id, label: a.employee_label, store: a.store_code, tenure: a.tenure, source: a.tenure_source };
@@ -1128,7 +1363,15 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         S.items.forEach(function (it) { if (it.legacyCleared.length) markDirty(it); });
         notice('warn', '這張草稿是改制前建立的，裡面有 ' + nLegacy + ' 個面向用了舊等級（優／良／不及格），已清除，請重新評分（現在是優良、尚可、待加強）。');
       }
-      return d;
+      if (!d.a.is_dual) return d;
+      // 雙考官草稿：讀兩位考官（只留暱稱與進度），進總覽；開始 30 秒輪詢對方進度
+      return AssessApi.loadExaminers(aid, email).then(function (ex) {
+        var dual = DC.makeDual(ex);
+        if (!dual) throw AssessApi.userError('你不是這張雙考官考核的考官，無法開啟。');
+        S.dual = dual; S.step = 7; S.cur = 0; S.drawn = true;
+        startPoll();
+        return d;
+      });
     });
   }
   // 抽題結果（assess_draw／assess_add_extra 共用格式）轉成前端題組物件；isExtra 為追加題
@@ -1195,6 +1438,116 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     });
   }
 
+  // ====== 雙考官：開考、輪詢對方進度、送出我的題組 ======
+  // 開考：資料庫一次完成抽籤與抽題（前端沒有任何參數能影響抽籤）→ 載入草稿 → 抽籤結果頁；該考生已有雙考官草稿就直接接續進總覽
+  function startDualFor(p, override) {
+    if (busy || rowBusy) return;
+    rowBusy = p.id; rowKind = 'dual'; rowErr = {}; notice('', ''); render();
+    AssessApi.startDual(p.id, p.hire_date ? null : override).then(function (r) {
+      var st = DC.parseStart(r);
+      return openDraft(st.aid).then(function () {
+        rowBusy = null; expandId = null;
+        if (st.existing) notice('info', '這位考生已有雙考官考核，已接續進入。');
+        else S.step = 6;
+        render(); window.scrollTo(0, 0);
+      });
+    }).catch(function (err) {
+      rowBusy = null; rowErr = {}; rowErr[p.id] = errText(err);   // 例如「只有考官名單內的客服人員可以開始雙考官考核」
+      if (S.aid) { stopPoll(); S = fresh(); }
+      render();
+    });
+  }
+
+  // 約 30 秒輪詢一次：唯讀更新對方進度與對方題組內容；自己的題組絕不覆蓋（含還沒存的改動）
+  var pollTimer = null, pollBusy = false, POLL_MS = 30000;
+  function startPoll() { stopPoll(); pollTimer = setInterval(pollDual, POLL_MS); }
+  function stopPoll() { if (pollTimer) clearInterval(pollTimer); pollTimer = null; pollBusy = false; }
+  function updateCoEdit() { var el = $('coedit'); if (el && S.dual) el.textContent = DC.coEditText(S.dual); }
+  function pollDual() {
+    if (!S.dual || !S.aid || finished || pollBusy || busy) return;
+    var aid = S.aid;
+    pollBusy = true;
+    Promise.all([AssessApi.loadItemsFull(aid), AssessApi.loadExaminers(aid, email)]).then(function (r) {
+      pollBusy = false;
+      if (S.aid !== aid || !S.dual || finished) return;
+      var ex = DC.makeDual(r[1]);
+      if (!ex || !r[0].length) {   // 考官表與題組都不見了：整張已被放棄
+        stopPoll(); resetSave();
+        return toStep1().then(function () { notice('warn', '這張雙考官考核已被放棄，已回到選考生。'); });
+      }
+      var before = DC.otherSignature(S.items, S.dual);
+      S.items = DC.mergeOther(S.items, r[0].map(itemFromDb), S.dual.mySlot);
+      S.dual = ex;
+      if (ex.mySubmitted && ex.otherSubmitted) { finishDual(aid); return; }   // 兩位都送出：改看成績單結果
+      var changed = before !== DC.otherSignature(S.items, S.dual);
+      if (changed && (S.step === 7 || S.step === 8 || (S.step === 3 && isRo(S.items[S.cur])))) render();   // 正在輸入自己題組時不重畫，只更新提示文字
+      else updateCoEdit();
+    }, function () { pollBusy = false; });   // 輪詢失敗就等下一輪，不打擾考官
+  }
+
+  // 送出我的題組：先把暫存做完 → assess_submit_part；兩位都送出就轉成結果頁，否則顯示等待對方
+  function submitPartNow() {
+    if (busy || !S.dual || pendingReason()) return;
+    var chk = DC.canSubmit(S.items, S.dual.mySlot);
+    if (!chk.ok) { notice('err', '你負責的題組還沒評完，不能送出：' + chk.missing.join('、') + '。'); return; }
+    if (blockIfNotesMissing()) return;
+    var aid = S.aid;
+    busy = true; notice('', ''); render();
+    uploadChain.then(flushAll).then(function (ok) {
+      if (uploading > 0) throw AssessApi.userError('圖片上傳中，請稍候再送出。');
+      if (!ok) throw AssessApi.userError('還有評分或備註沒有暫存成功，請看上方暫存提示，處理後再按一次送出。');
+      return AssessApi.submitPart(aid);
+    }).then(function (res) {
+      var st = DC.parseSubmit(res);
+      if (st.done) { busy = false; return finishDual(aid); }
+      return AssessApi.loadExaminers(aid, email).then(function (ex) {
+        var nd = DC.makeDual(ex);
+        if (nd) S.dual = nd;
+        busy = false; S.step = 8; notice('ok', '已送出你的題組，等待另一位考官送出。'); render(); window.scrollTo(0, 0);
+      }, function () {
+        S.dual.mySubmittedAt = new Date().toISOString(); S.dual.mySubmitted = true;
+        busy = false; S.step = 8; notice('ok', '已送出你的題組，等待另一位考官送出。'); render(); window.scrollTo(0, 0);
+      });
+    }).catch(function (e) { busy = false; notice('err', errText(e)); render(); });
+  }
+
+  // 撤回我的送出（整張完成前）：成功後自己的題組恢復可編輯；整張已完成就不能撤回，改由輪詢轉成結果頁
+  function unsubmitNow() {
+    if (busy || !S.dual || !S.dual.mySubmitted) return;
+    var aid = S.aid;
+    busy = true; notice('', ''); render();
+    AssessApi.unsubmitPart(aid).then(function () {
+      return AssessApi.loadExaminers(aid, email).then(function (ex) { return DC.makeDual(ex); }, function () { return null; });
+    }).then(function (nd) {
+      if (S.aid !== aid) { busy = false; return; }
+      if (nd) S.dual = nd; else { S.dual.mySubmittedAt = null; S.dual.mySubmitted = false; }
+      busy = false; S.step = 8; notice('ok', '已撤回送出，你負責的題組可以繼續修改，改完請再按「送出我的題組」。'); render(); window.scrollTo(0, 0);
+    }, function (e) {
+      busy = false; notice('err', errText(e)); render();
+      if (DC.alreadyDone(errText(e))) pollDual();   // 這張其實已完成：讓輪詢帶去結果頁
+    });
+  }
+
+  // 兩位都送出後：讀成績單摘要與各題組分數，顯示結果頁（與單人送出後同一個畫面）
+  function finishDual(aid) {
+    var emp = S.emp;
+    stopPoll();
+    return Promise.all([AssessApi.loadSummaryOf(aid), AssessApi.loadItemScores(aid)]).then(function (r) {
+      if (!r[0]) throw AssessApi.userError('兩位考官都已送出，但讀不到成績單，請到成績單頁確認。');
+      busy = false;
+      var fin = finished = { db: r[0], rows: r[1], emp: emp, aid: aid, mismatch: false, next: null, after: null, weakTags: '' };
+      S = fresh(); resetSave(); imgMsgs = [];
+      render(); window.scrollTo(0, 0);
+      Promise.all([AssessApi.activationOf(aid).catch(function () { return null; }), AssessApi.periodStatus(emp.id).catch(function () { return null; })]).then(function (x) {
+        if (finished !== fin) return;
+        fin.after = { activation: x[0], period: x[1] }; render();
+      });
+    }).catch(function (e) {
+      busy = false;
+      return toStep1().then(function () { notice('ok', '兩位考官都已送出，成績單已產生，請到成績單頁查看。' + (e && e.userMessage ? '（' + e.userMessage + '）' : '')); });
+    });
+  }
+
   function loadCats() {
     return AssessApi.categories().then(function (list) { S.catInfo = list; }, function (e) { S.catInfo = []; notice('err', errText(e)); });
   }
@@ -1210,7 +1563,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   function startFor(p, override) {
     if (busy || rowBusy) return;
     var hadDraft = drafts.some(function (d) { return d.employee_id === p.id && d.kind !== 'checkup'; });   // 健檢草稿不算「先前未完成的考核」
-    rowBusy = p.id; rowErr = {}; notice('', ''); render();
+    rowBusy = p.id; rowKind = 'single'; rowErr = {}; notice('', ''); render();
     AssessApi.start(p.id, p.hire_date ? null : override).then(function (aid) {
       return openDraft(aid).then(function () {
         if (S.step === 2) return autoDrawCore();
@@ -1262,20 +1615,37 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       if (!pp || rowBusy) return;
       rowErr = {};
       if (pp.hire_date) { startFor(pp, null); return; }
-      expandId = expandId === pp.id ? null : pp.id;   // 到職日空白：就地展開／取消，同時只展開一列
+      if (expandId === pp.id && expandKind === 'single') expandId = null; else { expandId = pp.id; expandKind = 'single'; }   // 到職日空白：就地展開／取消，同時只展開一列
+    }
+    else if (act === 'dprep') {   // 開始雙考官考核（只有考官名單內的人看得到這顆鈕；資料庫還會再擋一次）
+      var pd = personById(b.dataset.id);
+      if (!pd || rowBusy) return;
+      rowErr = {};
+      if (pd.hire_date) { startDualFor(pd, null); return; }
+      if (expandId === pd.id && expandKind === 'dual') expandId = null; else { expandId = pd.id; expandKind = 'dual'; }
     }
     else if (act === 'tenure2') {
       var pm = personById(b.dataset.id);
       if (!pm || rowBusy || pm.hire_date) return;
-      startFor(pm, b.dataset.v);
+      if (expandKind === 'dual') startDualFor(pm, b.dataset.v); else startFor(pm, b.dataset.v);
       return;
     }
+    else if (act === 'dresume') {
+      var drid = b.dataset.id;
+      run(function () { return openDraft(drid); });
+      return;
+    }
+    else if (act === 'dover') { if (!S.dual) return; S.step = 7; imgMsgs = []; }
+    else if (act === 'dgo') { if (!S.dual) return; S.cur = +b.dataset.i; S.step = 3; imgMsgs = []; }
+    else if (act === 'dsubpage') { if (!S.dual) return; S.step = 8; imgMsgs = []; window.scrollTo(0, 0); }
+    else if (act === 'dunsub') { if (S.dual && S.dual.mySubmitted) $('dlgUnsub').showModal(); return; }
+    else if (act === 'dsubmit') { submitPartNow(); return; }
     else if (act === 'resume') {
       var rid = b.dataset.id;
       run(function () { return openDraft(rid).then(function () { if (S.step === 2) return autoDrawCore(); }); });
       return;
     }
-    else if (act === 'dropdraft') { abandonTarget = b.dataset.id; $('dlg').showModal(); return; }
+    else if (act === 'dropdraft') { openAbandon(b.dataset.id); return; }
     else if (act === 'back2') { if (CK) { location.href = AssessCheckupCore.LIST_URL; return; } toStep1(); return; }
     else if (act === 'ckretry') { ckStart(); return; }
     else if (act === 'cat') {
@@ -1356,6 +1726,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     if (act === 'start3') window.scrollTo(0, 0);
   });
   $('fixGo').addEventListener('click', function () {
+    if (S.dual) { S.step = 7; imgMsgs = []; render(); window.scrollTo(0, 0); return; }   // 雙考官：回總覽（送出在總覽頁）
     if (!canAdvance() || pendingReason() || busy) return;
     if (blockIfNotesMissing()) return;   // 新人考核：尚可／待加強沒寫備註不能往下走（資料庫送出時也會擋）
     if (!CK && !extraItems().length) { analyzeWeak(); return; }   // 還沒追加：先分析弱項（健檢不分析弱項，直接結算）
@@ -1380,14 +1751,23 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   // ====== 放棄考核 ======
   var dlg = $('dlg');
-  $('abandon').addEventListener('click', function () { abandonTarget = S.aid; dlg.showModal(); });
+  // 雙考官草稿（清單上的、或正開著的）：確認文案要多寫「兩位考官的進度都會消失」
+  function openAbandon(aid) {
+    abandonTarget = aid;
+    $('dlgDual').hidden = !(dualDrafts.some(function (r) { return r.assessment_id === aid; }) || (S.dual && S.aid === aid));
+    dlg.showModal();
+  }
+  var unsubDlg = $('dlgUnsub');
+  $('unsubNo').addEventListener('click', function () { unsubDlg.close(); });
+  $('unsubYes').addEventListener('click', function () { unsubDlg.close(); unsubmitNow(); });
+  $('abandon').addEventListener('click', function () { openAbandon(S.aid); });
   $('dlgNo').addEventListener('click', function () { dlg.close(); abandonTarget = null; });
   $('dlgYes').addEventListener('click', function () {
     var aid = abandonTarget; dlg.close(); abandonTarget = null;
     if (!aid || busy) return;
     var isCurrent = aid === S.aid;
     busy = true; notice('', '');
-    if (isCurrent) resetSave();   // 放棄後不再暫存這張
+    if (isCurrent && !S.dual) resetSave();   // 放棄後不再暫存這張（雙考官：可能被資料庫拒絕〔要先撤回送出〕，成功後 toStep1 才清）
     AssessApi.abandon(aid).then(function (paths) {
       return AssessApi.removeFiles(paths).then(function (r) {
         return { paths: paths, ok: r.ok };
@@ -1404,7 +1784,16 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         if (r.paths.length && !r.ok) notice('warn', '考核已放棄，但有圖片檔案沒能刪除，可能留有孤兒檔案，請通知管理人員清理。');
         else notice('ok', '已放棄這次考核。');
       });
-    }, function (e) { busy = false; notice('err', errText(e)); render(); });
+    }, function (e) {
+      busy = false;
+      var m = errText(e);
+      if (DC.needUnsubmit(m)) {   // 已有考官送出：顯示資料庫的中文訊息並引導先撤回；自己已送出就直接帶到送出頁
+        var mine = !!(isCurrent && S.dual && S.dual.mySubmitted);
+        m = DC.abandonGuide(m, mine);
+        if (mine) { S.step = 8; window.scrollTo(0, 0); }
+      }
+      notice('err', m); render();
+    });
   });
 
   // ====== 送出成績單：以資料庫結果為準，與預覽比對 ======

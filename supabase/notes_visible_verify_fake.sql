@@ -633,7 +633,7 @@ begin
   perform pg_temp.vr_eq('4 內容','assess_draw 沒有碰 note（本次不需調整）','false',
     (select (prosrc ~ '\mnote\M')::text from pg_proc where oid = 'public.assess_draw(uuid, text[])'::regprocedure));
   perform pg_temp.vr_eq('4 內容','assess_submit 沒有碰 note（本次不需調整）','false',
-    (select (prosrc ~ '\mnote\M')::text from pg_proc where oid = 'public.assess_submit(uuid)'::regprocedure));
+    (select (bool_or(prosrc ~ '\mnote\M'))::text from pg_proc where oid in ('public.assess_submit(uuid)'::regprocedure, to_regprocedure('public.assess_finalize(uuid)'))));
   -- policy 只數條數（沒放寬、沒多加），可見性一律用實際角色查詢驗證（不解析 policy 條件文字）
   perform pg_temp.vr_eq('4 policy','機密表 policy 條數仍是 1','1',
     pg_temp.vr_q1($q$select count(*)::text from pg_policies where schemaname = 'public' and tablename = 'assessment_item_secrets'$q$));

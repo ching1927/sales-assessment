@@ -161,6 +161,21 @@
       return wrap(sb.from('employees').select('id,nickname,full_name,store_code,hire_date').eq('id', id).maybeSingle())
         .then(function (r) { return r.data || null; });
     },
+    // 雙考官成績單用（只讀）：單張考核的 is_dual、slot1_name、slot2_name（暱稱，不含信箱；總公司主管與店長也可看）。
+    // 資料庫還沒執行 dual_examiner_schema.sql（沒有這些欄位）、讀不到或出錯一律回 null，呼叫端照單人成績單顯示。
+    loadDualInfo: function (assessmentId) {
+      return Promise.resolve(sb.from('assessments').select('id,is_dual,slot1_name,slot2_name').eq('id', assessmentId).maybeSingle())
+        .then(function (r) { return r && !r.error && r.data ? r.data : null; }, function () { return null; });
+    },
+    // 雙考官成績單用（只讀）：某張考核每個題組是哪位考官負責 -> { 題組id: 1 或 2 }；單人、舊資料、欄位不存在或出錯回 {}
+    loadItemSlots: function (assessmentId) {
+      return Promise.resolve(sb.from('assessment_items').select('id,examiner_slot').eq('assessment_id', assessmentId))
+        .then(function (r) {
+          var out = {};
+          if (r && !r.error) (r.data || []).forEach(function (x) { if (x.examiner_slot === 1 || x.examiner_slot === 2) out[x.id] = x.examiner_slot; });
+          return out;
+        }, function () { return {}; });
+    },
     // 指定考核的題組（等級、得分、分類、題號、是否加考）；回傳 { 考核id: [題組] }。
     // withTitle 為 true 才取題名與面向備註：客服部直接讀 assessment_item_secrets；店長與主管（viaRpc）只呼叫 fullreport_items，前端絕不查機密表（資料庫也只放行客服部）。建議單傳 false，不取。
     // viaRpc（店長與總公司主管的完整版 PDF 才傳 true）：題名與面向備註改走資料庫函式 fullreport_items（不直接查機密表），並多帶題組備註 note。

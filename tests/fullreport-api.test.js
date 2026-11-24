@@ -18,7 +18,8 @@ function ok(cond, label) { assert.ok(cond, label); passed++; }
 function makeEnv(tables, rpcResult) {
   var log = { tables: [], rpcs: [], selects: [] };
   function chain(table) {
-    var q = { select: function (c) { log.selects.push(table + ':' + c); return q; }, eq: function () { return q; }, in: function () { return q; }, order: function () { return q; }, range: function () { return q; },
+    var q = { maybeSingle: function () { return Promise.resolve({ data: (tables[table] || [])[0] || null, error: null }); },
+      select: function (c) { log.selects.push(table + ':' + c); return q; }, eq: function () { return q; }, in: function () { return q; }, order: function () { return q; }, range: function () { return q; },
       then: function (res, rej) { return Promise.resolve({ data: tables[table] || [], error: null }).then(res, rej); } };
     return q;
   }
@@ -116,6 +117,22 @@ var RPC_OK = { data: [
   // 完整版詳情與 PDF 的所有查詢欄位都不含考官信箱
   ok(e.log.selects.every(function (x) { return x.indexOf('examiner') < 0; }), '完整版詳情：所有查詢欄位都不含考官信箱');
   ok(b1.log.selects.every(function (x) { return x.indexOf('examiner') < 0; }), '完整版 PDF：所有查詢欄位都不含考官信箱');
+
+  // ---- 雙考官成績單：暱稱與題組分工（loadDualInfo／loadItemSlots）----
+  var d1 = makeEnv({ assessments: [{ id: 'a1', is_dual: true, slot1_name: 'UNA', slot2_name: 'PENNY' }], assessment_items: [{ id: 'i1', examiner_slot: 1 }, { id: 'i2', examiner_slot: 2 }, { id: 'i3', examiner_slot: null }, { id: 'i4' }] }, RPC_OK);
+  eq(await d1.win.BackofficeApi.loadDualInfo('a1'), { id: 'a1', is_dual: true, slot1_name: 'UNA', slot2_name: 'PENNY' }, '雙考官：讀得到暱稱與分工旗標');
+  eq(await d1.win.BackofficeApi.loadItemSlots('a1'), { i1: 1, i2: 2 }, '雙考官：題組負責考官只收 1／2（null、缺欄位略過）');
+  ok(d1.log.selects.every(function (x) { return x.indexOf('examiner_email') < 0 && x.indexOf('@') < 0; }), '雙考官：查詢欄位不含考官信箱');
+  ok(d1.log.selects[0].indexOf('slot1_name,slot2_name') >= 0 && d1.log.selects[0].indexOf('examiner') < 0, '雙考官：assessments 查詢欄位（slot1_name、slot2_name）不含 examiner 字樣');
+  ok(d1.log.rpcs.length === 0 && d1.log.tables.indexOf('assessment_item_secrets') < 0, '雙考官：不呼叫 RPC、不查機密表');
+  // 資料庫未啟用（欄位不存在，supabase 回錯誤）或丟例外：安靜退回單人
+  var d2 = makeEnv({}, RPC_OK), orig2 = d2.win.supabase.createClient;
+  var errSb = { from: function () { var q = { select: function () { return q; }, eq: function () { return q; }, maybeSingle: function () { return Promise.resolve({ data: null, error: { code: '42703', message: 'column does not exist' } }); },
+    then: function (res, rej) { return Promise.resolve({ data: null, error: { code: '42703', message: 'column does not exist' } }).then(res, rej); } }; return q; }, rpc: function () { return Promise.resolve({}); }, storage: { from: function () { return {}; } }, auth: {} };
+  var ctx3 = vm.createContext({ window: { APP_CONFIG: { SUPABASE_URL: 'http://localhost', SUPABASE_KEY: 'k' }, supabase: { createClient: function () { return errSb; } } }, console: console, setTimeout: setTimeout, Promise: Promise });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'backoffice-api.js'), 'utf8'), ctx3, { filename: 'backoffice-api.js' });
+  eq(await ctx3.window.BackofficeApi.loadDualInfo('a1'), null, '資料庫未啟用：loadDualInfo 回 null');
+  eq(await ctx3.window.BackofficeApi.loadItemSlots('a1'), {}, '資料庫未啟用：loadItemSlots 回空物件');
 
   console.log('通過 ' + passed + ' 項');
 })().catch(function (err) { console.error(err); process.exit(1); });

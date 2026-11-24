@@ -155,6 +155,28 @@ button{cursor:pointer}
 /* 資料載入失敗：隱藏統計、工具列與整個表單，只留載入失敗面板 */
 .nodata .stats,.nodata .toolbar,.nodata .formcol{display:none!important}
 .nodata .layout{grid-template-columns:1fr!important}
+/* 範例圖片欄 */
+.imgfield{margin-top:var(--sp-4)}
+.imgfield .dimhelp{margin:0 0 var(--sp-2)}
+.imgfield .notice{margin-bottom:var(--sp-2);font-size:13px;white-space:pre-line}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:var(--sp-3);margin-top:var(--sp-2)}
+.th{border:1.5px solid var(--ink-line);border-radius:var(--r-ctrl);background:#fff;padding:8px}
+.th .im{display:block;width:100%;padding:0;border:1px solid var(--ink-line);border-radius:10px;overflow:hidden;background:var(--track);aspect-ratio:4/3;cursor:zoom-in}
+.th .im img{display:block;width:100%;height:100%;object-fit:cover}
+.th .nm{font-size:12px;color:var(--ink-2);margin:6px 0}
+.th .ops{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.th .ops button{min-height:36px;border-radius:10px;border:1px solid var(--ink-line);background:#fff;font-size:13px;font-weight:700;padding:0 2px}
+.th .ops button[disabled]{opacity:.4;cursor:default}
+.th .ops button.del{color:var(--danger)}
+.th .ops button.del.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.upl{display:grid;place-items:center;min-height:120px;border:2px dashed var(--ink-3);border-radius:var(--r-ctrl);background:rgba(255,255,255,.6);font-weight:700;color:var(--ink-2);font-size:14px;padding:8px;text-align:center;line-height:1.5}
+.upl small{font-weight:400;color:var(--ink-3)}
+.upl[disabled]{opacity:.5;cursor:default}
+.tag.img{background:var(--info-soft);color:var(--accent-deep)}
+.lb{border:none;border-radius:var(--r-ctrl);padding:var(--sp-3);max-width:min(96vw,900px);background:#fff}
+.lb::backdrop{background:rgba(10,10,10,.7)}
+.lb img{display:block;max-width:100%;max-height:78vh;margin:0 auto}
+.lb .btn{display:block;margin:var(--sp-3) auto 0}
 </style>
 </head>
 <body>
@@ -244,6 +266,14 @@ button{cursor:pointer}
         <div id="stepsBox"></div>
         <button class="btn add-step" id="addStepBtn" type="button">新增步驟</button>
         <p class="step-limit" id="stepLimit" hidden>已達上限 30 步，無法再新增。</p>
+        <div class="imgfield" id="imgField">
+          <div class="steps-top"><span>範例圖片（選填）</span><span id="imgCount"></span></div>
+          <p class="dimhelp">考官評分時，會在這個題組旁邊看到這些圖。每個題組最多 8 張（jpg、png、webp），可用前移、後移調整順序。</p>
+          <div class="notice" id="imgStatus" hidden></div>
+          <div class="notice" id="imgMsg" role="status" hidden></div>
+          <div class="thumbs" id="imgBox"></div>
+          <input type="file" id="imgFile" accept="image/jpeg,image/png,image/webp" multiple hidden>
+        </div>
         <div class="form-btns">
           <button class="btn primary" id="saveBtn" type="submit">儲存</button>
           <button class="btn" id="cancelBtn" type="button">取消</button>
@@ -268,6 +298,8 @@ button{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/suggest.js"></script>
+<dialog class="lb" id="lightbox" aria-label="放大看範例圖片"><img id="lbImg" alt=""><button class="btn" type="button" id="lbClose">關閉</button></dialog>
+<script src="js/question-images-core.js"></script>
 <script src="js/questions-api.js"></script>
 <script>
 (function () {
@@ -305,6 +337,9 @@ button{cursor:pointer}
   var formCatName = null, formTouched = false, stepSeq = 0;
   var busy = false;
   var dataOk = false;   // 目前畫面上的資料是否有效（載入失敗時為 false）
+  var imgCounts = null; // 題組 id → 範例圖片張數；null＝讀不到（例如功能尚未啟用），列表就不顯示「圖 N」
+  var IC = window.QuestionImagesCore;
+  var img = { qid: null, status: 'none', items: [], working: false };   // 編輯區目前的範例圖片狀態
 
   function recompute() {
     names = [];
@@ -405,7 +440,8 @@ button{cursor:pointer}
           (q.code ? '<span class="code">' + esc(q.code) + '</span>' : '') +
           '<div class="q-info"><div class="q-title">' + esc(q.title) + '</div>' +
           '<div class="q-meta"><span class="tag soft">' + q.steps.length + ' 個步驟</span>' +
-          (q.drawn ? '<span class="tag drawn">本輪已抽</span>' : '') + dimTags(q) + '</div></div>' +
+          (q.drawn ? '<span class="tag drawn">本輪已抽</span>' : '') + dimTags(q) +
+          (imgCounts && imgCounts[q.id] ? '<span class="tag img">圖 ' + imgCounts[q.id] + '</span>' : '') + '</div></div>' +
         '</div>' +
         '<div class="q-actions">' +
           '<button type="button" class="btn sm" data-act="edit">編輯</button>' +
@@ -485,12 +521,15 @@ button{cursor:pointer}
     var seq = ++loadSeq;
     // 面向標記讀不到（例如資料庫腳本還沒執行）不影響題庫管理，只是不顯示標記、不能編輯標記
     var dimsP = QuestionsApi.loadDims().catch(function () { return null; });
-    return Promise.all([QuestionsApi.listQuestions(), QuestionsApi.categories(), dimsP]).then(function (r) {
+    // 範例圖片張數讀不到（功能尚未啟用等）同樣不影響題庫管理，只是不顯示「圖 N」
+    var imgP = QuestionsApi.loadImageCounts().catch(function () { return null; });
+    return Promise.all([QuestionsApi.listQuestions(), QuestionsApi.categories(), dimsP, imgP]).then(function (r) {
       if (seq !== loadSeq) return true;
       dataOk = true;
       document.body.classList.remove('nodata');
       questions = r[0];
       dimsMap = r[2];
+      imgCounts = r[3];
       syncDimLock();
       catStat = {};
       r[1].forEach(function (c) { catStat[c.category] = { total: Number(c.total) || 0, remaining: Number(c.remaining) || 0 }; });
@@ -627,6 +666,167 @@ button{cursor:pointer}
     t.parentNode.classList.toggle('on', t.checked);
   });
 
+  /* ===== 範例圖片（編輯題組時；上傳、刪除、排序都是即時生效，不用按儲存） ===== */
+  var MAX_EDGE = 1600, MAX_ORIG = 8 * 1024 * 1024;
+  function newImg(qid, status) { return { qid: qid, status: status, items: [], working: false, msg: '', msgKind: '' }; }
+  function resetImages() { img = newImg(null, 'none'); renderImages(); }
+  function loadImages(qid) {
+    var st = img = newImg(qid, 'loading'); renderImages();
+    QuestionsApi.listImages(qid).then(function (items) {
+      st.items = items; st.status = 'ready';
+    }, function (e) {
+      st.status = e && e.unavailable ? 'unavailable' : 'error'; st.msg = e && e.unavailable ? '' : errText(e);
+    }).then(function () { if (img === st) renderImages(); });
+  }
+  function setImgMsg(st, text, kind) { st.msg = text; st.msgKind = kind || ''; if (img === st) renderImages(); }
+  function syncCount(st) {
+    if (st.status === 'ready' && imgCounts) { imgCounts[st.qid] = st.items.length; renderList(); }
+  }
+  function renderImages() {
+    var st = img, stat = $('imgStatus'), msg = $('imgMsg'), box = $('imgBox');
+    var note = st.status === 'none' ? '請先儲存題組，再按該題組的「編輯」，就可以上傳範例圖片。'
+      : st.status === 'loading' ? '範例圖片讀取中…'
+      : st.status === 'unavailable' ? '範例圖片功能尚未啟用'
+      : st.status === 'error' ? st.msg + ' 請關閉編輯後再開一次。' : '';
+    stat.textContent = note; stat.hidden = !note;
+    msg.textContent = st.status === 'error' ? '' : st.msg; msg.hidden = st.status === 'error' || !st.msg;
+    msg.className = 'notice' + (st.msgKind === 'ok' ? ' ok' : st.msgKind === 'bad' ? ' bad' : '');
+    $('imgCount').textContent = st.status === 'ready' ? st.items.length + ' / ' + IC.MAX_IMAGES + ' 張' : '';
+    if (st.status !== 'ready') { box.innerHTML = ''; box.hidden = true; return; }
+    box.hidden = false;
+    var h = '', n = st.items.length;
+    st.items.forEach(function (g, i) {
+      var cached = QuestionsApi.peekImageUrl(g.path);
+      h += '<div class="th" data-id="' + esc(g.id) + '">' +
+        '<button type="button" class="im" data-ia="zoom" aria-label="放大看第 ' + (i + 1) + ' 張">' +
+        '<img data-path="' + esc(g.path) + '" alt="範例圖片第 ' + (i + 1) + ' 張"' + (cached ? ' src="' + esc(cached) + '"' : '') + '></button>' +
+        '<div class="nm">第 ' + (i + 1) + ' 張</div>' +
+        '<div class="ops"><button type="button" data-ia="up" aria-label="往前移"' + (i === 0 || st.working ? ' disabled' : '') + '>前移</button>' +
+        '<button type="button" data-ia="dn" aria-label="往後移"' + (i === n - 1 || st.working ? ' disabled' : '') + '>後移</button>' +
+        '<button type="button" class="del" data-ia="del" data-label="刪除"' + (st.working ? ' disabled' : '') + '>刪除</button></div></div>';
+    });
+    var left = IC.slotsLeft(n);
+    h += '<button type="button" class="upl" data-ia="upload"' + (st.working || !left ? ' disabled' : '') + '>' +
+      (st.working ? '處理中…' : left ? '＋ 上傳圖片<br><small>還能傳 ' + left + ' 張</small>' : '已達 8 張上限') + '</button>';
+    box.innerHTML = h;
+    [].forEach.call(box.querySelectorAll('img[data-path]'), function (el) {
+      if (el.getAttribute('src')) return;
+      QuestionsApi.imageUrl(el.getAttribute('data-path')).then(function (u) { if (el.isConnected) el.src = u; },
+        function () { if (el.isConnected) el.alt = '圖片暫時無法顯示'; });
+    });
+  }
+  // 縮到最長邊 1600px、轉 JPEG；品質 0.82 → 0.7 → 0.6 直到 ≤ 2MB（與考核頁附圖同一套做法）
+  function shrink(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var cv;
+        try {
+          var w = im.naturalWidth, hh = im.naturalHeight, m = Math.max(w, hh), sc = m > MAX_EDGE ? MAX_EDGE / m : 1;
+          var cw = Math.max(1, Math.round(w * sc)), ch = Math.max(1, Math.round(hh * sc));
+          cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+          var cx = cv.getContext('2d');
+          cx.fillStyle = '#fff'; cx.fillRect(0, 0, cw, ch);   // 透明 png 轉白底
+          cx.drawImage(im, 0, 0, cw, ch);
+        } catch (e) { URL.revokeObjectURL(url); reject(e); return; }
+        URL.revokeObjectURL(url);
+        var qs = [0.82, 0.7, 0.6], qi = 0;
+        (function tryQ() {
+          cv.toBlob(function (b) {
+            if (!b) { reject(new Error('read')); return; }
+            if (b.size <= IC.MAX_BYTES) { resolve({ blob: b, mime: 'image/jpeg', size: b.size }); return; }
+            if (qi >= qs.length - 1) { reject(new Error('big')); return; }
+            qi++; tryQ();
+          }, 'image/jpeg', qs[qi]);
+        })();
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); reject(new Error('read')); };
+      im.src = url;
+    });
+  }
+  function addImgFiles(files) {
+    var st = img;
+    if (st.status !== 'ready' || st.working) return;
+    var fails = [], take = [];
+    [].slice.call(files).forEach(function (f) {
+      if (!IC.isOkType(f.type)) fails.push('不支援的格式：' + f.name + '（只收 jpg、png、webp）');
+      else if (f.size > MAX_ORIG) fails.push('圖片太大：' + f.name + '（單張原檔不能超過 8MB）');
+      else take.push(f);
+    });
+    var left = IC.slotsLeft(st.items.length);
+    if (take.length > left) { fails.push('每個題組最多 ' + IC.MAX_IMAGES + ' 張，有 ' + (take.length - left) + ' 張沒有上傳。'); take = take.slice(0, left); }
+    if (!take.length) { setImgMsg(st, fails.join('\n'), 'bad'); return; }
+    st.working = true; setImgMsg(st, '', ''); var done = 0;
+    take.reduce(function (p, f) {
+      return p.then(function () {
+        if (st.status !== 'ready') return;   // 中途發現功能未啟用就不再傳
+        return shrink(f).then(function (r) { return QuestionsApi.addImage(st.qid, r.blob, r.mime, r.size); }).then(function (g) {
+          st.items.push({ id: g.id, path: g.path, mime: g.mime, size: g.size, sort: st.items.length + 1 }); done++;
+          if (img === st) renderImages();
+        }, function (e) {
+          if (e && e.unavailable) { st.status = 'unavailable'; return; }
+          var t = e && e.message === 'read' ? '無法讀取這張圖片，請換一張。' : e && e.message === 'big' ? '壓縮後仍超過 2MB，請換一張較小的圖。' : errText(e);
+          fails.push(f.name + '：' + t);
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      st.working = false;
+      if (st.status === 'ready') {
+        st.msg = (done ? '已上傳 ' + done + ' 張。' + (fails.length ? '\n' : '') : '') + fails.join('\n'); st.msgKind = fails.length ? 'bad' : 'ok';
+      }
+      syncCount(st); if (img === st) renderImages();
+    });
+  }
+  function moveImg(st, i, dir) {
+    var ids = IC.moveIds(st.items.map(function (g) { return g.id; }), i, dir);
+    if (!ids || st.working) return;
+    st.working = true; setImgMsg(st, '', '');
+    QuestionsApi.reorderImages(st.qid, ids).then(function () {
+      var by = {}; st.items.forEach(function (g) { by[g.id] = g; });
+      st.items = ids.map(function (id, k) { by[id].sort = k + 1; return by[id]; });
+    }, function (e) {
+      if (e && e.unavailable) st.status = 'unavailable'; else { st.msg = errText(e); st.msgKind = 'bad'; }
+    }).then(function () { st.working = false; if (img === st) renderImages(); });
+  }
+  function delImg(st, id) {
+    st.working = true; setImgMsg(st, '', '');
+    QuestionsApi.removeImage(id).then(function (r) {
+      st.items = st.items.filter(function (g) { return g.id !== id; });
+      if (r.fileRemoved) { st.msg = '已刪除圖片。'; st.msgKind = 'ok'; }
+      else { st.msg = '這張圖已從題組移除，但圖片檔案沒有從儲存空間刪掉，請通知管理員處理。'; st.msgKind = 'bad'; }
+      syncCount(st);
+    }, function (e) {
+      if (e && e.unavailable) st.status = 'unavailable'; else { st.msg = errText(e); st.msgKind = 'bad'; }
+    }).then(function () { st.working = false; if (img === st) renderImages(); });
+  }
+  $('imgFile').addEventListener('change', function () { addImgFiles(this.files); this.value = ''; });
+  $('imgBox').addEventListener('click', function (e) {
+    var t = e.target.closest('[data-ia]');
+    if (!t || t.disabled || img.working) return;
+    var st = img, a = t.dataset.ia, th = t.closest('.th');
+    if (a === 'upload') { $('imgFile').click(); return; }
+    var id = th.dataset.id, i = st.items.map(function (g) { return g.id; }).indexOf(id);
+    if (i < 0) return;
+    if (a === 'zoom') {
+      var p = st.items[i].path;
+      QuestionsApi.imageUrl(p).then(function (u) { $('lbImg').src = u; $('lbImg').alt = '範例圖片第 ' + (i + 1) + ' 張'; if (!$('lightbox').open) $('lightbox').showModal(); },
+        function (er) { setImgMsg(st, errText(er), 'bad'); });
+    } else if (a === 'up') moveImg(st, i, -1);
+    else if (a === 'dn') moveImg(st, i, 1);
+    else if (a === 'del') arm(t, 'img' + id, '再按一次確認刪除', function () { delImg(st, id); });
+  });
+  // 縮圖載入失敗（簽名網址可能過期）：重取一次
+  $('imgBox').addEventListener('error', function (e) {
+    var el = e.target;
+    if (!el || el.tagName !== 'IMG' || el.dataset.retry) return;
+    el.dataset.retry = '1';
+    var p = el.getAttribute('data-path'); QuestionsApi.forgetImageUrl(p);
+    QuestionsApi.imageUrl(p).then(function (u) { el.src = u; }, function () {});
+  }, true);
+  $('lbClose').addEventListener('click', function () { $('lightbox').close(); });
+  $('lightbox').addEventListener('click', function (e) { if (e.target === $('lightbox')) $('lightbox').close(); });
+  $('lightbox').addEventListener('close', function () { $('lbImg').removeAttribute('src'); });
+
   /* ===== 表單 ===== */
   function openForm(focusFirst) {
     $('formCol').setAttribute('data-open', 'true');
@@ -654,12 +854,14 @@ button{cursor:pointer}
     applyFormCat(q.category);
     $('codeInput').value = q.code || ''; $('titleInput').value = q.title; buildSteps(q.steps);
     setDimChecks(dimsMap ? dimsMap[q.id] : []);
+    loadImages(q.id);
     renderList(); openForm(true);
   }
   function resetForm() {
     editingId = null; formTouched = false; setFormMode(false); setFormNote('');
     $('codeInput').value = ''; $('titleInput').value = ''; $('newCatInput').value = '';
     buildSteps(null); setDimChecks([]); hideErrs(); syncFormCat();
+    resetImages();
   }
   function markErr(errId, msg, inputEl) { var e = $(errId); e.textContent = msg; e.hidden = false; inputEl.classList.add('bad'); }
 
@@ -716,10 +918,25 @@ button{cursor:pointer}
   }
   function doDelete(id) {
     setBusy(true);
-    QuestionsApi.deleteQuestion(id).then(function () {
+    // 先記下這題的範例圖片檔案路徑（題組一刪，資料列就跟著消失）；讀不到不阻擋刪題組
+    var pathsP = QuestionsApi.listImages(id).then(function (rows) {
+      return rows.map(function (g) { return g.path; });
+    }, function (e) { return e && e.unavailable ? [] : null; });
+    pathsP.then(function (paths) {
+      return QuestionsApi.deleteQuestion(id).then(function () { return paths; });
+    }).then(function (paths) {
       delete openIds[id];
       if (editingId === id) { resetForm(); if (!isDesktop()) closeFormMobile(); }
-      return reloadList().then(function (ok) { if (ok) showMsg('已刪除題組。', 'ok'); });
+      // 題組已刪成功：清 Storage 圖片檔；清不掉只提示，不阻擋
+      var cleanP = paths && paths.length ? QuestionsApi.removeImageFiles(paths) : Promise.resolve({ ok: true });
+      return cleanP.then(function (c) {
+        return reloadList().then(function (ok) {
+          if (!ok) return;
+          if (paths === null) showMsg('已刪除題組，但無法確認它有沒有範例圖片，若有圖片檔可能殘留，請通知管理員。', 'bad');
+          else if (!c.ok) showMsg('已刪除題組，但 ' + paths.length + ' 張範例圖片檔案沒有清乾淨，請通知管理員處理。', 'bad');
+          else showMsg('已刪除題組。', 'ok');
+        });
+      });
     }, function (e) {
       showMsg(errText(e), 'bad');
     }).catch(function (e) {
@@ -866,7 +1083,7 @@ button{cursor:pointer}
         setTimeout(function () { location.replace('roster.html'); }, 3000);
         return;
       }
-      buildSteps(null); setFormMode(false);
+      buildSteps(null); setFormMode(false); resetImages();
       $('loading').hidden = true;
       $('app').hidden = false;
       setBusy(true);

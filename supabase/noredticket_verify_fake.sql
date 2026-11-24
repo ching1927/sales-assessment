@@ -411,7 +411,7 @@ begin
     pg_temp.vr_q1($q$select count(*)::text from pg_proc p where p.oid = 'public.assess_start(text, text)'::regprocedure
                        and p.prosrc like '%v_emp.probation_since%'$q$));
   perform pg_temp.vr_eq('0 結構','assess_submit 不再處理 spot_probations','0',
-    pg_temp.vr_q1($q$select count(*)::text from pg_proc p where p.oid = 'public.assess_submit(uuid)'::regprocedure
+    pg_temp.vr_q1($q$select count(*)::text from pg_proc p where p.oid in ('public.assess_submit(uuid)'::regprocedure, to_regprocedure('public.assess_finalize(uuid)'))
                        and p.prosrc like '%spot_probations%'$q$));
   perform pg_temp.vr_eq('0 結構','spot_probations 資料表與 employees.probation_since 欄位都還在（沒有 drop）','有/有',
     pg_temp.vr_q1($q$select case when to_regclass('public.spot_probations') is not null then '有' else '無' end || '/'

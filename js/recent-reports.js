@@ -171,14 +171,31 @@
     return h + '</div>';
   }
 
+  // 雙考官成績單：考官欄文字與題組旁標示（純函式在 ReportPdfCore；沒載入、單人、舊資料、資料庫未啟用一律回空字串，畫面維持現行）
+  function dualCore() { return window.ReportPdfCore && window.ReportPdfCore.dualInfo ? window.ReportPdfCore : null; }
+  function examinerLine(dual) { var P = dualCore(); return P && dual && dual.info ? P.examinerText(dual.info) : ''; }
+  function slotTag(dual, it) {
+    var P = dualCore(), l = P && dual && dual.info && !it.isExtra ? P.slotLabel(dual.info, it.slot) : '';
+    return l ? ' <span class="tag ' + (Number(it.slot) === 1 ? 'new' : 'todo') + '">' + esc(l) + '</span>' : '';
+  }
+  // 讀雙考官資訊與各題組負責考官（只在可能是雙考官時才讀；讀不到回 null）
+  function loadDual(r) {
+    var B = window.BackofficeApi;
+    if (!dualCore() || !B || !B.loadDualInfo || r.is_dual === false) return Promise.resolve(null);
+    return B.loadDualInfo(r.id).then(function (d) {
+      if (!dualCore().dualInfo(d)) return null;
+      return B.loadItemSlots(r.id).then(function (sl) { return { info: d, slots: sl }; });
+    }).catch(function () { return null; });
+  }
+
   // 客服部：完整內容（題組名稱、步驟、考點、備註、作廢鈕都只在這個函式裡產生）
-  function detailCS(r, items) {
+  function detailCS(r, items, dual) {
     var weak = r.weakest_dims || [];
     var core = items.filter(function (x) { return !x.isExtra; }), extras = items.filter(function (x) { return !!x.isExtra; });
     var h = '<div class="dlg"><h2>成績單詳細內容</h2>';
     if (r.status === 'voided') h += '<div class="void-box">已作廢。原因：' + esc(r.void_reason || '') + '</div>';
     if (r.status === 'draft') h += '<div class="msg warn">這是暫存中的草稿，尚未結算送出。</div>';
-    h += '<dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>' +
+    h += '<dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(examinerLine(dual) || r.examiner_email) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
       '<dt>考核時身分</dt><dd>' + esc(r.tenure) + (C.isCheckup(r) ? ' <span class="tag chk">年度健檢</span>' : '') + (r.tenure_source === '手動指定' ? ' <span class="tag unk">手動指定</span>' : '') + (r.tenure_source === '考核期' ? ' <span class="tag out">考核期</span>' : '') + '</dd>' +
       '<dt>狀態</dt><dd>' + statusTag(r) + '</dd>' +
@@ -187,7 +204,7 @@
       '<dt>最弱面向</dt><dd>' + weakSpans(weak) + '</dd></dl>' + radarBlock(core, weak);
     core.forEach(function (it, i) {
       var dp = it.dim_points || {};
-      h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
+      h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' + slotTag(dual, it) + ' ' +
         '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><h4>題組 ' + (i + 1) + '：' + esc(it.title) + '</h4>' + stepsHtml(it) +
         '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' +
         DIMS.map(function (d) {
@@ -205,16 +222,17 @@
   // 總公司主管／店長（完整版）：日期、考生、身分、總分、判定、最弱面向、題組分類／代號／題目名稱／分數／七面向等級與分數、
   // 考官備註（題組備註 assessment_items.note＋面向備註）與附圖
   // （不產生步驟、考點、考官信箱、作廢鈕；題目名稱與面向備註來自資料庫函式 fullreport_items，前端不直接查機密表）
-  function detailLimited(r, items) {
+  function detailLimited(r, items, dual) {
     var core = items.filter(function (x) { return !x.isExtra; }), extras = items.filter(function (x) { return !!x.isExtra; });
     var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
       '<dt>考生身分</dt><dd>' + esc(r.tenure) + (C.isCheckup(r) ? ' <span class="tag chk">年度健檢</span>' : '') + '</dd>' +
+      (examinerLine(dual) ? '<dt>考官</dt><dd>' + esc(examinerLine(dual)) + '</dd>' : '') +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '—' : esc(C.fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (C.VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
       '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>' + radarBlock(core, r.weakest_dims);
     core.forEach(function (it, i) {
-      h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span> ' +
+      h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' + slotTag(dual, it) + ' ' +
         '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><h4>題組 ' + (i + 1) + '：' + esc(it.title || '（無題名）') + '</h4>' +
         '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' +
         extraDimRows(it, true) + '</tbody></table></div>' + remarkHtml(it) + '</div>';
@@ -246,9 +264,11 @@
     dlg.innerHTML = '<div class="dlg"><h2>成績單詳細內容</h2><p role="status">載入中…</p><div class="actions"><button class="btn" type="button" data-close="1">關閉</button></div></div>';
     if (!dlg.open) dlg.showModal();
     var cs = isCS();
-    (cs ? api.loadItemsFull(r.id) : api.loadItemsFullReport(r.id)).then(function (items) {
+    Promise.all([cs ? api.loadItemsFull(r.id) : api.loadItemsFullReport(r.id), loadDual(r)]).then(function (res) {
       if (token !== openToken) return;
-      dlg.innerHTML = cs ? detailCS(r, items) : detailLimited(r, items);
+      var items = res[0], dual = res[1];
+      if (dual) items.forEach(function (it) { if (dual.slots[it.id]) it.slot = dual.slots[it.id]; });
+      dlg.innerHTML = cs ? detailCS(r, items, dual) : detailLimited(r, items, dual);
       hydrateImages(dlg);
     }, function (err) {
       if (token !== openToken) return;

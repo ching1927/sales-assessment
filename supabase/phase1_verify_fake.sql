@@ -438,7 +438,7 @@ begin
   perform pg_temp.vr_eq('1 結構', 'assessment_items 不再有 (assessment_id, category) 唯一約束（只剩 assessment_id＋seq 那一個）', '1',
     pg_temp.vr_q1($q$select count(*)::text from pg_constraint where conrelid = 'public.assessment_items'::regclass and contype = 'u'$q$));
   perform pg_temp.vr_eq('1 結構', '核心題組分類唯一改成部分唯一索引（where not is_extra）', 'true',
-    pg_temp.vr_q1($q$select (indexdef like 'CREATE UNIQUE INDEX%' and indexdef like '%(assessment_id, category)%' and indexdef like '%WHERE (NOT is_extra)%')::text
+    pg_temp.vr_q1($q$select (indexdef like 'CREATE UNIQUE INDEX%' and indexdef like '%(assessment_id, category)%' and indexdef like '%WHERE ((NOT is_extra) AND (examiner_slot IS NULL))%')::text
                       from pg_indexes where schemaname='public' and indexname='assessment_items_one_core_per_category'$q$));
   perform pg_temp.vr_eq('1 結構', 'reply_activations 已開 RLS', 'true',
     pg_temp.vr_q1($q$select relrowsecurity::text from pg_class where oid = 'public.reply_activations'::regclass$q$));

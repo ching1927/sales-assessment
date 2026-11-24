@@ -37,10 +37,10 @@
 
 ### 正式版（已執行 SQL、已審查；客服部流程已用測試考生實測通過，店長與主管的真實登入尚未測）
 
-- 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核
+- 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核；【雙考官（2026-11）】上述為單人（舊式）流程，仍照舊可用；另有「雙考官輪流考核」見下方同名功能列
 - 考官備註文字對主管與店長可見｜`supabase/notes_visible_schema.sql`、`supabase/notes_visible_verify_fake.sql`（驗證，結尾自動復原）、`supabase/README_notes_visible.md`、`assess.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜備註改存 assessment_items.note（舊 secrets.note 停用並清空）；客服部、主管、同門市店長讀得到（主管與店長限已送出未作廢）；備註框與附圖區提醒考官不要貼腳本或考點
-- 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址
-- 成績單（所有已開通角色）｜考核後台「近期考核」分頁（`backoffice.html#recent`、`js/recent-reports.js`；舊網址 `reports.html` 已改為轉址頁）｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點、考官信箱（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
+- 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址；雙考官草稿只有該題組負責考官（且尚未交卷）能新增或刪除自己題組的備註與附圖，對方題組唯讀（assess_owns_item）
+- 成績單（所有已開通角色）｜考核後台「近期考核」分頁（`backoffice.html#recent`、`js/recent-reports.js`；舊網址 `reports.html` 已改為轉址頁）｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點、考官信箱；雙考官成績單考官欄列兩位暱稱與分工，登入信箱仍只給客服部（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
 - 導覽統一（現含 `backoffice.html`、`accounts.html`，導覽已加入「考核後台」）｜`roster.html`、`assess.html`、`backoffice.html`｜頁首黑底導覽列（貳輪嶼 LOGO、圖示分頁、目前頁黃底、頭像、登出圖示；窄螢幕分頁自成一行、信箱隱藏只留角色標籤）；分頁順序：人員名冊、進行考核（客服部）、成績單&考核後台（原「成績單」與「考核後台」合併）、題庫管理（客服部）、帳號管理（客服部）；名冊頁標題為「貳輪嶼官方LINE訊息回覆人員名冊」
 
 ### 抽查系統（網頁已寫好，尚未連真實資料庫；需先執行 supabase/spotcheck_schema.sql，規格見 supabase/README_spotcheck.md）
@@ -55,7 +55,7 @@
 
 ### 題庫管理（正式版；bank_schema.sql 已在 Supabase 執行，162 項驗證通過；老闆用測試分類實測通過）
 
-- 題庫管理頁（只有客服部）｜`questions.html`、`js/questions-api.js`｜取代舊管理頁，Google 登入；讀寫呼叫 bank_list_questions／bank_save_question／bank_delete_question／bank_rename_category／bank_reset 與 assess_categories；功能對應舊管理頁（分類下拉、統計、題組列表、新增編輯與步驟編輯器、草稿保留、刪除與洗牌二次確認、分類改名與合併）；題庫內容不寫入 console 或瀏覽器儲存；載入失敗時停用表單與洗牌
+- 題庫管理頁（只有客服部）｜`questions.html`、`js/questions-api.js`｜取代舊管理頁，Google 登入；讀寫呼叫 bank_list_questions／bank_save_question／bank_delete_question／bank_rename_category／bank_reset 與 assess_categories；功能對應舊管理頁（分類下拉、統計、題組列表、新增編輯與步驟編輯器、草稿保留、刪除與洗牌二次確認、分類改名與合併）；題庫內容不寫入 console 或瀏覽器儲存；載入失敗時停用表單與洗牌；【2026-11】題組新增「範例圖片」區（見「題組範例圖片」功能列）；既有功能不變
 - 導覽「題庫管理」｜`roster.html`、`assess.html`、`accounts.html`、`backoffice.html`｜只有客服部看得到，在「帳號管理」之前
 
 ### 題庫管理（樣品與設計稿）
@@ -136,8 +136,8 @@
 
 ## 第一期：考核期、固定 3 題組、弱項追加題、待開通（網頁已寫好，尚未連真實資料庫；需先執行 supabase/phase1_schema.sql，規格見 supabase/README_phase1.md）
 
-- 固定 3 題組｜`assess.html`、`js/assess-api.js`｜選考生按「準備考核・去抽題」後自動呼叫 assess_core_categories 取得核心分類，再用 assess_draw 一次抽齊（每分類 1 題）並直接進評分，不再顯示「弱項與建議題組」面板；步驟列為「固定 3 題組／評分／弱項追加題／送出結果」；若抽題失敗（例如題庫缺題）顯示錯誤並可按「改用自選分類」回到舊的選分類流程；繼續草稿時已有題就直接進評分、沒題就自動抽核心題組
-- 弱項追加題｜`assess.html`、`js/suggest.js`、`js/assess-api.js`｜核心題組評完才出現「分析弱項」（先暫存評分再呼叫 assess_draft_weak）；有弱項顯示面向與得分率、語氣／文字偏低提醒、建議追加題（Suggest 選題，允許同分類，題數預設 2、可選 1～4，可換一題，題庫不足有提示，已在核心題組內的題不會被選到）與「追加弱項題」「不追加，直接送出」；沒有弱項只顯示「沒有明顯弱項，可直接送出」；按「追加弱項題」呼叫 assess_add_extra 後回評分畫面，追加題標示「追加題・不算總分」並顯示追加開始時間（只顯示時間）；追加題沒評完不能前往結算與送出
+- 固定 3 題組｜`assess.html`、`js/assess-api.js`｜選考生按「準備考核・去抽題」後自動呼叫 assess_core_categories 取得核心分類，再用 assess_draw 一次抽齊（每分類 1 題）並直接進評分，不再顯示「弱項與建議題組」面板；步驟列為「固定 3 題組／評分／弱項追加題／送出結果」；若抽題失敗（例如題庫缺題）顯示錯誤並可按「改用自選分類」回到舊的選分類流程；繼續草稿時已有題就直接進評分、沒題就自動抽核心題組；【僅單人草稿】雙考官草稿的 6 題組在開考時已抽好，assess_draw／assess_pick 對雙考官草稿直接拒絕
+- 弱項追加題｜`assess.html`、`js/suggest.js`、`js/assess-api.js`｜核心題組評完才出現「分析弱項」（先暫存評分再呼叫 assess_draft_weak）；有弱項顯示面向與得分率、語氣／文字偏低提醒、建議追加題（Suggest 選題，允許同分類，題數預設 2、可選 1～4，可換一題，題庫不足有提示，已在核心題組內的題不會被選到）與「追加弱項題」「不追加，直接送出」；沒有弱項只顯示「沒有明顯弱項，可直接送出」；按「追加弱項題」呼叫 assess_add_extra 後回評分畫面，追加題標示「追加題・不算總分」並顯示追加開始時間（只顯示時間）；追加題沒評完不能前往結算與送出；【僅單人草稿】雙考官草稿不做弱項追加題（assess_draft_weak／assess_add_extra 直接拒絕並報中文訊息）
 - 送出結果頁（第一期）｜`assess.html`｜總分、判定、題組數只看核心題組；追加題另列「弱項追加題・不算入總分」；送出後讀 reply_activations 與 period_status：有待開通紀錄顯示「已加入待開通回覆權限清單」，仍在考核期顯示「仍在考核期，可再約補考」；回考核期者合格線 85 的顯示照舊
 - 成績單追加題區塊｜`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜成績單詳情（客服部版與主管／店長版）追加題獨立區塊「弱項追加題・不算入總分」；雷達圖與題組列表只用核心題組；主管與店長版追加題不含題組名稱、步驟、考點
 - 待開通回覆權限清單｜`requests.html`、`js/requests-api.js`｜只有客服部看得到；讀 reply_activations（人員、門市、通過日期、狀態），可依門市與狀態篩選，待開通排前面；「已開通」按鈕（先跳確認視窗）呼叫 activation_mark_done，已開通者顯示開通日期；清單讀取失敗只在該區塊提示；導覽紅點由 exam_req_badge 提供
@@ -184,7 +184,7 @@
 - 導覽「登記&健檢」（原「健檢」）｜各頁 `ab-tab`，指向 `spotcheck.html`｜在 spotcheck.html 與 checkup.html 兩頁都亮黃底；375px 不爆版
 - 四個膠囊分頁（登記、登記歷程、健檢單、異常回覆預警榜（2026-11 兩者對調、原「黃單排名」改名，後定名「異常回覆預警榜」）；原：第三個「門市季次表」、第四個「健檢名單」，已改名）｜`spotcheck.html`（登記、抽查紀錄，頁內切換）、`checkup.html`（異常回覆預警榜、健檢單）｜另一頁的分頁是連結；網址 #reg、#records、#ranking、#list 直接開啟（舊網址 #stores 也開異常回覆預警榜）；客服部預設進登記，店長與主管沒有登記分頁、預設進抽查紀錄；舊的「抽查（異常回覆／紅單）」連結已拿掉
 - 登記歷程分頁頂端「門市」下拉｜`spotcheck.html`｜同時篩選人員抽查狀態、單據清單、抽查紀錄三區塊（原三個區塊各自的門市下拉合併為這一個）；店長不顯示；其餘篩選、作廢、回填輔導、截圖、LINE 網址照舊（標記已執行、取消回考核期已於 2026-11 停用拿掉）
-- 停用紅單與回考核期（老闆 2026-11 定案）｜`supabase/noredticket_schema.sql`、`spotcheck.html`、`js/spotcheck-api.js`、`js/spotdims-core.js`、`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜異常回覆照開（待加強回覆）、可作廢、可回填輔導；不再有「滿 5 張異常回覆開紅單」「紅單滿 2 回考核期」「建議移除官方 LINE 權限」與「已執行／取消回考核期」；assess_start 不再依 probation_since 改身分、assess_submit 不再有「考核期成績單 >= 85 清除」；待考回報只剩「新人」「複檢」兩種情況（舊的「回考核期」回報仍可顯示）；資料表與欄位都保留｜驗證：`supabase/noredticket_verify_fake.sql`（PGlite 81/81）；網頁見 `tests/`
+- 停用紅單與回考核期（老闆 2026-11 定案）｜`supabase/noredticket_schema.sql`、`spotcheck.html`、`js/spotcheck-api.js`、`js/spotdims-core.js`、`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜異常回覆照開（待加強回覆）、可作廢、可回填輔導；不再有「滿 5 張異常回覆開紅單」「紅單滿 2 回考核期」「建議移除官方 LINE 權限」與「已執行／取消回考核期」；assess_start 不再依 probation_since 改身分、assess_submit 不再有「考核期成績單 >= 85 清除」；待考回報只剩「新人」「複檢」兩種情況（舊的「回考核期」回報仍可顯示）；資料表與欄位都保留（雙考官的完成收尾 assess_finalize 同樣不做這些）｜驗證：`supabase/noredticket_verify_fake.sql`（PGlite 81/81）；網頁見 `tests/`
 - 待考回報的「回考核期」情況｜`requests.html`、`js/requests-core.js`、`js/coached-core.js`｜【已停用 2026-11】不再提供選項，也不再預填；KIND_LABEL 保留「回考核期再考」只為舊紀錄顯示
 
 ### 健檢單（D 健檢改版第 2 段，2026-11；純前端，不動資料庫；尚未連真實 Supabase 實測）
@@ -201,3 +201,8 @@
 - 異常回覆輔導紀錄編輯紀錄｜`spotcheck.html`、`js/spotcheck-api.js`、`supabase/spot_coach_history_schema.sql`｜同上規則用在異常回覆輔導紀錄；只有 1 版不顯示「最後編輯」｜`node tests/spot-coach-history.test.js` 通過 25 項；PGlite 驗證 90/90
 - 導覽紅點直到事情結束｜`js/appbar.js`、`supabase/badge_lifecycle_schema.sql`｜店長待考回報紅點＝自己門市在職、納入考核、考核期的新人數（點進頁面不消，設已上線才消）；後台分頁改善單紅點（improve_badge）＝待改善＋已輔導未結案，客服全部、店長自己門市｜`node tests/appbar-badge.test.js` 通過；PGlite 驗證 54/54
 - 健檢單開放日期管制＋一鍵下載＋下載紀錄｜`checkup.html`、`js/checkup-download-core.js`、`js/checkup-api.js`、`supabase/checkup_download_schema.sql`｜店長：Q1→4/10、Q2→7/10、Q3→10/10、Q4與年度→隔年1/10 才能下載（資料庫也擋），客服部／主管不受限；一鍵下載全店季度、年度 ZIP 各一顆；「下載紀錄」分頁（健檢單右邊，#downloads，只有客服部）列各店次數與明細，單人與一鍵分開記｜`node tests/checkup-download-core.test.js` 通過 48 項；PGlite 驗證 78/78
+- 雙考官輪流考核｜`assess.html`、`js/assess-dual-core.js`、`js/assess-api.js`、`supabase/dual_examiner_schema.sql`、`supabase/README_dual_examiner.md`｜只有考官名單內 2 位客服部可開考；開考時資料庫 random() 抽籤決定考官1（基礎 3 題）與考官2（進階 2＋綜合 1），鎖定不可重抽；兩人各用自己帳號評自己題組、對方題組唯讀、各自「送出我的題組」、可撤回；兩位都交卷才完成並只產一張成績單；題庫缺題整場硬擋；放棄限草稿、已有人交卷需先撤回；不支援弱項追加題；健檢與單人流程不變｜驗證：`node tests/assess-dual-core.test.js`；`supabase/dual_examiner_verify_fake.sql`（PGlite 全過）
+- 雙考官成績單（網頁與 PDF）｜`js/report-pdf-core.js`、`js/report-pdf.js`、`js/recent-reports.js`、`js/backoffice-api.js`｜考官欄顯示「考官1 暱稱（基礎）、考官2 暱稱（進階＋綜合）」、每題組標示是誰考的；單人成績單顯示不變；考官登入信箱不外露（只客服部）｜驗證：`node tests/report-pdf-core.test.js`、`node tests/fullreport-api.test.js`
+- 考官名單（本機種子）｜`supabase/dual_examiner_schema.sql`（只建表 assess_examiner_pool）、本機檔「雙考官名單_種子.sql」（不進 GitHub）｜名單為空開考顯示「尚未設定考官名單」；名單需恰好 2 位啟用且都是客服部｜驗證：種子檔尾端檢查查詢全為「通過」；`dual_examiner_verify_fake.sql` 區段 6
+- 題組範例圖片｜`questions.html`、`js/questions-api.js`、`js/question-images-core.js`、`supabase/question_images_schema.sql`、`supabase/README_question_images.md`｜題庫管理頁每題組可傳多張（上限 8、每張 2MB 內、jpg／png／webp）、排序、刪除；私有 bucket question-samples、只有客服部可讀寫；考核畫面（客服部用）在該題組內顯示｜驗證：`node tests/question-images-api.test.js`；`supabase/question_images_verify_fake.sql`
+- 雙考官考核樣品｜`樣品/雙考官輪流考核樣品.html`｜老闆已確認的畫面樣品（假資料）

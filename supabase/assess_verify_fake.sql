@@ -573,8 +573,10 @@ begin
     (select count(*)::text from pg_proc p
       where p.pronamespace = 'public'::regnamespace and p.proname like 'assess%'
         and has_function_privilege('anon', p.oid, 'execute')));
-  perform pg_temp.vr_eq('權限矩陣', 'authenticated 對 assess_* 都有 execute（內部的 assess_assert_cs 除外）', 'true',
-    (select (count(*) filter (where has_function_privilege('authenticated', p.oid, 'execute')) = count(*) - 1)::text
+  perform pg_temp.vr_eq('權限矩陣', 'authenticated 對 assess_* 都有 execute（內部函式 assess_assert_cs、assess_owns_item、assess_draw_dual_items、assess_resolve_tenure、assess_examiners_lock、assess_finalize 除外）', 'true',
+    (select (bool_and(has_function_privilege('authenticated', p.oid, 'execute'))
+               filter (where p.proname <> all (array['assess_assert_cs', 'assess_owns_item', 'assess_draw_dual_items',
+                                                     'assess_resolve_tenure', 'assess_examiners_lock', 'assess_finalize'])))::text
        from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'assess%'));
   perform pg_temp.vr_eq('權限矩陣', 'authenticated 不能直接呼叫 assess_assert_cs', 'false',
     has_function_privilege('authenticated', 'public.assess_assert_cs()', 'execute')::text);

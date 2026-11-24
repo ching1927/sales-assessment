@@ -354,4 +354,41 @@ eq(one.points[0].verdict, null, '沒有判定文字時不回傳判定位置');
   eq(Object.prototype.hasOwnProperty.call(bm2.items[0], 'note'), false, 'buildReport 沒傳 showNote 時沒有題組備註');
   ok(JSON.stringify(bm).indexOf('example.invalid') < 0, 'buildReport 整個 model 不含考官信箱');
 })();
+// ===== 雙考官成績單：考官欄文字、題組標示（缺欄位完全退回現行） =====
+(function () {
+  var D = { is_dual: true, slot1_name: 'UNA', slot2_name: 'PENNY' };
+  eq(C.examinerText(D), '考官1 UNA（基礎）、考官2 PENNY（進階＋綜合）', '雙考官：考官欄文字');
+  eq(C.dualInfo(D).slots.map(function (s) { return s.no + s.name + s.scope; }), ['1UNA基礎', '2PENNY進階＋綜合'], '雙考官：dualInfo 兩個分工');
+  eq(C.slotLabel(D, 1), '考官1', '題組標示：考官1');
+  eq(C.slotLabel(D, 2), '考官2', '題組標示：考官2');
+  eq(C.slotLabel(D, null), '', 'slot 為 null（舊資料）：無標示');
+  eq(C.slotLabel(D, 3), '', 'slot 不是 1／2：無標示');
+  [null, undefined, {}, { is_dual: false, slot1_name: 'UNA', slot2_name: 'PENNY' }, { is_dual: true }, { is_dual: true, slot1_name: 'UNA' },
+   { is_dual: true, slot1_name: ' ', slot2_name: 'PENNY' }, { is_dual: 'true', slot1_name: 'A', slot2_name: 'B' }].forEach(function (a, i) {
+    eq([C.dualInfo(a), C.examinerText(a), C.slotLabel(a, 1)], [null, '', ''], '非雙考官或缺欄位 #' + i + '：完全退回現行（空）');
+  });
+  var base = { total_score: 80 };
+  var its = [item('d1', 1, '基礎', 'B-1', 'ooooooo', false), item('d2', 2, '進階', 'A-1', 'ooooooo', false), item('d3', 3, '加考', 'X-1', 'ooooooo', true)];
+  its[0].slot = 1; its[1].slot = 2; its[2].slot = 2;
+  var rowsD = itemRows2(its, { showTitle: false, dual: D });
+  eq(rowsD.map(function (r) { return r.slot; }), [1, 2, undefined], 'itemRows 雙考官：核心題組帶 slot，加考題不帶');
+  var rowsS = itemRows2(its, { showTitle: false });
+  eq(rowsS.every(function (r) { return !Object.prototype.hasOwnProperty.call(r, 'slot'); }), true, 'itemRows 沒傳 dual：完全沒有 slot 欄位（單人逐欄不變）');
+  var rowsN = itemRows2(its, { showTitle: false, dual: { is_dual: true } });
+  eq(rowsN.every(function (r) { return !Object.prototype.hasOwnProperty.call(r, 'slot'); }), true, 'itemRows dual 缺暱稱：不帶 slot');
+  function build(dualArg, withSlot) {
+    var rws = [asm('z1', '2026-11-10T10:00:00+08:00', '新人', ['ooooooo', 'ooggwoo'])];
+    var ib = { z1: [item('z11', 1, '基礎', 'B-1', 'ooooooo', false), item('z12', 2, '進階', 'A-1', 'ooggwoo', false)] };
+    if (withSlot) { ib.z1[0].slot = 1; ib.z1[1].slot = 2; }
+    return C.buildReport({ person: { name: 'x', id: 'x' }, assessments: rws, currentId: 'z1', itemsByAssessment: ib, showTitle: false, dual: dualArg, nowMs: NOW });
+  }
+  var bd = build(D, true).model;
+  eq([bd.examiners, bd.items.map(function (r) { return r.slot; })], ['考官1 UNA（基礎）、考官2 PENNY（進階＋綜合）', [1, 2]], 'buildReport 雙考官：model.examiners 與每列 slot');
+  var bs = build(undefined, true).model, bs0 = build(null, false).model;
+  eq([bs.examiners, bs.items.some(function (r) { return 'slot' in r; })], ['', false], 'buildReport 沒傳 dual（即使 items 有 slot）：與單人相同');
+  eq(JSON.stringify(bs), JSON.stringify(Object.assign({}, bs0)), 'buildReport 單人：model 與沒有 slot 資料時一致');
+  ok(JSON.stringify(bd).indexOf('@') < 0, '雙考官 model 不含任何信箱');
+  function itemRows2(a, o) { return C.itemRows(a, o); }
+})();
+
 console.log('通過 ' + passed + ' 項');
