@@ -37,7 +37,7 @@
 
 ### 正式版（已執行 SQL、已審查；客服部流程已用測試考生實測通過，店長與主管的真實登入尚未測）
 
-- 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列按「準備考核・去抽題」直接開始，到職日空白則就地展開「新人／正式」兩鍵）→ 自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核；【雙考官（2026-11）】上述為單人（舊式）流程，仍照舊可用；另有「雙考官輪流考核」見下方同名功能列
+- 進行考核（只有客服部）｜`assess.html`｜選考生（可依門市下拉篩選，只列有人的門市並顯示人數，選擇記在 sessionStorage；每位考生那列只有「開始雙考官考核」（考官名單內的人才有；不在名單內的客服部該列改顯示「正式考核由考官 UNA、PENNY 進行」且無開考鈕；雙考官資料庫函式缺時整頁顯示「雙考官功能尚未啟用」提示、不退回單人），到職日空白則就地展開「新人／正式」兩鍵）→ 【以下為舊單人草稿的續考流程】自動抽固定核心題組（失敗可改自選分類）→ 七面向評分並自動暫存 → 核心評完分析弱項、可追加弱項題（弱項分析失敗可重試或略過直接送出）→ 結算（以資料庫計算為準，與預覽不一致會警告）→ 送出；可接續草稿、放棄考核；【雙考官（2026-11，老闆定案）】正式考核入口一律雙考官，已移除單人「準備考核・去抽題」入口；單人流程僅保留「進行中的舊草稿」續考與放棄（程式未刪）；健檢入口與流程不變；另有「雙考官輪流考核」見下方同名功能列
 - 考官備註文字對主管與店長可見｜`supabase/notes_visible_schema.sql`、`supabase/notes_visible_verify_fake.sql`（驗證，結尾自動復原）、`supabase/README_notes_visible.md`、`assess.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜備註改存 assessment_items.note（舊 secrets.note 停用並清空）；客服部、主管、同門市店長讀得到（主管與店長限已送出未作廢）；備註框與附圖區提醒考官不要貼腳本或考點
 - 備註附圖（正式版）｜`assess.html`、`js/assess-api.js`｜貼上、拖曳、選檔；上傳到私有 bucket assess-notes；每題組最多 5 張；顯示用簽名網址；雙考官草稿只有該題組負責考官（且尚未交卷）能新增或刪除自己題組的備註與附圖，對方題組唯讀（assess_owns_item）
 - 成績單（所有已開通角色）｜考核後台「近期考核」分頁（`backoffice.html#recent`、`js/recent-reports.js`；舊網址 `reports.html` 已改為轉址頁）｜客服部看完整內容並可作廢；主管看已送出的精簡版；店長只看自己門市已送出的精簡版；精簡版含考官備註文字與備註附圖，不含題組名稱、步驟、考點、考官信箱；雙考官成績單考官欄列兩位暱稱與分工，登入信箱仍只給客服部（備註存在 assessment_items.note；需先在 Supabase 執行 notes_visible_schema.sql）
@@ -136,7 +136,7 @@
 
 ## 第一期：考核期、固定 3 題組、弱項追加題、待開通（網頁已寫好，尚未連真實資料庫；需先執行 supabase/phase1_schema.sql，規格見 supabase/README_phase1.md）
 
-- 固定 3 題組｜`assess.html`、`js/assess-api.js`｜選考生按「準備考核・去抽題」後自動呼叫 assess_core_categories 取得核心分類，再用 assess_draw 一次抽齊（每分類 1 題）並直接進評分，不再顯示「弱項與建議題組」面板；步驟列為「固定 3 題組／評分／弱項追加題／送出結果」；若抽題失敗（例如題庫缺題）顯示錯誤並可按「改用自選分類」回到舊的選分類流程；繼續草稿時已有題就直接進評分、沒題就自動抽核心題組；【僅單人草稿】雙考官草稿的 6 題組在開考時已抽好，assess_draw／assess_pick 對雙考官草稿直接拒絕
+- 固定 3 題組｜`assess.html`、`js/assess-api.js`｜（舊單人草稿）選考生開始考核後自動呼叫 assess_core_categories 取得核心分類，再用 assess_draw 一次抽齊（每分類 1 題）並直接進評分，不再顯示「弱項與建議題組」面板；步驟列為「固定 3 題組／評分／弱項追加題／送出結果」；若抽題失敗（例如題庫缺題）顯示錯誤並可按「改用自選分類」回到舊的選分類流程；繼續草稿時已有題就直接進評分、沒題就自動抽核心題組；【僅單人草稿】雙考官草稿的 6 題組在開考時已抽好，assess_draw／assess_pick 對雙考官草稿直接拒絕
 - 弱項追加題｜`assess.html`、`js/suggest.js`、`js/assess-api.js`｜核心題組評完才出現「分析弱項」（先暫存評分再呼叫 assess_draft_weak）；有弱項顯示面向與得分率、語氣／文字偏低提醒、建議追加題（Suggest 選題，允許同分類，題數預設 2、可選 1～4，可換一題，題庫不足有提示，已在核心題組內的題不會被選到）與「追加弱項題」「不追加，直接送出」；沒有弱項只顯示「沒有明顯弱項，可直接送出」；按「追加弱項題」呼叫 assess_add_extra 後回評分畫面，追加題標示「追加題・不算總分」並顯示追加開始時間（只顯示時間）；追加題沒評完不能前往結算與送出；【僅單人草稿】雙考官草稿不做弱項追加題（assess_draft_weak／assess_add_extra 直接拒絕並報中文訊息）
 - 送出結果頁（第一期）｜`assess.html`｜總分、判定、題組數只看核心題組；追加題另列「弱項追加題・不算入總分」；送出後讀 reply_activations 與 period_status：有待開通紀錄顯示「已加入待開通回覆權限清單」，仍在考核期顯示「仍在考核期，可再約補考」；回考核期者合格線 85 的顯示照舊
 - 成績單追加題區塊｜`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜成績單詳情（客服部版與主管／店長版）追加題獨立區塊「弱項追加題・不算入總分」；雷達圖與題組列表只用核心題組；主管與店長版追加題不含題組名稱、步驟、考點
@@ -201,7 +201,7 @@
 - 異常回覆輔導紀錄編輯紀錄｜`spotcheck.html`、`js/spotcheck-api.js`、`supabase/spot_coach_history_schema.sql`｜同上規則用在異常回覆輔導紀錄；只有 1 版不顯示「最後編輯」｜`node tests/spot-coach-history.test.js` 通過 25 項；PGlite 驗證 90/90
 - 導覽紅點直到事情結束｜`js/appbar.js`、`supabase/badge_lifecycle_schema.sql`｜店長待考回報紅點＝自己門市在職、納入考核、考核期的新人數（點進頁面不消，設已上線才消）；後台分頁改善單紅點（improve_badge）＝待改善＋已輔導未結案，客服全部、店長自己門市｜`node tests/appbar-badge.test.js` 通過；PGlite 驗證 54/54
 - 健檢單開放日期管制＋一鍵下載＋下載紀錄｜`checkup.html`、`js/checkup-download-core.js`、`js/checkup-api.js`、`supabase/checkup_download_schema.sql`｜店長：Q1→4/10、Q2→7/10、Q3→10/10、Q4與年度→隔年1/10 才能下載（資料庫也擋），客服部／主管不受限；一鍵下載全店季度、年度 ZIP 各一顆；「下載紀錄」分頁（健檢單右邊，#downloads，只有客服部）列各店次數與明細，單人與一鍵分開記｜`node tests/checkup-download-core.test.js` 通過 48 項；PGlite 驗證 78/78
-- 雙考官輪流考核｜`assess.html`、`js/assess-dual-core.js`、`js/assess-api.js`、`supabase/dual_examiner_schema.sql`、`supabase/README_dual_examiner.md`｜只有考官名單內 2 位客服部可開考；開考時資料庫 random() 抽籤決定考官1（基礎 3 題）與考官2（進階 2＋綜合 1），鎖定不可重抽；兩人各用自己帳號評自己題組、對方題組唯讀、各自「送出我的題組」、可撤回；兩位都交卷才完成並只產一張成績單；題庫缺題整場硬擋；放棄限草稿、已有人交卷需先撤回；不支援弱項追加題；健檢與單人流程不變｜驗證：`node tests/assess-dual-core.test.js`；`supabase/dual_examiner_verify_fake.sql`（PGlite 全過）
+- 雙考官輪流考核｜`assess.html`、`js/assess-dual-core.js`、`js/assess-api.js`、`supabase/dual_examiner_schema.sql`、`supabase/README_dual_examiner.md`｜只有考官名單內 2 位客服部可開考（正式考核唯一入口；非名單客服部該列顯示說明、無開考鈕；函式缺時顯示「雙考官功能尚未啟用」）；開考時資料庫 random() 抽籤決定考官1（基礎 3 題）與考官2（進階 2＋綜合 1），鎖定不可重抽；兩人各用自己帳號評自己題組、對方題組唯讀、各自「送出我的題組」、可撤回；兩位都交卷才完成並只產一張成績單；題庫缺題整場硬擋；放棄限草稿、已有人交卷需先撤回；不支援弱項追加題；健檢與單人流程不變｜驗證：`node tests/assess-dual-core.test.js`；`supabase/dual_examiner_verify_fake.sql`（PGlite 全過）
 - 雙考官成績單（網頁與 PDF）｜`js/report-pdf-core.js`、`js/report-pdf.js`、`js/recent-reports.js`、`js/backoffice-api.js`｜考官欄顯示「考官1 暱稱（基礎）、考官2 暱稱（進階＋綜合）」、每題組標示是誰考的；單人成績單顯示不變；考官登入信箱不外露（只客服部）｜驗證：`node tests/report-pdf-core.test.js`、`node tests/fullreport-api.test.js`
 - 考官名單（本機種子）｜`supabase/dual_examiner_schema.sql`（只建表 assess_examiner_pool）、本機檔「雙考官名單_種子.sql」（不進 GitHub）｜名單為空開考顯示「尚未設定考官名單」；名單需恰好 2 位啟用且都是客服部｜驗證：種子檔尾端檢查查詢全為「通過」；`dual_examiner_verify_fake.sql` 區段 6
 - 題組範例圖片｜`questions.html`、`js/questions-api.js`、`js/question-images-core.js`、`supabase/question_images_schema.sql`、`supabase/README_question_images.md`｜題庫管理頁每題組可傳多張（上限 8、每張 2MB 內、jpg／png／webp）、排序、刪除；私有 bucket question-samples、只有客服部可讀寫；考核畫面（客服部用）在該題組內顯示｜驗證：`node tests/question-images-api.test.js`；`supabase/question_images_verify_fake.sql`

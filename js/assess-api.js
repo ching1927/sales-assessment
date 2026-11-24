@@ -62,6 +62,7 @@
 
   // ---- 雙考官（資料庫尚未執行 dual_examiner_schema.sql 時，單人流程照常運作）----
   var DUAL_OFF = '雙考官功能尚未啟用';
+  var dualOffSeen = false;
   var DUAL_COL_RE = /is_dual|slot1_name|slot2_name|examiner_slot/;
   // 查詢多帶雙考官欄位：build(extraCols) 回傳查詢；欄位不存在（資料庫還沒升級）就退回不帶的版本
   function withDualCols(build, extraCols) {
@@ -392,9 +393,12 @@
     },
     // 我是考官之一的雙考官草稿（含別人開、輪到我考的）；不含信箱。資料庫沒升級時回空陣列
     myDraftsDual: function () {
+      dualOffSeen = false;
       return dualRpc('assess_my_drafts', {}).then(function (r) { return Array.isArray(r.data) ? r.data : []; },
-        function (e) { if (e && e.userMessage === DUAL_OFF) return []; throw e; });
+        function (e) { if (e && e.userMessage === DUAL_OFF) { dualOffSeen = true; return []; } throw e; });
     },
+    // 最近一次讀雙考官草稿時，資料庫函式是否不存在（雙考官功能尚未啟用）
+    dualOff: function () { return dualOffSeen; },
     // 這張雙考官考核的兩位考官：{ my_slot, slots:[{ slot, name, scope, submittedAt, lastSavedAt }] }；信箱只用來認出自己，不回傳
     loadExaminers: function (assessmentId, email) {
       return wrap(sb.from('assessment_examiners').select('slot,email,display_name,scope,submitted_at,last_saved_at')

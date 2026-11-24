@@ -393,7 +393,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
 
   var email = '';
   var storeName = {};
-  var dualDrafts = [], canDual = false, expandKind = 'single', rowKind = 'single';   // 雙考官：我是考官之一的草稿、我能不能開雙考官考核、展開的是哪種開考、正在開始的是哪種
+  var dualDrafts = [], canDual = false, dualOff = false, expandKind = 'single', rowKind = 'single';   // 雙考官：我是考官之一的草稿、我能不能開雙考官考核、展開的是哪種開考、正在開始的是哪種
   var candidates = [], drafts = [], reqMap = {};   // reqMap：員編 -> 未結案的待考回報（待處理、已排定）
   var expandId = null, rowBusy = null, rowErr = {}, storeSel = '';   // 選考生：展開手動指定的那列、正在開始的那列、各列錯誤、門市篩選
   var STORE_ORDER = ['總公司', '中和', '新莊', '樹林', '桃園中壢', '新竹', '旗艦', '南台中', '太平', '台南', '高雄', '花蓮'];
@@ -619,7 +619,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     codes.sort(function (a, b) { return storeRank(a) - storeRank(b) || (a < b ? -1 : a > b ? 1 : 0); });
     if (storeSel && !counts[storeSel]) storeSel = '';
     var dis = (busy || rowBusy) ? ' disabled' : '';
-    h += '<section class="panel glass"><h2>選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。按「準備考核・去抽題」就會開始這位考生的考核，並自動抽出固定核心題組（預設基礎、進階、綜合各 1 題），直接進入評分。' + (canDual ? '考官名單內的人還可以按「開始雙考官考核」：系統抽籤決定兩位考官，一次考基礎 3＋進階 2＋綜合 1，兩位各評自己的題組。' : '') + '</p>' +
+    h += '<section class="panel glass"><h2>選考生</h2><p class="hint">只列出「納入考核＝是」且在職的人員。身分由到職日自動判斷（台北日期，到職起 90 天內含第 90 天為新人）。正式考核一律由兩位考官進行。' + (canDual && !dualOff ? '按「開始雙考官考核」：系統抽籤決定兩位考官，一次考基礎 3＋進階 2＋綜合 1，兩位各評自己的題組。' : '') + '</p>' + (dualOff ? '<div class="msg warn" role="alert">雙考官功能尚未啟用（資料庫還沒升級），目前無法開始正式考核。請通知系統管理員先完成升級；進行中的舊草稿仍可繼續。</div>' : '') +
       '<select class="ctrl" id="storeSel" aria-label="門市" style="width:100%;margin-bottom:var(--sp-3)">' +
       '<option value="">全部門市</option>' + codes.map(function (c) {
         return '<option value="' + esc(c) + '"' + (c === storeSel ? ' selected' : '') + '>' + esc(storeName[c] || c) + '（' + counts[c] + '）</option>';
@@ -631,10 +631,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
       h += '<div class="pwrap"><div class="prow"><div class="pinfo">' +
         '<div class="l1"><span>' + esc(nameOf(p)) + '</span><span class="mono" style="font-weight:400;font-size:13px">' + esc(p.id) + '</span><span class="tag ' + (TAG[tg] || 'unk') + '">' + esc(tg || '未填到職日') + '</span>' + reqTag(p.id) + '</div>' +
         '<div class="l2">' + esc(storeName[p.store_code] || p.store_code) + '・' + esc(p.job_title) + '・到職日 ' + (p.hire_date ? esc(p.hire_date) + '（第 ' + daysSince(p.hire_date) + ' 天）' : '未填') + '</div></div>' +
-        '<button type="button" class="btn primary pgo" data-act="prep" data-id="' + esc(p.id) + '" aria-expanded="' + (open && expandKind === 'single' ? 'true' : 'false') + '"' + dis + '>' + (mine && rowKind !== 'dual' ? '開始中…' : '準備考核・去抽題') + '</button>' +
-        (canDual ? '<button type="button" class="btn pgo" data-act="dprep" data-id="' + esc(p.id) + '" aria-expanded="' + (open && expandKind === 'dual' ? 'true' : 'false') + '"' + dis + '>' + (mine && rowKind === 'dual' ? '抽籤抽題中…' : '開始雙考官考核') + '</button>' : '') + '</div>';
+        (canDual && !dualOff ? '<button type="button" class="btn primary pgo" data-act="dprep" data-id="' + esc(p.id) + '" aria-expanded="' + (open && expandKind === 'dual' ? 'true' : 'false') + '"' + dis + '>' + (mine && rowKind === 'dual' ? '抽籤抽題中…' : '開始雙考官考核') + '</button>' : (dualOff ? '' : '<div class="hint" style="margin:0;flex:1 1 100%">正式考核由考官 UNA、PENNY 進行</div>')) + '</div>';
       if (open && !p.hire_date) {
-        h += '<div class="pmanual"><div class="msg warn">請先指定身分：這位考生到職日空白，系統無法判斷新人或正式。成績單會標示「手動指定」。再按一次「準備考核・去抽題」可取消。</div>' +
+        h += '<div class="pmanual"><div class="msg warn">請先指定身分：這位考生到職日空白，系統無法判斷新人或正式。成績單會標示「手動指定」。再按一次「開始雙考官考核」可取消。</div>' +
           '<div class="seg" role="group" aria-label="手動指定身分">' +
           ['新人', '正式'].map(function (t) { return '<button type="button" data-act="tenure2" data-id="' + esc(p.id) + '" data-v="' + t + '"' + dis + '>' + t + '</button>'; }).join('') + '</div></div>';
       }
@@ -1330,7 +1329,7 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
         candidates = RequestsCore.reportedFirst(candidates, reqMap, function (p) { return p.id; });
       } catch (e) { reqMap = {}; }
       drafts = r[1].filter(function (d) { return !d.is_dual; });   // 雙考官草稿改由 dualDrafts 顯示（含別人開、輪到我考的）
-      dualDrafts = r[3] || []; canDual = !!r[4];
+      dualDrafts = r[3] || []; canDual = !!r[4]; dualOff = !!AssessApi.dualOff();   // 資料庫沒升級時為 true
       if (expandId && !personById(expandId)) expandId = null;
     });
   }
