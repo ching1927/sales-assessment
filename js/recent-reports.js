@@ -174,8 +174,10 @@
   // 雙考官成績單：考官欄文字與題組旁標示（純函式在 ReportPdfCore；沒載入、單人、舊資料、資料庫未啟用一律回空字串，畫面維持現行）
   function dualCore() { return window.ReportPdfCore && window.ReportPdfCore.dualInfo ? window.ReportPdfCore : null; }
   function examinerLine(dual) { var P = dualCore(); return P && dual && dual.info ? P.examinerText(dual.info) : ''; }
-  function slotTag(dual, it) {
-    return '';  // 老闆 2026-11-25：成績單不顯示題組由哪位考官負責
+  function slotTag(dual, it, show) {
+    if (!show) return '';  // 老闆 2026-11-25：只有客服部看得到題組由哪位考官負責
+    var P = dualCore(), l = P && dual && dual.info && !it.isExtra ? P.slotLabel(dual.info, it.slot) : '';
+    return l ? ' <span class="tag ' + (Number(it.slot) === 1 ? 'new' : 'todo') + '">' + esc(l) + '</span>' : '';
   }
   // 讀雙考官資訊與各題組負責考官（只在可能是雙考官時才讀；讀不到回 null）
   function loadDual(r) {
@@ -194,7 +196,7 @@
     var h = '<div class="dlg"><h2>成績單詳細內容</h2>';
     if (r.status === 'voided') h += '<div class="void-box">已作廢。原因：' + esc(r.void_reason || '') + '</div>';
     if (r.status === 'draft') h += '<div class="msg warn">這是暫存中的草稿，尚未結算送出。</div>';
-    h += '<dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd>' + (examinerLine(dual) ? '' : '<dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>') +
+    h += '<dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(examinerLine(dual) || r.examiner_email) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
       '<dt>考核時身分</dt><dd>' + esc(r.tenure) + (C.isCheckup(r) ? ' <span class="tag chk">年度健檢</span>' : '') + (r.tenure_source === '手動指定' ? ' <span class="tag unk">手動指定</span>' : '') + (r.tenure_source === '考核期' ? ' <span class="tag out">考核期</span>' : '') + '</dd>' +
       '<dt>狀態</dt><dd>' + statusTag(r) + '</dd>' +
@@ -203,7 +205,7 @@
       '<dt>最弱面向</dt><dd>' + weakSpans(weak) + '</dd></dl>' + radarBlock(core, weak);
     core.forEach(function (it, i) {
       var dp = it.dim_points || {};
-      h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' + slotTag(dual, it) + ' ' +
+      h += '<div class="item"><span class="tag new">' + esc(it.category) + '</span> <span class="mono" style="font-size:13px">' + esc(it.code) + '</span>' + slotTag(dual, it, true) + ' ' +
         '<b style="float:right">題組分數 ' + (it.item_score == null ? '—' : esc(C.fmt(it.item_score))) + '</b><h4>題組 ' + (i + 1) + '：' + esc(it.title) + '</h4>' + stepsHtml(it) +
         '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>面向</th><th class="num">配分</th><th>等級</th><th class="num">得分</th></tr></thead><tbody>' +
         DIMS.map(function (d) {
