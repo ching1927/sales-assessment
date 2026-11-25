@@ -213,4 +213,5 @@
 - 頁內待填提示｜`backoffice.html`（回填輔導紀錄分頁）、`spotcheck.html`（登記歷程／單據）、`requests.html`（待考回報區塊）｜店長：待填分頁紅底白字＋數字徽章、頂端紅色提示條、待填列左側粗紅線；待考回報頁列出還沒回報的人，一鍵預填；主管不顯示｜驗證：`node tests/requests-core.test.js`、`tests/todo-days-core.test.js`
 - 客服部未填清單與天數分色｜`js/todo-days-core.js`（TodoDays）、`backoffice.html`、`spotcheck.html`｜待填列顯示「已開單 N 天」：3 天內灰、4–7 天橘、超過 7 天紅；只顯示不催店長｜驗證：`node tests/todo-days-core.test.js`
 - 每週彙整信給客服部｜`supabase/todo_reminder_schema.sql`（todo_digest_run、pg_cron `todo_digest_weekly` 週一台北 09:00）、`supabase/README_todo_reminder.md`｜各門市未填筆數、最久天數、超過 7 天名單；收件人讀 app_settings `todo_digest_recipients`（沒設就不寄，信箱不進程式碼）；同週不重複寄｜驗證：PGlite `todo_reminder_verify_fake.sql`
+- 待考回報已排定藍底提示｜`requests.html`（renderNotices／schedBoxes）｜店長進待考回報頁，每筆已排定且有排定時間的回報常駐藍底框「M/D HH:mm 考核，請準時上線。」（有備註接在後面）；已在未看過通知顯示的不重複；客服部與主管畫面不變｜驗證：用店長帳號在有已排定回報時開頁面目視（尚未連真實資料庫實測）
 - 畫面文字「改善單」→「回填輔導紀錄」｜`backoffice.html`、`requests.html`、`js/appbar.js`、`js/requests-core.js`｜只改程式裡寫死的畫面文字；資料庫函式訊息、表名、樣品與舊簡報不動
