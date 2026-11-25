@@ -829,9 +829,9 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
     var list = it.samples || [];
     if (!list.length) return '';
     var B = AssessApi.SAMPLE_BUCKET;
-    return '<h3 style="font-size:16px;margin-top:var(--sp-4)">範例圖片</h3><p class="hint">這個題組的估價範例，點圖可以放大。</p><div class="ex">' + list.map(function (m, i) {
+    return '<h3 style="font-size:16px;margin-top:var(--sp-4)">範例圖片</h3><p class="hint">這個題組的估價範例，點圖可以放大。</p><div style="margin:0 0 var(--sp-3)"><button type="button" class="btn" data-dlall="1">一鍵下載全部範例圖片（' + list.length + ' 張）</button> <span class="hint" id="dlMsg" role="status"></span></div><div class="ex">' + list.map(function (m, i) {
       var u = AssessApi.peekUrl(m.path, B);
-      return '<figure><button type="button" class="pic" data-sample="' + i + '" aria-label="放大檢視範例圖片 ' + (i + 1) + '"><img data-path="' + esc(m.path) + '" data-bucket="' + esc(B) + '"' + (u ? ' src="' + esc(u) + '"' : '') + ' alt="範例圖片 ' + (i + 1) + '"><span class="zoom">點圖放大</span></button><figcaption>範例圖片 ' + (i + 1) + '</figcaption></figure>';
+      return '<figure><button type="button" class="pic" data-sample="' + i + '" aria-label="放大檢視範例圖片 ' + (i + 1) + '"><img data-path="' + esc(m.path) + '" data-bucket="' + esc(B) + '"' + (u ? ' src="' + esc(u) + '"' : '') + ' alt="範例圖片 ' + (i + 1) + '"><span class="zoom">點圖放大</span></button><figcaption>範例圖片 ' + (i + 1) + ' <button type="button" class="btn" style="padding:2px 10px;min-height:0;font-size:13px" data-dl="' + i + '">下載</button></figcaption></figure>';
     }).join('') + '</div>';
   }
   function updateSamples() {
@@ -1266,8 +1266,34 @@ dialog::backdrop{background:rgba(15,23,42,0.30)}
   $('lightbox').addEventListener('close', function () { $('lbImg').removeAttribute('src'); $('lbImg').removeAttribute('data-retry'); $('lbImg').removeAttribute('data-path'); $('lbImg').removeAttribute('data-bucket'); });
   $('attachFile').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
 
+  // 範例圖片下載：先用簽名網址抓成檔案再存到電腦（跨網域直接 <a download> 會變成開新分頁）
+  var DL_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  function downloadSample(m, n) {
+    return AssessApi.signedUrl(m.path, AssessApi.SAMPLE_BUCKET).then(function (u) {
+      return fetch(u).then(function (r) { if (!r.ok) throw new Error('http'); return r.blob(); });
+    }).then(function (b) {
+      var ext = DL_EXT[m.mime] || (String(m.path).split('.').pop() || 'jpg').toLowerCase();
+      var a = document.createElement('a'), url = URL.createObjectURL(b);
+      a.href = url; a.download = '範例圖片' + n + '.' + ext;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+    });
+  }
+  function downloadSamples(idxs) {
+    var it = S.items[S.cur], list = (it && it.samples) || [], msg = $('dlMsg'), fail = 0, p = Promise.resolve();
+    if (msg) msg.textContent = '下載中…';
+    idxs.forEach(function (i) {
+      p = p.then(function () { return downloadSample(list[i], i + 1); }).catch(function () { fail++; })
+        .then(function () { return new Promise(function (ok) { setTimeout(ok, 300); }); });   // 間隔一下，瀏覽器才不會擋連續下載
+    });
+    p.then(function () { if (msg) msg.textContent = fail ? fail + ' 張下載失敗，請再按一次或點圖另存' : '已下載 ' + idxs.length + ' 張（若瀏覽器詢問是否允許多個下載，請按允許）'; });
+  }
+
   $('stage').addEventListener('click', function (e) {
     if (e.target.closest('#pickBtn')) { $('attachFile').click(); return; }
+    if (e.target.closest('[data-dlall]')) { var all = ((S.items[S.cur] || {}).samples || []).map(function (x, i) { return i; }); if (all.length) downloadSamples(all); return; }
+    var dl = e.target.closest('[data-dl]');
+    if (dl) { downloadSamples([+dl.dataset.dl]); return; }
     var sz = e.target.closest('[data-sample]');   // 題組範例圖片放大（Esc 或「關閉」關閉）
     if (sz) {
       var sm = (S.items[S.cur].samples || [])[+sz.dataset.sample];
