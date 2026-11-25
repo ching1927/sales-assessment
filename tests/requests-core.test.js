@@ -14,7 +14,7 @@ var TODAY = '2026-11-03';
 // ---- 常數 ----
 eq(C.KINDS, ['新人', '複檢'], '兩種情況（回考核期已停用）');
 eq(C.KIND_LABEL['回考核期'], '回考核期再考', '舊紀錄的「回考核期」仍有顯示名稱');
-eq(C.KIND_LABEL['複檢'], '改善單複檢', '複檢顯示名稱');
+eq(C.KIND_LABEL['複檢'], '回填輔導紀錄複檢', '複檢顯示名稱');
 eq(C.MAX_DATES, 3, '日期上限 3');
 eq(C.MAX_NOTE, 500, '備註上限 500');
 
@@ -87,7 +87,7 @@ var ok1 = C.validateRequest(base());
 eq(ok1.ok, true, '新人完整回報通過');
 eq(ok1.video, true, '新人 video 為 true');
 eq(ok1.note, '已完成訓練', '備註去頭尾空白');
-eq(ok1.ticketId, null, '非複檢沒有改善單');
+eq(ok1.ticketId, null, '非複檢沒有回填輔導紀錄');
 eq(C.validateRequest(base({ kind: '壞' })).error, '請選擇回報情況。', '情況不對');
 eq(C.validateRequest(base({ employeeId: '' })).error, '請選擇人員。', '沒選人');
 eq(C.validateRequest(base({ dates: [] })).ok, false, '沒日期');
@@ -96,10 +96,10 @@ eq(C.validateRequest(base({ note: '字'.repeat(501) })).ok, false, '備註太長
 var rc = C.validateRequest(base({ kind: '回考核期', video: false }));
 eq(rc.ok, false, '回考核期已停用，不能再新增回報');
 eq(rc.error, '請選擇回報情況。', '回考核期回報會被擋下並提示重新選擇');
-eq(C.validateRequest(base({ kind: '複檢', video: false })).ok, false, '複檢缺改善單');
+eq(C.validateRequest(base({ kind: '複檢', video: false })).ok, false, '複檢缺回填輔導紀錄');
 var rr = C.validateRequest(base({ kind: '複檢', video: false, ticketId: 'T-1' }));
-eq(rr.ok, true, '複檢帶改善單通過');
-eq(rr.ticketId, 'T-1', '複檢回傳改善單 id');
+eq(rr.ok, true, '複檢帶回填輔導紀錄通過');
+eq(rr.ticketId, 'T-1', '複檢回傳回填輔導紀錄 id');
 
 // ---- 台北時間 datetime-local <-> ISO ----
 eq(C.taipeiLocalToIso('2026-11-05T14:00'), '2026-11-05T14:00:00+08:00', 'local 轉 ISO');
@@ -150,5 +150,20 @@ eq(C.safeHttpUrl('http://example.com'), 'http://example.com', 'http 可');
 eq(C.safeHttpUrl('javascript:alert(1)'), '', 'javascript 不可');
 eq(C.safeHttpUrl('https://a.com/ b'), '', '含空白不可');
 eq(C.safeHttpUrl(null), '', 'null 回空');
+
+// ---- 還沒回報待考清單的顯示文字 ----
+var UN = Date.parse('2026-11-25T10:00:00+08:00');
+eq(C.unreportedText({ reason: '新人', since_on: '2026-11-20' }, UN), '新人・考核期第 6 天', '新人：差 5 天＋1');
+eq(C.unreportedText({ reason: '新人', since_on: '2026-11-25' }, UN), '新人・考核期第 1 天', '新人：當天第 1 天');
+eq(C.unreportedText({ reason: '新人', since_on: '2026-11-26' }, UN), '新人・考核期第 1 天', '未來日期最少第 1 天');
+eq(C.unreportedText({ reason: '新人', since_on: '2026-10-31' }, UN), '新人・考核期第 26 天', '跨月');
+eq(C.unreportedText({ reason: '新人', since_on: '2026-11-20' }, Date.parse('2026-11-25T23:59:00+08:00')), '新人・考核期第 6 天', '台北日期不受時間影響');
+eq(C.unreportedText({ reason: '新人', since_on: '2026-11-20' }, Date.parse('2026-11-25T16:30:00Z')), '新人・考核期第 7 天', '台北已跨日');
+eq(C.unreportedText({ reason: '新人', since_on: null }, UN), '新人・考核期', '缺日期不出 NaN');
+eq(C.unreportedText({ reason: '已輔導未約考', since_on: '2026-11-20' }, UN), '已輔導完成・尚未約考', '已輔導未約考');
+eq(C.unreportedText({ reason: '其他' }, UN), '', '未知 reason');
+eq(C.unreportedText(null, UN), '', 'null');
+eq(C.unreportedTitle({ employee_label: '黃小宇', employee_id: 'MI-0150' }), '黃小宇（MI-0150）', '姓名＋員編');
+eq(C.unreportedTitle({ employee_id: 'MI-0150' }), 'MI-0150', '無姓名');
 
 console.log('通過 ' + passed + ' 項');

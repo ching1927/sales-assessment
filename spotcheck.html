@@ -90,6 +90,15 @@ label.lb{display:block;font-size:12px;font-weight:700;color:var(--ink-2);margin-
 .pgtab:hover{color:var(--ink)}
 .pgtab.on{background:var(--ci-black);color:var(--ci-yellow);box-shadow:0 2px 10px rgba(10,10,10,.25)}
 .pane[hidden]{display:none}
+/* 待填提醒（店長：單據分頁紅底＋數字徽章、頂端提示條、待填列左側粗紅線；客服部：天數 chip＋圖例） */
+.pgtab.alert,.pgtab.alert:hover{background:var(--danger);color:#fff;box-shadow:0 4px 14px rgba(220,38,38,.35)}
+.pgtab .badge{display:inline-block;min-width:20px;margin-left:6px;padding:1px 6px;border-radius:var(--r-pill);background:#fff;color:var(--danger);font-size:12px;font-weight:800;text-align:center}
+.todo-banner{padding:14px 18px;border-radius:16px;background:var(--danger-soft);border:1.5px solid var(--danger);color:#7F1D1D;font-weight:800;font-size:16px;margin:0 0 var(--sp-3)}
+.todo-banner small{display:block;font-weight:500;font-size:13px;margin-top:2px}
+.todo-legend{font-size:13px;color:var(--ink-2);margin:0 0 var(--sp-3)}
+tr.todo td:first-child{border-left:8px solid var(--danger)}
+.tag.red{background:var(--danger-soft);color:var(--danger)}
+.tag.warn{background:#FEF3C7;color:#92400E}
 @media (max-width:480px){.pgtab{padding:9px 12px;font-size:14px}}
 .loading{padding:var(--sp-12) var(--sp-4);text-align:center;color:var(--ink-2)}
 .blocked{max-width:420px;margin:var(--sp-12) auto 0;padding:var(--sp-8) var(--sp-6);text-align:center}
@@ -158,7 +167,7 @@ dialog::backdrop{background:var(--scrim)}
     <div class="tophead">
       <div class="pgtabs" role="tablist" aria-label="登記&amp;健檢分頁">
         <button type="button" class="pgtab" id="tabReg" role="tab" data-pane="paneReg" aria-selected="false" hidden>登記</button>
-        <button type="button" class="pgtab" role="tab" data-pane="paneRecords" aria-selected="false">登記歷程</button>
+        <button type="button" class="pgtab" role="tab" data-pane="paneRecords" id="tabRecords" aria-selected="false">登記歷程<span class="badge" id="todoBadge" hidden></span></button>
         <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#list">健檢單</a>
         <a class="pgtab" role="tab" aria-selected="false" href="checkup.html#ranking">異常回覆預警榜</a>
       </div>
@@ -223,6 +232,7 @@ dialog::backdrop{background:var(--scrim)}
       <div class="empty" id="stEmpty" hidden>目前沒有可顯示的人員</div>
     </section>
 
+    <div id="todoNotice"></div>
     <h2 class="sec">單據清單（異常回覆）</h2>
     <section class="toolbar glass" aria-label="篩選">
       <select class="ctrl grow" id="fEmp" aria-label="人員篩選"></select>
@@ -266,6 +276,7 @@ dialog::backdrop{background:var(--scrim)}
 <script src="js/config.js"></script>
 <script src="js/spotdims-core.js"></script>
 <script src="js/coached-core.js"></script>
+<script src="js/todo-days-core.js"></script>
 <script src="js/spotcheck-api.js"></script>
 <script>
 (function () {
@@ -542,7 +553,27 @@ dialog::backdrop{background:var(--scrim)}
       ? '<a href="' + esc(m) + '" target="_blank" rel="noopener noreferrer">開啟 LINE 聊天室</a>'
       : '<span class="sub">—</span>';
   }
+  // 待填＝有效且 coached_on 為空（只認「單據」區的異常回覆單；單據已在載入時限定 kind==='黃'）
+  function isTodo(t) { return t.status !== '作廢' && !t.coached_on; }
+  function daysChip(t) {
+    var TD = window.TodoDays;
+    if (!TD || !TD.daysSince || !TD.chipHtml) return '';
+    var d = TD.daysSince(t.issued_on, Date.now());
+    return d == null ? '' : TD.chipHtml(d);
+  }
+  // 店長：單據分頁紅底＋數字徽章、頂端提示條；客服部：天數顏色圖例；主管不顯示
+  function renderTodoNotice() {
+    var n = isMgr() ? tickets.filter(function (t) { return isTodo(t) && t.store_code === me.store_code; }).length : 0;
+    var tab = $('tabRecords'), bd = $('todoBadge');
+    tab.classList.toggle('alert', n > 0);
+    bd.hidden = n === 0; bd.textContent = n;
+    var html = '';
+    if (n > 0) html = '<div class="todo-banner" role="alert">你有 ' + n + ' 筆異常回覆單還沒回填輔導<small>點進單據，勾選「已完成輔導＆溝通」並儲存即可。</small></div>';
+    else if (isCS()) html = '<p class="todo-legend">天數顏色：<span class="tag gray">3 天內</span><span class="tag warn">4–7 天</span><span class="tag red">超過 7 天</span>（只顯示，不會寄信催店長）</p>';
+    $('todoNotice').innerHTML = html;
+  }
   function renderTickets() {
+    renderTodoNotice();
     var st = $('rcStore').value, e = $('fEmp').value, s = $('fStatus').value;
     var showOps = isCS() || isMgr();
     $('thOps').hidden = !showOps;
@@ -556,13 +587,14 @@ dialog::backdrop{background:var(--scrim)}
       if (vd) reason += '<div class="sub">已作廢：<span class="txt">' + esc(t.void_reason || '—') + '</span></div>';
       var coach = vd ? '<span class="sub">—</span>'
         : t.coached_on ? '<span class="tag ok">已輔導</span> <span class="mono">' + esc(t.coached_on) + '</span><div class="sub txt">' + esc(t.coach_note || '') + '</div>'
-        : '<span class="sub">尚未輔導</span>';
+        : '<span class="sub">尚未輔導</span>' + (isCS() ? ' ' + daysChip(t) : '');
+      var todoRow = isMgr() && isTodo(t) && t.store_code === me.store_code;
       var ci = vd || !coachStats ? null : coachEditInfo(coachStats[t.id]);
       if (ci) coach += (ci.lastText ? '<div class="sub">' + esc(ci.lastText) + '</div>' : '') + '<button class="btn sm" data-hist="' + esc(t.id) + '" type="button">' + esc(ci.btnText) + '</button>';
       var ops = '';
       if (canCoach(t)) ops += '<button class="btn sm" data-coach="' + esc(t.id) + '" type="button">' + (t.coached_on ? '編輯輔導' : '回填輔導') + '</button> ';
       if (canVoid(t)) ops += '<button class="btn sm outdanger" data-void="' + esc(t.id) + '" type="button">作廢</button>';
-      return '<tr class="' + (vd ? 'void' : '') + '"><td class="mono ' + (vd ? 'strike' : '') + '">' + esc(t.issued_on) + '</td>' +
+      return '<tr class="' + (vd ? 'void' : '') + (todoRow ? ' todo' : '') + '"><td class="mono ' + (vd ? 'strike' : '') + '">' + esc(t.issued_on) + '</td>' +
         '<td><span class="tag y">異常回覆</span></td>' +
         '<td class="' + (vd ? 'strike' : '') + '">' + esc(t.employee_label || t.employee_id) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td>' +
         '<td>' + esc(sName(t.store_code)) + '</td><td class="wrap">' + reason + '</td>' +

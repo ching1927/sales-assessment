@@ -207,3 +207,10 @@
 - 題組範例圖片｜`questions.html`、`js/questions-api.js`、`js/question-images-core.js`、`supabase/question_images_schema.sql`、`supabase/README_question_images.md`｜題庫管理頁每題組可傳多張（上限 8、每張 2MB 內、jpg／png／webp）、排序、刪除；私有 bucket question-samples、只有客服部可讀寫；考核畫面（客服部用）在該題組內顯示｜驗證：`node tests/question-images-api.test.js`；`supabase/question_images_verify_fake.sql`
 - 雙考官考核樣品｜`樣品/雙考官輪流考核樣品.html`｜老闆已確認的畫面樣品（假資料）
 - 輔導紀錄改勾選（老闆 2026-11-25）｜`backoffice.html`（改善單「回填已輔導」）、`spotcheck.html`（異常回覆「回填輔導」）、`js/coached-core.js`（buildNote／otherOf）｜日期＋必勾「已完成輔導＆溝通」＋選填「其他」；資料庫備註存「已完成輔導＆溝通」或「已完成輔導＆溝通\n其他：…」（不改資料庫函式，仍須非空）；舊備註不動、編輯時整段放進「其他」；按已輔導後跳待考回報不變｜驗證：`node tests/coached-core.test.js` 通過
+
+### 店長待填提醒（老闆 2026-11-25）
+- 店長端該填未填紅點｜`js/appbar.js`、`app.css`、`supabase/todo_reminder_schema.sql`（improve_badge 只算 open、新 spot_badge、exam_req_badge 店長端＝todo_unreported_rows 筆數）｜導覽「成績單&考核後台」＝還沒回填輔導的回填輔導紀錄（原改善單）數；「登記&健檢」＝未回填輔導的異常回覆單數；「待考回報」＝該回報待考還沒回報的人（新人與已輔導未約考，不再另加 coached_pending_count）；紅點放大、脈動（減少動態時不動）｜驗證：`node tests/appbar-badge.test.js`；PGlite `todo_reminder_verify_fake.sql`
+- 頁內待填提示｜`backoffice.html`（回填輔導紀錄分頁）、`spotcheck.html`（登記歷程／單據）、`requests.html`（待考回報區塊）｜店長：待填分頁紅底白字＋數字徽章、頂端紅色提示條、待填列左側粗紅線；待考回報頁列出還沒回報的人，一鍵預填；主管不顯示｜驗證：`node tests/requests-core.test.js`、`tests/todo-days-core.test.js`
+- 客服部未填清單與天數分色｜`js/todo-days-core.js`（TodoDays）、`backoffice.html`、`spotcheck.html`｜待填列顯示「已開單 N 天」：3 天內灰、4–7 天橘、超過 7 天紅；只顯示不催店長｜驗證：`node tests/todo-days-core.test.js`
+- 每週彙整信給客服部｜`supabase/todo_reminder_schema.sql`（todo_digest_run、pg_cron `todo_digest_weekly` 週一台北 09:00）、`supabase/README_todo_reminder.md`｜各門市未填筆數、最久天數、超過 7 天名單；收件人讀 app_settings `todo_digest_recipients`（沒設就不寄，信箱不進程式碼）；同週不重複寄｜驗證：PGlite `todo_reminder_verify_fake.sql`
+- 畫面文字「改善單」→「回填輔導紀錄」｜`backoffice.html`、`requests.html`、`js/appbar.js`、`js/requests-core.js`｜只改程式裡寫死的畫面文字；資料庫函式訊息、表名、樣品與舊簡報不動

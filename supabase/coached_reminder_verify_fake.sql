@@ -397,7 +397,7 @@ begin
     pg_temp.vr_as('authenticated', 'vr-sm1@2motor.tw', $q$select string_agg(coalesce(kind, '(null)'), '/' order by employee_id)
       from public.coached_pending() where employee_id in ('MI-9801','MI-9802','MI-9803')$q$, true));
   -- 既有紅點函式行為不變：店長＝自己門市 mgr_seen=false 的回報數，不受尚未約考影響
-  perform pg_temp.vr_eq('2 角色', '既有 exam_req_badge 不變：店長甲（沒有未看回覆）仍是 0', '0',
+  perform pg_temp.vr_eq('2 角色', 'exam_req_badge 新語意（待填提醒）：店長甲＝該回報待考還沒回報的 6 人（含已輔導未約考）', '6',
     pg_temp.vr_as('authenticated', 'vr-sm1@2motor.tw', $q$select public.exam_req_badge()::text$q$, true));
   perform pg_temp.vr_own($q$update public.exam_requests set mgr_seen = false where employee_id = 'MI-9805'$q$);
   perform pg_temp.vr_eq('2 角色', '既有 exam_req_badge 不變：店長甲有 1 筆未看回覆→1', '1',

@@ -58,6 +58,17 @@ th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-sh
 .tag.on{background:var(--success-soft);color:var(--success)}
 .tag.out{background:var(--danger-soft);color:var(--danger)}
 .tag.todo{background:var(--ci-yellow);color:var(--ci-black)}
+.tag.gray{background:var(--track);color:var(--ink-2)}
+.tag.warn{background:var(--warning-soft);color:var(--warning)}
+.tag.red{background:var(--danger-soft);color:var(--danger)}
+/* 待填提醒：分頁標籤紅底白字＋數字徽章、頂端提示條、待填列左側粗紅線 */
+.tab.alert{background:var(--danger);color:#fff;border-radius:var(--r-pill);border-bottom-color:transparent;box-shadow:0 4px 14px rgba(220,38,38,.35)}
+.tab.alert[aria-selected="true"]{color:#fff;border-bottom-color:transparent;outline:2px solid var(--danger);outline-offset:2px}
+.tab .dot{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;margin-left:8px;border-radius:999px;background:#fff;color:var(--danger);font-size:13px;font-weight:800;vertical-align:middle}
+.todo-banner{padding:14px 18px;border-radius:16px;background:var(--danger-soft);border:1.5px solid var(--danger);color:#7F1D1D;font-weight:800;font-size:16px;margin-bottom:var(--sp-3)}
+.todo-banner small{display:block;font-weight:500;font-size:13px;margin-top:2px}
+.todo-legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 var(--sp-3);font-size:13px;color:var(--ink-2)}
+tr.todo td:first-child{box-shadow:inset 8px 0 0 var(--danger)}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
 .note{color:var(--ink-3);font-size:12px;margin-top:var(--sp-3);line-height:1.5}
 .intro{font-size:14px;line-height:1.6;color:var(--ink-2);margin-bottom:var(--sp-3)}
@@ -205,7 +216,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       <button class="tab" role="tab" id="tab-recent" data-tab="recent" aria-controls="p-recent" type="button">近期考核</button>
       <button class="tab" role="tab" id="tab-history" data-tab="history" aria-controls="p-history" type="button">人員歷史</button>
       <button class="tab" role="tab" id="tab-insights" data-tab="insights" aria-controls="p-insights" type="button">弱項分析</button>
-      <button class="tab" role="tab" id="tab-tickets" data-tab="tickets" aria-controls="p-tickets" type="button">改善單</button>
+      <button class="tab" role="tab" id="tab-tickets" data-tab="tickets" aria-controls="p-tickets" type="button"><span id="tabTicketsTxt">回填輔導紀錄</span><span id="tabTicketsDot"></span></button>
     </div>
 
     <!-- 分頁 0：近期考核（原成績單頁的內容；邏輯在 js/recent-reports.js、js/recent-reports-core.js） -->
@@ -247,7 +258,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       <section class="tablebox glass">
         <div class="scroll" tabindex="0" aria-label="人員歷史列表，可左右捲動">
           <table style="min-width:900px">
-            <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="ctr">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>改善單</th><th class="stick">操作</th></tr></thead>
+            <thead><tr><th>考生</th><th>門市</th><th>目前身分</th><th class="ctr">考核次數</th><th>最近一次</th><th>走勢（近 4 次）</th><th>回填輔導紀錄</th><th class="stick">操作</th></tr></thead>
             <tbody id="hBody"></tbody>
           </table>
         </div>
@@ -287,20 +298,21 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
 
     <!-- 分頁 3：改善單 -->
     <section id="p-tickets" role="tabpanel" aria-labelledby="tab-tickets" hidden>
-      <p class="intro">成績單判定為需複訓或不及格時，系統自動開單，預設 14 天內完成輔導；成績單作廢時，對應改善單自動取消。</p>
+      <div id="tTodo"></div>
+      <p class="intro">成績單判定為需複訓或不及格時，系統自動開單，預設 14 天內完成輔導；成績單作廢時，對應回填輔導紀錄自動取消。</p>
       <section class="toolbar glass" aria-label="篩選">
         <select class="ctrl" id="tStatus" aria-label="狀態篩選"></select>
         <select class="ctrl" id="tStore" aria-label="門市篩選"></select>
         <span class="count" id="tCount" aria-live="polite"></span>
       </section>
       <section class="tablebox glass">
-        <div class="scroll" tabindex="0" aria-label="改善單列表，可左右捲動">
+        <div class="scroll" tabindex="0" aria-label="回填輔導紀錄列表，可左右捲動">
           <table style="min-width:980px">
             <thead><tr><th>考生</th><th>門市</th><th>來源成績單</th><th>改善面向</th><th>期限</th><th>狀態</th><th class="stick">操作</th></tr></thead>
 <tbody id="tBody"></tbody>
           </table>
         </div>
-        <div class="empty" id="tEmpty" hidden>沒有符合條件的改善單</div>
+        <div class="empty" id="tEmpty" hidden>沒有符合條件的回填輔導紀錄</div>
       </section>
       <p class="note" id="tNote"></p>
     </section>
@@ -321,6 +333,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
 <script src="js/radar.js"></script>
 <script src="js/backoffice-api.js"></script>
 <script src="js/coached-core.js"></script>
+<script src="js/todo-days-core.js"></script>
 <script src="js/assess-api.js"></script>
 <script src="js/recent-reports-core.js"></script>
 <script src="js/recent-reports.js"></script>
@@ -640,10 +653,10 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     return h + stuTickets(tk) + '<div class="actions"><button class="btn" type="button" data-closeA="1">關閉</button></div></div>';
   }
   function stuTickets(tk) {
-    return '<h3>改善單</h3>' + (tk.length ? '<div class="scroll"><table><thead><tr><th>來源成績單</th><th>期限</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
+    return '<h3>回填輔導紀錄</h3>' + (tk.length ? '<div class="scroll"><table><thead><tr><th>來源成績單</th><th>期限</th><th>狀態</th><th>操作</th></tr></thead><tbody>' +
       tk.map(function (t) {
         return '<tr><td>' + srcCell(t) + '</td><td class="mono">' + esc(t.due_date) + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td><td><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button></td></tr>';
-      }).join('') + '</tbody></table></div>' : '<p>沒有改善單。</p>');
+      }).join('') + '</tbody></table></div>' : '<p>沒有回填輔導紀錄。</p>');
   }
   function openStu(eid) {
     var p = peopleById[eid]; if (!p) return;
@@ -713,23 +726,29 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       if (sf && t.status !== sf) return false;
       return true;
     });
+    var todoN = isCS() || isMgr() ? tickets.filter(function (t) { return t.status === 'open'; }).length : 0;
+    var mgrTodo = isMgr() && todoN > 0;
+    $('tab-tickets').classList.toggle('alert', todoN > 0);
+    $('tabTicketsDot').innerHTML = todoN > 0 ? '<span class="dot" aria-label="待填 ' + todoN + ' 筆">' + todoN + '</span>' : '';
+    $('tTodo').innerHTML = mgrTodo ? '<div class="todo-banner" role="status">你有 ' + todoN + ' 筆輔導紀錄還沒回填<small>勾選「已完成輔導＆溝通」並儲存後，這裡的紅點就會消失。</small></div>'
+      : isCS() ? '<div class="todo-legend">天數顏色：<span class="tag gray">3 天內</span><span class="tag warn">4–7 天</span><span class="tag red">超過 7 天</span><span>（只顯示，不會寄信催店長）</span></div>' : '';
     $('tBody').innerHTML = list.map(function (t) {
-      return '<tr class="' + (t.status === 'cancelled' ? 'off' : '') + '"><td>' + esc(tName(t)) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td><td>' + esc(sName(t.store_code)) + '</td><td>' + srcCell(t) + '</td>' +
+      return '<tr class="' + ((t.status === 'cancelled' ? 'off' : '') + (mgrTodo && t.status === 'open' ? ' todo' : '')).trim() + '"><td>' + esc(tName(t)) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td><td>' + esc(sName(t.store_code)) + '</td><td>' + srcCell(t) + '</td>' +
         '<td style="white-space:normal;min-width:160px">' + dimTags(t.target_dims) + '</td>' +
-        '<td><span class="mono">' + esc(t.due_date) + '</span>' + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + '</td>' +
+        '<td><span class="mono">' + esc(t.due_date) + '</span>' + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + (isCS() && t.status === 'open' ? ' ' + TodoDays.chipHtml(TodoDays.daysSince(t.created_at)) : '') + '</td>' +
         '<td class="stick"><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button>' +
         (pendingBook[t.id] && (isCS() || isMgr()) ? ' <a class="btn sm primary" href="' + esc(CoachedCore.requestsUrl(t.id)) + '">前往預約</a>' : '') + '</td></tr>';
     }).join('');
-    $('tEmpty').textContent = tickets.length ? '沒有符合條件的改善單' : '目前沒有改善單';
+    $('tEmpty').textContent = tickets.length ? '沒有符合條件的回填輔導紀錄' : '目前沒有回填輔導紀錄';
     $('tEmpty').hidden = list.length > 0;
     $('tCount').textContent = '共 ' + list.length + ' 張';
-    $('tNote').textContent = isCS() ? '客服部看得到全部改善單，包含已取消；可編輯、結案或取消。'
-      : isMgr() ? '只顯示自己門市、未取消的改善單；可為待改善或已輔導的改善單回填輔導紀錄。'
-      : '總公司主管只能查看，且看不到已取消的改善單。';
+    $('tNote').textContent = isCS() ? '客服部看得到全部回填輔導紀錄，包含已取消；可編輯、結案或取消。'
+      : isMgr() ? '只顯示自己門市、未取消的回填輔導紀錄；可為待改善或已輔導的紀錄回填輔導。'
+      : '總公司主管只能查看，且看不到已取消的回填輔導紀錄。';
   }
 
   function ticketDetailHtml(t) {
-    var h = '<div class="dlg"><h2>改善單</h2>';
+    var h = '<div class="dlg"><h2>回填輔導紀錄</h2>';
     if (t.is_overdue) h += '<div class="msg err" role="alert">已逾期 ' + esc(t.days_overdue) + ' 天（期限 ' + esc(t.due_date) + '）</div>';
     h += '<dl class="kv"><dt>考生</dt><dd>' + esc(tName(t)) + '（' + esc(t.employee_id) + '）' + esc(sName(t.store_code)) + '</dd>' +
       '<dt>狀態</dt><dd>' + statusTags(t) + '</dd>' +
@@ -762,7 +781,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       h += '<button class="btn" type="button" data-act="cvhist">編輯紀錄（' + cverCache[t.id].length + ' 筆）</button>';
     }
     if (isCS() && isOpenT(t)) {
-      h += '<button class="btn" type="button" data-act="edit">編輯面向與期限</button><button class="btn primary" type="button" data-act="close">結案</button><button class="btn danger" type="button" data-act="cancel">取消改善單</button>';
+      h += '<button class="btn" type="button" data-act="edit">編輯面向與期限</button><button class="btn primary" type="button" data-act="close">結案</button><button class="btn danger" type="button" data-act="cancel">取消回填輔導紀錄</button>';
     }
     if (isMgr() && isOpenT(t) && t.store_code === me.store_code) {
       h += '<button class="btn primary" type="button" data-act="counsel">' + (t.status === 'coached' ? '編輯輔導紀錄' : '回填已輔導') + '</button>';
@@ -822,7 +841,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     job().then(function () {
       if (jumpTo) { location.href = jumpTo; return; }
       D.rm(); toast(okMsg);
-      return reloadTickets().catch(function (e) { showPageMsg('已儲存，但重新載入改善單失敗：' + errText(e) + ' 請重新整理頁面。'); });
+      return reloadTickets().catch(function (e) { showPageMsg('已儲存，但重新載入回填輔導紀錄失敗：' + errText(e) + ' 請重新整理頁面。'); });
     }, function (e) { err.textContent = errText(e); err.hidden = false; })
       .then(function () { busy = false; btn.disabled = false; });
   }
@@ -860,13 +879,13 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       ev.preventDefault();
       if (!cands.length) return;
       var rid = D.q('#cRep').value, note = D.q('#cNote').value.trim();
-      submitAct(D, D.q('#cOk'), '#cErr', function () { return BackofficeApi.closeTicket(t.id, rid, note); }, '改善單已結案。');
+      submitAct(D, D.q('#cOk'), '#cErr', function () { return BackofficeApi.closeTicket(t.id, rid, note); }, '回填輔導紀錄已結案。');
     });
   }
   function actCancel(t) {
     if (!isCS() || !isOpenT(t)) return;
-    var D = makeDlg('<h2>取消改善單</h2><p>取消後這張改善單只有客服部看得到。</p><label class="field">取消原因（必填）<textarea class="ctrl" id="xReason"></textarea></label>' +
-      '<label class="chk"><input type="checkbox" id="xSure"><span>我確認要取消這張改善單</span></label><div class="msg err" id="xErr" role="alert" hidden></div>' +
+    var D = makeDlg('<h2>取消回填輔導紀錄</h2><p>取消後這張回填輔導紀錄只有客服部看得到。</p><label class="field">取消原因（必填）<textarea class="ctrl" id="xReason"></textarea></label>' +
+      '<label class="chk"><input type="checkbox" id="xSure"><span>我確認要取消這張回填輔導紀錄</span></label><div class="msg err" id="xErr" role="alert" hidden></div>' +
       '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn danger" type="submit" id="xYes" disabled>確認取消</button></div>');
     var reason = D.q('#xReason'), sure = D.q('#xSure'), yes = D.q('#xYes');
     function sync() { yes.disabled = busy || !(reason.value.trim() && sure.checked); }
@@ -875,7 +894,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
       ev.preventDefault();
       if (!reason.value.trim() || !sure.checked) { var e = D.q('#xErr'); e.textContent = '請填寫取消原因並勾選確認。'; e.hidden = false; return; }
       var txt = reason.value.trim();
-      submitAct(D, yes, '#xErr', function () { return BackofficeApi.cancelTicket(t.id, txt); }, '改善單已取消。');
+      submitAct(D, yes, '#xErr', function () { return BackofficeApi.cancelTicket(t.id, txt); }, '回填輔導紀錄已取消。');
     });
   }
   // 編輯紀錄對話框：每一版由新到舊（唯讀）；沒有權限或讀不到版本時，詳情不會出現這個按鈕

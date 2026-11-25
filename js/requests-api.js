@@ -111,6 +111,11 @@
       return Promise.resolve(sb.rpc('coached_pending')).then(function (r) { return r && !r.error ? (r.data || []) : []; }, function () { return []; });
     },
 
+    // 「店長該回報待考但還沒回報」清單（資料庫依身分過濾）。函式還沒建立或呼叫失敗時回空清單，不影響頁面其他功能
+    todoUnreported: function () {
+      return Promise.resolve(sb.rpc('todo_unreported_rows')).then(function (r) { return r && !r.error ? (r.data || []) : []; }, function () { return []; });
+    },
+
     // ---- 寫入（全部走資料庫函式）----
     create: function (kind, employeeId, dates, video, note, ticketId) {
       return wrap(sb.rpc('exam_req_create', {

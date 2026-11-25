@@ -122,7 +122,7 @@ select pg_temp.vr_eq('一 新人', '點進去（mark_seen）後紅點仍是 1', 
 select pg_temp.vr_eq('一 新人', '店長送出「新人」待考回報成功', 'true',
   pg_temp.vr_as('authenticated', 'bl-sm1@2motor.tw',
     $q$select (public.exam_req_create('新人', 'MI-9801', array[current_date + 3], true, null, null) is not null)::text$q$));
-select pg_temp.vr_eq('一 新人', '送出回報後店長紅點仍是 1', '1', pg_temp.vr_ex('bl-sm1@2motor.tw'));
+select pg_temp.vr_eq('一 新人', '送出回報後店長紅點變 0（已回報不再待填）', '0', pg_temp.vr_ex('bl-sm1@2motor.tw'));
 select pg_temp.vr_eq('一 新人', '客服部待處理 +1（照舊）', '1',
   (pg_temp.vr_ex('bl-cs@2motor.tw')::int - (select ex from vr_base))::text);
 
@@ -133,8 +133,8 @@ select pg_temp.vr_eq('一 新人', '客服排定成功', '',
            (select id from public.exam_requests where employee_id = 'MI-9801' and status = '待處理'))));
 select pg_temp.vr_eq('一 新人', '排定後客服部待處理回到基準', '0',
   (pg_temp.vr_ex('bl-cs@2motor.tw')::int - (select ex from vr_base))::text);
-select pg_temp.vr_eq('一 新人', '排定後店長紅點仍是 1', '1', pg_temp.vr_ex('bl-sm1@2motor.tw'));
-select pg_temp.vr_eq('一 新人', '排定後店長點進去（mark_seen）仍是 1', '1',
+select pg_temp.vr_eq('一 新人', '排定後店長紅點仍是 0（已排定，沒有待填）', '0', pg_temp.vr_ex('bl-sm1@2motor.tw'));
+select pg_temp.vr_eq('一 新人', '排定後店長點進去（mark_seen）仍是 0', '0',
   (select case when pg_temp.vr_as('authenticated', 'bl-sm1@2motor.tw', 'select public.exam_req_mark_seen()::text') = ''
                then pg_temp.vr_ex('bl-sm1@2motor.tw') else 'mark_seen 失敗' end));
 
@@ -187,15 +187,15 @@ select pg_temp.vr_eq('二 改善單', '改善單紅點不影響待考回報分�
 select pg_temp.vr_eq('二 改善單', '店長標記已輔導成功', '',
   pg_temp.vr_as('authenticated', 'bl-sm1@2motor.tw',
     format($q$select public.improve_mark_coached(%L::uuid, current_date, '假輔導紀錄')::text$q$, (select id from vr_tk where k = 'A'))));
-select pg_temp.vr_eq('二 改善單', '已輔導後甲店店長仍是 1', '1', pg_temp.vr_im('bl-sm1@2motor.tw'));
-select pg_temp.vr_eq('二 改善單', '已輔導後客服部仍 +1', '1', (pg_temp.vr_im('bl-cs@2motor.tw')::int - (select im from vr_base))::text);
+select pg_temp.vr_eq('二 改善單', '已輔導後甲店店長改善單紅點變 0（只算未回填的 open）', '0', pg_temp.vr_im('bl-sm1@2motor.tw'));
+select pg_temp.vr_eq('二 改善單', '已輔導後客服部相對基準 +0（只算 open）', '0', (pg_temp.vr_im('bl-cs@2motor.tw')::int - (select im from vr_base))::text);
 
 select pg_temp.vr_eq('二 改善單', '店長送出「複檢」待考回報成功', 'true',
   pg_temp.vr_as('authenticated', 'bl-sm1@2motor.tw',
     format($q$select (public.exam_req_create('複檢', 'MI-9807', array[current_date + 2], null, null, %L::uuid) is not null)::text$q$,
            (select id from vr_tk where k = 'A'))));
-select pg_temp.vr_eq('二 改善單', '送出複檢回報後甲店店長仍是 1', '1', pg_temp.vr_im('bl-sm1@2motor.tw'));
-select pg_temp.vr_eq('二 改善單', '店長點進去（mark_seen）後改善單紅點仍是 1', '1',
+select pg_temp.vr_eq('二 改善單', '送出複檢回報後甲店店長改善單紅點仍是 0', '0', pg_temp.vr_im('bl-sm1@2motor.tw'));
+select pg_temp.vr_eq('二 改善單', '店長點進去（mark_seen）後改善單紅點仍是 0', '0',
   (select case when pg_temp.vr_as('authenticated', 'bl-sm1@2motor.tw', 'select public.exam_req_mark_seen()::text') = ''
                then pg_temp.vr_im('bl-sm1@2motor.tw') else 'mark_seen 失敗' end));
 
@@ -205,7 +205,7 @@ insert into public.assessments
    total_score, verdict, pass_line, submitted_at)
 values ('MI-9807', '假員9807', 'ZZ-B1', 'bl-cs@2motor.tw', 'submitted', '正式', '自動', 90, '及格', 85,
         clock_timestamp() + interval '1 minute');
-select pg_temp.vr_eq('二 改善單', '複檢成績單送出後、結案前紅點仍是 1', '1', pg_temp.vr_im('bl-sm1@2motor.tw'));
+select pg_temp.vr_eq('二 改善單', '複檢成績單送出後、結案前紅點仍是 0（已輔導不算）', '0', pg_temp.vr_im('bl-sm1@2motor.tw'));
 select pg_temp.vr_eq('二 改善單', '客服部結案（複檢完成）成功', '',
   pg_temp.vr_as('authenticated', 'bl-cs@2motor.tw',
     format($q$select public.improve_close(%L::uuid, %L::uuid, '假結案')::text$q$,
@@ -216,7 +216,7 @@ select pg_temp.vr_eq('二 改善單', '結案後客服部回到基準', '0', (pg
 
 -- 取消的改善單不計
 insert into vr_tk values ('B', pg_temp.vr_tk('MI-9808', 'ZZ-B1', 'coached'));
-select pg_temp.vr_eq('二 改善單', '新開一張已輔導改善單：甲店 1', '1', pg_temp.vr_im('bl-sm1@2motor.tw'));
+select pg_temp.vr_eq('二 改善單', '新開一張已輔導改善單：甲店 0（已輔導不算）', '0', pg_temp.vr_im('bl-sm1@2motor.tw'));
 select pg_temp.vr_eq('二 改善單', '客服部取消改善單成功', '',
   pg_temp.vr_as('authenticated', 'bl-cs@2motor.tw',
     format($q$select public.improve_cancel(%L::uuid, '假取消')::text$q$, (select id from vr_tk where k = 'B'))));
@@ -224,7 +224,7 @@ select pg_temp.vr_eq('二 改善單', '取消後甲店 0', '0', pg_temp.vr_im('b
 
 -- 人員中途離職不計
 insert into vr_tk values ('C', pg_temp.vr_tk('MI-9809', 'ZZ-B1', 'coached'));
-select pg_temp.vr_eq('二 改善單', '再開一張：甲店 1', '1', pg_temp.vr_im('bl-sm1@2motor.tw'));
+select pg_temp.vr_eq('二 改善單', '再開一張（已輔導）：甲店 0', '0', pg_temp.vr_im('bl-sm1@2motor.tw'));
 update public.employees set status = '離職' where id = 'MI-9809';
 select pg_temp.vr_eq('二 改善單', '人員離職後甲店 0', '0', pg_temp.vr_im('bl-sm1@2motor.tw'));
 select pg_temp.vr_eq('二 改善單', '人員離職後客服部回到基準', '0', (pg_temp.vr_im('bl-cs@2motor.tw')::int - (select im from vr_base))::text);

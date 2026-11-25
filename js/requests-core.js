@@ -17,11 +17,13 @@
  *   RequestsCore.scheduleAtError(local, nowMs) 排定時間不可早於「現在往前 1 小時」；回錯誤字串或 ''
  *   RequestsCore.markReported(rows)           未結案（待處理、已排定）回報 -> { 員編: { status, kind, scheduled_at } }
  *   RequestsCore.reportedFirst(list, map, idOf) 已回報的人排前面（兩邊各自維持原順序）
+ *   RequestsCore.unreportedText(row, nowMs)   店長「還沒回報待考」清單一列 -> 卡片小字（新人・考核期第 X 天／已輔導完成・尚未約考）
+ *   RequestsCore.unreportedTitle(row)         卡片標題「姓名（員編）」
  *   RequestsCore.safeHttpUrl(u)               只接受 http／https 網址，否則回 ''
  */
 (function (root) {
   var KINDS = ['新人', '複檢'];   // 「回考核期」已停用，不能再新增回報；舊紀錄仍用 KIND_LABEL 顯示
-  var KIND_LABEL = { '新人': '新人考核', '回考核期': '回考核期再考', '複檢': '改善單複檢' };
+  var KIND_LABEL = { '新人': '新人考核', '回考核期': '回考核期再考', '複檢': '回填輔導紀錄複檢' };
   var MAX_DATES = 3;
   var MAX_NOTE = 500;
   var TZ_MS = 8 * 3600000;       // 台北固定 UTC+8（沒有日光節約）
@@ -90,7 +92,7 @@
     o = o || {};
     if (KINDS.indexOf(o.kind) < 0) return { ok: false, error: '請選擇回報情況。' };
     if (!o.employeeId) return { ok: false, error: '請選擇人員。' };
-    if (o.kind === '複檢' && !o.ticketId) return { ok: false, error: '複檢必須指定改善單，請重新選擇人員。' };
+    if (o.kind === '複檢' && !o.ticketId) return { ok: false, error: '複檢必須指定回填輔導紀錄，請重新選擇人員。' };
     var d = validateDates(o.dates, o.today);
     if (!d.ok) return { ok: false, error: d.error };
     var ve = videoError(o.kind, o.video);
@@ -156,7 +158,28 @@
     return /^https?:\/\/\S+$/i.test(s) ? s : '';
   }
 
+  // 「店長該回報待考但還沒回報」清單（資料庫 todo_unreported_rows）的顯示文字
+  // 新人：'新人・考核期第 X 天'（X＝since_on 到今天的台北日期差＋1）；已輔導未約考：'已輔導完成・尚未約考'；其他 reason 回 ''
+  function unreportedText(row, nowMs) {
+    if (!row) return '';
+    if (row.reason === '已輔導未約考') return '已輔導完成・尚未約考';
+    if (row.reason !== '新人') return '';
+    var s = String(row.since_on == null ? '' : row.since_on).slice(0, 10);
+    if (!isDateStr(s)) return '新人・考核期';
+    var today = taipeiToday(nowMs);
+    var diff = Math.round((Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10)) -
+      Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10))) / 86400000);
+    return '新人・考核期第 ' + Math.max(1, diff + 1) + ' 天';
+  }
+  // 卡片標題：姓名（員編）；沒有姓名只顯示員編
+  function unreportedTitle(row) {
+    if (!row) return '';
+    var id = row.employee_id || '', lb = row.employee_label || '';
+    return lb && id && lb !== id ? lb + '（' + id + '）' : (lb || id);
+  }
+
   var api = {
+    unreportedText: unreportedText, unreportedTitle: unreportedTitle,
     KINDS: KINDS, KIND_LABEL: KIND_LABEL, MAX_DATES: MAX_DATES, MAX_NOTE: MAX_NOTE,
     isDateStr: isDateStr, taipeiToday: taipeiToday, addDays: addDays,
     validateDates: validateDates, videoError: videoError, videoValue: videoValue, noteError: noteError,

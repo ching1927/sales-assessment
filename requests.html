@@ -56,6 +56,12 @@ th{font-size:12px;color:var(--ink-2)}
 .remind{display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;background:var(--ci-yellow);color:var(--ci-black);border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);font-weight:700;font-size:14px;line-height:1.5;margin-bottom:var(--sp-3)}
 .remind span{flex:1 1 240px}
 .remind .btn{background:var(--ci-black);color:var(--ci-yellow);border-color:var(--ci-black)}
+.unrep{border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);background:var(--danger-soft);border:1.5px solid var(--danger);color:var(--danger);font-weight:800;font-size:16px;line-height:1.5}
+.unrep small{display:block;font-weight:500;font-size:13px;margin-top:2px}
+.ucard{display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap;padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-2);border-left:8px solid var(--danger)}
+.ucard .m{flex:1 1 220px}
+.ucard .t{font-weight:700;font-size:15px}
+.ucard .s{font-size:13px;color:var(--ink-2)}
 .tag.src{background:var(--accent-soft);color:var(--accent-deep)}
 .fromtk{display:inline-block;margin-left:8px;font-size:12px;vertical-align:middle}
 .empty{padding:var(--sp-8);text-align:center;color:var(--ink-2)}
@@ -129,21 +135,23 @@ dialog::backdrop{background:var(--scrim)}
     <div class="msg err" id="pageMsg" role="alert" hidden></div>
 
     <section class="glass intro">
-      <b>規則：</b>店長回報自己門市「準備好要考核」的人，客服部看到後排定線上考核的日期與時間，系統會通知並寄信給回報人。回報情況有兩種：<b>新人</b>（需先看完「線上回覆實戰全攻略」影片）、<b>改善單複檢</b>。同一人同一種情況已有未結案的回報時，不能重複回報。考核是線上進行，請同仁準時上線。
+      <b>規則：</b>店長回報自己門市「準備好要考核」的人，客服部看到後排定線上考核的日期與時間，系統會通知並寄信給回報人。回報情況有兩種：<b>新人</b>（需先看完「線上回覆實戰全攻略」影片）、<b>回填輔導紀錄複檢</b>。同一人同一種情況已有未結案的回報時，不能重複回報。考核是線上進行，請同仁準時上線。
     </section>
 
     <div id="mgrNotice" aria-live="polite"></div>
 
+    <div id="unrepBar" aria-live="polite"></div>
+
     <div id="remindBar" aria-live="polite"></div>
 
     <section id="formWrap" hidden>
-      <h2 class="sec">回報待考</h2>
+      <h2 class="sec">回報待考<span class="badge" id="unrepBadge" hidden>0</span></h2>
       <form class="glass panel" id="reqForm" novalidate>
         <div class="grid">
           <div id="qStoreWrap" hidden><label class="lb" for="qStore">門市</label><select class="ctrl" id="qStore"></select></div>
-          <div><label class="lb" for="qKind">回報情況<span class="tag src fromtk" id="fromK" hidden>由改善單帶入</span></label>
-            <select class="ctrl" id="qKind"><option value="新人">新人準備好了，要考核</option><option value="複檢">改善單複檢考核</option></select></div>
-          <div><label class="lb" for="qEmp">人員<span class="tag src fromtk" id="fromE" hidden>由改善單帶入</span></label><select class="ctrl" id="qEmp"></select></div>
+          <div><label class="lb" for="qKind">回報情況<span class="tag src fromtk" id="fromK" hidden>由回填輔導紀錄帶入</span></label>
+            <select class="ctrl" id="qKind"><option value="新人">新人準備好了，要考核</option><option value="複檢">回填輔導紀錄複檢考核</option></select></div>
+          <div><label class="lb" for="qEmp">人員<span class="tag src fromtk" id="fromE" hidden>由回填輔導紀錄帶入</span></label><select class="ctrl" id="qEmp"></select></div>
         </div>
         <label class="lb">希望考核日期（可多選，最多 3 個，至少 1 個）</label>
         <div class="days" id="qDays"></div>
@@ -299,11 +307,53 @@ dialog::backdrop{background:var(--scrim)}
     }).join('');
   }
 
+  // ====== 還沒回報待考（店長）：紅色提示條＋每人一張卡 ======
+  // 清單由資料庫依身分過濾；已輔導未約考的人與下方黃色「一鍵帶入」是同一批，這裡已列出的人，黃條不再重複
+  var unrep = [];
+  function renderUnrep() {
+    var list = isMgr() ? unrep : [];
+    var n = list.length, now = Date.now();
+    $('unrepBadge').textContent = n; $('unrepBadge').hidden = !n;
+    $('unrepBar').innerHTML = !n ? '' : '<div class="unrep" role="alert">有 ' + n + ' 位夥伴還沒回報待考<small>回報後這裡的紅點就會消失；之後由客服部排定考核日。</small></div>' +
+      list.map(function (u) {
+        return '<div class="glass ucard"><div class="m"><div class="t">' + esc(C.unreportedTitle(u)) + '</div><div class="s">' + esc(C.unreportedText(u, now)) + '</div></div>' +
+          '<button class="btn sm primary" type="button" data-unrep="' + esc(u.employee_id) + '">回報待考</button></div>';
+      }).join('');
+    renderRemind();
+  }
+  function loadUnrep() {
+    if (!isMgr()) return Promise.resolve();
+    return RequestsApi.todoUnreported().then(function (l) { unrep = l; renderUnrep(); });
+  }
+  // 把這個人預填進既有的回報表單：有對應改善單走既有的一鍵帶入；否則依 reason 選情況（新人／複檢）再選人
+  function prefillUnrep(empId) {
+    var u = unrep.filter(function (x) { return x.employee_id === empId; })[0];
+    if (!u) return Promise.resolve(false);
+    var pend = pending.filter(function (p) { return p.employee_id === empId; })[0];
+    if (pend) return applyPrefill(pend.ticket_id);
+    var kinds = u.reason === '新人' ? ['新人'] : ['複檢', '新人'];
+    function pick(i) {
+      if (i >= kinds.length) { toast('請在表單選擇回報情況與人員。'); try { $('formWrap').scrollIntoView({ block: 'start' }); } catch (e) {} return Promise.resolve(false); }
+      $('qKind').value = kinds[i]; clearFromTags(); syncVideoRow();
+      return loadCands().then(function () {
+        var idx = -1;
+        shown.forEach(function (c, j) { if (idx < 0 && c.employee_id === empId) idx = j; });
+        if (idx < 0) return pick(i + 1);
+        $('qEmp').value = String(idx);
+        try { $('formWrap').scrollIntoView({ block: 'start' }); } catch (e) {}
+        return true;
+      });
+    }
+    return pick(0);
+  }
+
   // ====== 已輔導但尚未約考：黃色提醒條與預填 ======
   // 清單由資料庫依身分過濾（店長只拿得到自己門市），所以網址帶別間門市的單號時，這裡找不到、參數會被忽略
   var pending = [], prefillTicket = '';
   function renderRemind() {
-    var list = isMgr() ? pending.filter(function (p) { return p.ticket_id !== prefillTicket; }) : [];
+    var inUnrep = {};
+    unrep.forEach(function (u) { inUnrep[u.employee_id] = 1; });
+    var list = isMgr() ? pending.filter(function (p) { return p.ticket_id !== prefillTicket && !inUnrep[p.employee_id]; }) : [];
     $('remindBar').innerHTML = list.map(function (p) {
       return '<div class="remind"><span>' + esc(CoachedCore.remindText(p)) + '</span><button class="btn sm" type="button" data-fill="' + esc(p.ticket_id) + '">一鍵帶入</button></div>';
     }).join('');
@@ -372,7 +422,7 @@ dialog::backdrop{background:var(--scrim)}
     emp.innerHTML = '<option value="">請選擇人員</option>' + shown.map(function (c, i) {
       var t = c.label || c.employee_id;
       if (isCS()) t += '（' + sName(c.store_code) + '）';
-      if ($('qKind').value === '複檢' && c.ticket_note) t += '・改善單：' + String(c.ticket_note).slice(0, 30);
+      if ($('qKind').value === '複檢' && c.ticket_note) t += '・回填輔導紀錄：' + String(c.ticket_note).slice(0, 30);
       return '<option value="' + i + '">' + esc(t) + '</option>';
     }).join('');
     if (cur !== '' && Array.prototype.some.call(emp.options, function (o) { return o.value === cur; })) emp.value = cur;
@@ -408,7 +458,7 @@ dialog::backdrop{background:var(--scrim)}
       toast('回報已送出。');
       refreshBadge();
       clearFromTags();
-      return Promise.all([reloadAll(), loadCands(), loadPending()]).catch(function (e) { showPageMsg('已送出，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
+      return Promise.all([reloadAll(), loadCands(), loadPending(), loadUnrep()]).catch(function (e) { showPageMsg('已送出，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
     }, function (e) { setLog(errText(e), true); })
       .then(function () { busy = false; $('qGo').disabled = false; });
   }
@@ -545,7 +595,7 @@ dialog::backdrop{background:var(--scrim)}
     job().then(function () {
       D.rm(); toast(okMsg); refreshBadge();
       var jobs = [reloadAll()];
-      if (canReport()) { jobs.push(loadCands()); jobs.push(loadPending()); }
+      if (canReport()) { jobs.push(loadCands()); jobs.push(loadPending()); jobs.push(loadUnrep()); }
       return Promise.all(jobs).catch(function (e) { showPageMsg('已儲存，但重新載入失敗：' + errText(e) + ' 請重新整理頁面。'); });
     }, function (e) { err.textContent = errText(e); err.hidden = false; })
       .then(function () { busy = false; btn.disabled = false; });
@@ -656,6 +706,9 @@ dialog::backdrop{background:var(--scrim)}
   $('remindBar').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (b && b.dataset.fill) applyPrefill(b.dataset.fill);
   });
+  $('unrepBar').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b && b.dataset.unrep) prefillUnrep(b.dataset.unrep);
+  });
   $('qStore').addEventListener('change', fillCands);
   $('qAddDay').addEventListener('click', function () { addDay(''); });
   $('qDays').addEventListener('click', function (e) {
@@ -708,7 +761,7 @@ dialog::backdrop{background:var(--scrim)}
           RequestsApi.markSeen().then(refreshBadge, function () {});
         }
         $('loading').hidden = true; $('app').hidden = false;
-        return loadCands().then(loadPending).then(function () {
+        return loadCands().then(loadPending).then(loadUnrep).then(function () {
           var tk = CoachedCore.parseFromTicket(location.search);   // 從改善單「已輔導」或提醒信帶過來：?from_ticket=單號
           return tk ? applyPrefill(tk) : false;
         });
