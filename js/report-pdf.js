@@ -163,7 +163,7 @@
     h += blk('blk', '<div class="sec">考生資料</div><div class="info">' +
       [['姓名', m.person.name], ['編號', m.person.id], ['門市', m.person.store], ['到職日', m.person.hire || '未填到職日'], ['考核時身分', m.tenure], ['考核日期', m.date]].map(function (x) {
         return '<div><small>' + x[0] + '</small><b>' + esc(x[1]) + '</b></div>';
-      }).join('') + (m.examiners ? '<div style="grid-column:1/-1"><small>考官</small><b>' + esc(m.examiners) + '</b></div>' : '') + '</div>', ' style="padding-top:14px"');
+      }).join('') + '</div>', ' style="padding-top:14px"');
     h += blk('blk', '<div class="score"><div class="big">' + fmt(m.total) + '<small>分</small></div><div>' + vtag(m.verdict) + '</div>' +
       '<div class="meta">合格線 ' + esc(m.passLine) + ' 分（' + esc(m.tenure) + '）<br>計分題組 ' + m.scoredCount + ' 組' + (m.extraCount ? '，另有加考 ' + m.extraCount + ' 組（不計入）' : '') + '</div></div>');
     h += blk('blk', '<div class="sec">七面向得分率</div><div class="radarrow"><div><div class="rsvg">' + radarSvg(rows, prev ? prev.rows.map(function (r) { return { name: r.name, pct: r.prev }; }) : null) + '</div>' +
@@ -185,7 +185,7 @@
     m.items.forEach(function (it) {
       var main = m.showTitle ? esc(it.title || '（無題名）') : esc(it.code || '—'), sub = m.showTitle ? esc(it.code) : esc(it.category);
       h += blk('row', '<div class="qrow' + (it.isExtra ? ' extra' : '') + '"><div>' + (it.isExtra ? '<span class="xtag">加考</span>' : it.no) + '</div><div>' + esc(it.category) + '</div>' +
-        '<div>' + main + '<div class="code">' + sub + (it.slot ? '<span class="stag s' + it.slot + '">考官' + it.slot + '</span>' : '') + '</div></div>' +
+        '<div>' + main + '<div class="code">' + sub + '</div></div>' +
         it.levels.map(function (lv) { return '<div class="lv lv-' + (LVCLS[lv] || 'x') + '">' + esc(lv) + '</div>'; }).join('') +
         '<div class="sc">' + (it.score == null ? '—' : fmt(it.score)) + '</div></div>' +
         ((it.notes || it.note) ? '<div class="qnotes">' + (it.note ? '<div><b>題組考官備註：</b>' + esc(it.note) + '</div>' : '') + (it.notes || []).map(function (n) { return '<div><b>' + esc(n.dim) + '（' + esc(n.level) + '）考官備註：</b>' + esc(n.note) + '</div>'; }).join('') + '</div>' : ''));

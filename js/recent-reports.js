@@ -175,8 +175,7 @@
   function dualCore() { return window.ReportPdfCore && window.ReportPdfCore.dualInfo ? window.ReportPdfCore : null; }
   function examinerLine(dual) { var P = dualCore(); return P && dual && dual.info ? P.examinerText(dual.info) : ''; }
   function slotTag(dual, it) {
-    var P = dualCore(), l = P && dual && dual.info && !it.isExtra ? P.slotLabel(dual.info, it.slot) : '';
-    return l ? ' <span class="tag ' + (Number(it.slot) === 1 ? 'new' : 'todo') + '">' + esc(l) + '</span>' : '';
+    return '';  // 老闆 2026-11-25：成績單不顯示題組由哪位考官負責
   }
   // 讀雙考官資訊與各題組負責考官（只在可能是雙考官時才讀；讀不到回 null）
   function loadDual(r) {
@@ -195,7 +194,7 @@
     var h = '<div class="dlg"><h2>成績單詳細內容</h2>';
     if (r.status === 'voided') h += '<div class="void-box">已作廢。原因：' + esc(r.void_reason || '') + '</div>';
     if (r.status === 'draft') h += '<div class="msg warn">這是暫存中的草稿，尚未結算送出。</div>';
-    h += '<dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd><dt>考官</dt><dd>' + esc(examinerLine(dual) || r.examiner_email) + '</dd>' +
+    h += '<dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd>' + (examinerLine(dual) ? '' : '<dt>考官</dt><dd>' + esc(r.examiner_email) + '</dd>') +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
       '<dt>考核時身分</dt><dd>' + esc(r.tenure) + (C.isCheckup(r) ? ' <span class="tag chk">年度健檢</span>' : '') + (r.tenure_source === '手動指定' ? ' <span class="tag unk">手動指定</span>' : '') + (r.tenure_source === '考核期' ? ' <span class="tag out">考核期</span>' : '') + '</dd>' +
       '<dt>狀態</dt><dd>' + statusTag(r) + '</dd>' +
@@ -227,7 +226,6 @@
     var h = '<div class="dlg"><h2>成績單</h2><dl class="kv"><dt>日期</dt><dd>' + esc(C.stamp(C.dateOf(r))) + '</dd>' +
       '<dt>考生</dt><dd>' + esc(r.employee_label) + '（' + esc(r.employee_id) + '）' + esc(r.store_name || r.store_code) + '</dd>' +
       '<dt>考生身分</dt><dd>' + esc(r.tenure) + (C.isCheckup(r) ? ' <span class="tag chk">年度健檢</span>' : '') + '</dd>' +
-      (examinerLine(dual) ? '<dt>考官</dt><dd>' + esc(examinerLine(dual)) + '</dd>' : '') +
       '<dt>總分</dt><dd>' + (r.total_score == null ? '—' : esc(C.fmt(r.total_score)) + (r.pass_line ? '（合格線 ' + esc(r.pass_line) + ' 分）' : '')) + '</dd>' +
       '<dt>判定</dt><dd>' + (r.verdict ? '<span class="vbox ' + (C.VCLS[r.verdict] || 'unk') + '">' + esc(r.verdict) + '</span>' : '—') + '</dd>' +
       '<dt>最弱面向</dt><dd>' + weakSpans(r.weakest_dims) + '</dd></dl>' + radarBlock(core, r.weakest_dims);
