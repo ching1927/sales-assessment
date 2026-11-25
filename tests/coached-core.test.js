@@ -104,4 +104,15 @@ eq(C.subtotal(null, 2), 2, 'null 當 0');
 eq(C.subtotal('x', 'y'), 0, '非數字當 0');
 eq(C.subtotal(-1, 2), 2, '負數當 0');
 
+// 輔導紀錄：勾選＋選填其他
+eq(C.buildNote(''), '已完成輔導＆溝通', '沒填其他＝固定文字');
+eq(C.buildNote('  \n '), '已完成輔導＆溝通', '只有空白＝固定文字');
+eq(C.buildNote(null), '已完成輔導＆溝通', 'null 當沒填');
+eq(C.buildNote(' 下週追蹤 '), '已完成輔導＆溝通\n其他：下週追蹤', '有填其他＝接在後面（去前後空白）');
+eq(C.otherOf('已完成輔導＆溝通'), '', '還原：純勾選回空');
+eq(C.otherOf('已完成輔導＆溝通\n其他：下週追蹤'), '下週追蹤', '還原：取其他');
+eq(C.otherOf('舊的長篇輔導備註'), '舊的長篇輔導備註', '舊紀錄整段放進其他');
+eq(C.otherOf(null), '', 'null 回空');
+eq(C.otherOf(C.buildNote('甲\n乙')), '甲\n乙', '來回一致（含換行）');
+
 console.log('通過 ' + passed + ' 項');

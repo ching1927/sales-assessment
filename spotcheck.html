@@ -265,6 +265,7 @@ dialog::backdrop{background:var(--scrim)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/spotdims-core.js"></script>
+<script src="js/coached-core.js"></script>
 <script src="js/spotcheck-api.js"></script>
 <script>
 (function () {
@@ -666,13 +667,14 @@ dialog::backdrop{background:var(--scrim)}
     var had = !!t.coached_on;
     var D = makeDlg('<h2>' + (had ? '編輯輔導紀錄' : '回填輔導') + '</h2><p>' + esc(t.employee_label || t.employee_id) + '（' + esc(t.kind) + '單，' + esc(t.issued_on) + '）</p>' +
       '<label class="field">輔導日期<input class="ctrl" type="date" id="cDate" value="' + esc(had ? t.coached_on : today()) + '"></label>' +
-      '<label class="field">輔導備註（必填，不限字數）<textarea class="ctrl" id="cNote" placeholder="請寫下輔導的內容與之後的追蹤方式"></textarea></label>' +
+      '<label class="field" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="cDone" style="width:auto;margin:0"> 已完成輔導＆溝通</label>' +
+      '<label class="field">其他（選填）<textarea class="ctrl" id="cNote" placeholder="想補充再寫，不寫也可以"></textarea></label>' +
       '<div class="msg err" id="cErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="cOk">儲存</button></div>');
-    D.q('#cNote').value = had ? (t.coach_note || '') : '';
+    D.q('#cNote').value = had ? CoachedCore.otherOf(t.coach_note) : '';
     D.el.querySelector('form').addEventListener('submit', function (ev) {
       ev.preventDefault();
-      var date = D.q('#cDate').value, note = D.q('#cNote').value.trim(), err = D.q('#cErr');
-      var m = !date ? '請選擇輔導日期。' : !note ? '輔導備註必填。' : '';
+      var date = D.q('#cDate').value, note = CoachedCore.buildNote(D.q('#cNote').value), err = D.q('#cErr');
+      var m = !date ? '請選擇輔導日期。' : !D.q('#cDone').checked ? '請勾選「已完成輔導＆溝通」。' : '';
       if (m) { err.textContent = m; err.hidden = false; return; }
       submitAct(D, D.q('#cOk'), '#cErr', function () { return SpotApi.coach(t.id, date, note); }, had ? '輔導紀錄已更新。' : '已回填輔導。');
     });

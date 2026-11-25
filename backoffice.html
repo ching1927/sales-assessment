@@ -895,13 +895,14 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     var openDate = dateOf(t.created_at), td = today(), had = t.status === 'coached';
     var D = makeDlg('<h2>' + (had ? '編輯輔導紀錄' : '回填已輔導') + '</h2><p>' + esc(tName(t)) + '（' + esc(t.employee_id) + '）</p>' +
       '<label class="field">輔導日期（不可早於開單日 ' + esc(openDate) + '、不可晚於今天）<input class="ctrl" type="date" id="gDate" min="' + esc(openDate) + '" max="' + esc(td) + '" value="' + esc(had && t.coached_on ? t.coached_on : td) + '"></label>' +
-      '<label class="field">輔導備註（必填，不限字數）<textarea class="ctrl" id="gNote" placeholder="請寫下輔導的內容與之後的追蹤方式"></textarea></label>' +
+      '<label class="field" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="gDone" style="width:auto;margin:0"> 已完成輔導＆溝通</label>' +
+      '<label class="field">其他（選填）<textarea class="ctrl" id="gNote" placeholder="想補充再寫，不寫也可以"></textarea></label>' +
       '<div class="msg err" id="gErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="gOk">儲存</button></div>');
-    D.q('#gNote').value = had ? (t.coach_note || '') : '';
+    D.q('#gNote').value = had ? CoachedCore.otherOf(t.coach_note) : '';
     D.el.querySelector('form').addEventListener('submit', function (ev) {
       ev.preventDefault();
-      var date = D.q('#gDate').value, note = D.q('#gNote').value.trim(), err = D.q('#gErr'), now = today();
-      var m = !date ? '請選擇輔導日期。' : date < openDate ? '輔導日期不可早於開單日（' + openDate + '）。' : date > now ? '輔導日期不可晚於今天。' : !note ? '輔導備註必填。' : '';
+      var date = D.q('#gDate').value, note = CoachedCore.buildNote(D.q('#gNote').value), err = D.q('#gErr'), now = today();
+      var m = !date ? '請選擇輔導日期。' : date < openDate ? '輔導日期不可早於開單日（' + openDate + '）。' : date > now ? '輔導日期不可晚於今天。' : !D.q('#gDone').checked ? '請勾選「已完成輔導＆溝通」。' : '';
       if (m) { err.textContent = m; err.hidden = false; return; }
       submitAct(D, D.q('#gOk'), '#gErr', function () { return BackofficeApi.markCoached(t.id, date, note).then(function (r) { delete cverCache[t.id]; return r; }); }, had ? '輔導紀錄已更新。' : '已回填為「已輔導」。',
         had ? '' : CoachedCore.requestsUrl(t.id));   // 第一次按「已輔導」成功後直接帶去待考回報（編輯既有紀錄不跳轉）

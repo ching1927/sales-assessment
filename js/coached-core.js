@@ -87,7 +87,23 @@
     return (isFinite(a) && a > 0 ? Math.floor(a) : 0) + (isFinite(b) && b > 0 ? Math.floor(b) : 0);
   }
 
+  // 輔導紀錄改為「勾選已完成輔導＆溝通」＋選填「其他」：存進資料庫的備註文字就是 DONE_TEXT，有填其他再接「\n其他：…」
+  var DONE_TEXT = '已完成輔導＆溝通';
+  var OTHER_PREFIX = '\n其他：';
+  function buildNote(other) {
+    var o = String(other == null ? '' : other).trim();
+    return o ? DONE_TEXT + OTHER_PREFIX + o : DONE_TEXT;
+  }
+  // 編輯舊紀錄時把備註還原成「其他」欄內容：新格式取「其他：」後面；舊的長篇備註整段放進其他；純勾選回空字串
+  function otherOf(note) {
+    var s = String(note == null ? '' : note).trim();
+    if (!s || s === DONE_TEXT) return '';
+    if (s.indexOf(DONE_TEXT + OTHER_PREFIX) === 0) return s.slice((DONE_TEXT + OTHER_PREFIX).length);
+    return s;
+  }
+
   var api = {
+    DONE_TEXT: DONE_TEXT, buildNote: buildNote, otherOf: otherOf,
     parseFromTicket: parseFromTicket, requestsUrl: requestsUrl, prefillKind: prefillKind,
     isPendingBooking: isPendingBooking, daysSince: daysSince, dueDay: dueDay,
     byTicket: byTicket, findPrefill: findPrefill, remindText: remindText, subtotal: subtotal

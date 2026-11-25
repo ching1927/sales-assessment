@@ -49,7 +49,7 @@
 - 登記抽查（只有客服部）｜`spotcheck.html`｜「登記一次抽查」區塊在「人員抽查狀態」之前（警示列仍最上面；主管與店長沒有登記區塊，直接看狀態表）；選人員、日期、判定、七面向等級、原因（不適當必填）；「訊息抽檢-LINE聊天室網址」為必填單行網址（去空白、http／https 開頭、無空白、500 字內，否則顯示繁中提示不送出），以 p_message 傳送；登記後顯示列為異常回覆（紅單／回考核期已停用）；單據清單有「聊天室」欄（異常回覆用 inspection_id 對應 spot_inspections.message，http／https 開頭才顯示可點的「開啟 LINE 聊天室」連結，否則純文字；紅單顯示「—」；三種角色都看得到）
 - 備註網址（非必填）｜`assess.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`js/assess-api.js`｜考官備註下方多一個網址欄，隨題組自動暫存（assess_save_item 第四參數 p_note_url，空字串傳 null），草稿重開會帶回；格式不合（非 http／https、含空白、超過 500 字）顯示提示、該題組不暫存、無法送出；成績單詳情（客服部與主管／店長版）有網址時在備註旁顯示「備註網址」連結，只有 http／https 才成連結（javascript: 等不會）
 - 【已停用 2026-11】回考核期警示列｜`spotcheck.html`｜原：待執行時客服部見「標記已執行」與「取消回考核期」。現：警示列、已執行／取消回考核期按鈕與對話框全部拿掉；資料庫函式與資料表保留（見 `supabase/noredticket_schema.sql`）
-- 單據作廢與輔導回填｜`spotcheck.html`｜客服部可作廢（原因必填）；客服部與該門市店長可回填輔導（日期＋備註必填）；總公司主管無任何操作按鈕
+- 單據作廢與輔導回填｜`spotcheck.html`｜客服部可作廢（原因必填）；客服部與該門市店長可回填輔導（日期＋勾選「已完成輔導＆溝通」，「其他」選填，不用打字）；總公司主管無任何操作按鈕
 - 導覽「抽查」｜`roster.html`、`assess.html`、`backoffice.html`、`questions.html`、`accounts.html`、`spotcheck.html`｜所有已開通角色看得到，在「考核後台」之後（第二期起：此導覽分頁改為「健檢」，抽查頁改由健檢頁內的連結進入；第三期整併）
 - 考核期標籤｜`roster.html`、`backoffice.html`（近期考核分頁）、`js/recent-reports.js`、`assess.html`｜（回考核期已停用：新成績單不會再產生 tenure_source「考核期」，此標籤只為舊成績單相容而保留顯示）成績單與進行考核的「考核時身分」在 tenure_source 為「考核期」時顯示「考核期」標籤（名冊的標籤已改為第一期規則，見「第一期」一節）
 
@@ -74,7 +74,7 @@
 
 ### 考核後台（樣品與設計稿，已被正式版取代）
 
-- 考核後台樣品（假資料）｜`樣品/backoffice.html`｜三個分頁「人員歷史」（列表、走勢圖、七面向平均、歷次成績單）、「弱項分析」（全公司或單一門市、最近 3 次或全部、門市×面向熱度表）、「改善單」（狀態與門市篩選；客服部編輯面向與期限、結案需複檢成績單、取消；店長回填已輔導，備註必填不限字數；主管只讀）；右上角可切換身分示範
+- 考核後台樣品（假資料）｜`樣品/backoffice.html`｜三個分頁「人員歷史」（列表、走勢圖、七面向平均、歷次成績單）、「弱項分析」（全公司或單一門市、最近 3 次或全部、門市×面向熱度表）、「改善單」（狀態與門市篩選；客服部編輯面向與期限、結案需複檢成績單、取消；店長回填已輔導（日期＋勾選「已完成輔導＆溝通」，「其他」選填；舊的長篇備註編輯時放進「其他」）；主管只讀）；右上角可切換身分示範
 - 改善單與分析設計稿｜`supabase/backoffice_schema.sql`、`supabase/backoffice_verify_fake.sql`、`supabase/README_backoffice.md`｜成績單送出且判定需複訓或不及格時自動開單（預設 14 天）；成績單作廢時 open／coached 的單自動取消；improve_update_plan／improve_mark_coached／improve_close／improve_cancel；improvement_ticket_view、analytics_dim_rates；驗證腳本含真實 assess_submit／assess_void 流程，結尾自動復原
 
 ### 帳號管理（正式版；SQL 已在 Supabase 執行並通過 113 項驗證；網頁尚未用真實登入實測）
@@ -206,3 +206,4 @@
 - 考官名單（本機種子）｜`supabase/dual_examiner_schema.sql`（只建表 assess_examiner_pool）、本機檔「雙考官名單_種子.sql」（不進 GitHub）｜名單為空開考顯示「尚未設定考官名單」；名單需恰好 2 位啟用且都是客服部｜驗證：種子檔尾端檢查查詢全為「通過」；`dual_examiner_verify_fake.sql` 區段 6
 - 題組範例圖片｜`questions.html`、`js/questions-api.js`、`js/question-images-core.js`、`supabase/question_images_schema.sql`、`supabase/README_question_images.md`｜題庫管理頁每題組可傳多張（上限 8、每張 2MB 內、jpg／png／webp）、排序、刪除；私有 bucket question-samples、只有客服部可讀寫；考核畫面（客服部用）在該題組內顯示｜驗證：`node tests/question-images-api.test.js`；`supabase/question_images_verify_fake.sql`
 - 雙考官考核樣品｜`樣品/雙考官輪流考核樣品.html`｜老闆已確認的畫面樣品（假資料）
+- 輔導紀錄改勾選（老闆 2026-11-25）｜`backoffice.html`（改善單「回填已輔導」）、`spotcheck.html`（異常回覆「回填輔導」）、`js/coached-core.js`（buildNote／otherOf）｜日期＋必勾「已完成輔導＆溝通」＋選填「其他」；資料庫備註存「已完成輔導＆溝通」或「已完成輔導＆溝通\n其他：…」（不改資料庫函式，仍須非空）；舊備註不動、編輯時整段放進「其他」；按已輔導後跳待考回報不變｜驗證：`node tests/coached-core.test.js` 通過
