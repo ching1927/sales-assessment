@@ -304,6 +304,13 @@ dialog::backdrop{background:var(--scrim)}
       return '<div class="alert red">' + (r.cancel_by === '客服部'
         ? '客服部退回「' + name + '」的回報：' + esc(r.cancel_reason || '')
         : '「' + name + '」的回報已撤回。') + '</div>';
+    }).join('') + schedBoxes();
+  }
+  // 已排定的回報：常駐藍底資訊框「M/D HH:mm 考核，請準時上線」（已在上方通知出現過的不重複）
+  function schedBoxes() {
+    var shown = {}; notices.forEach(function (r) { shown[r.id] = 1; });
+    return rows.filter(function (r) { return r.status === '已排定' && r.scheduled_at && !shown[r.id]; }).map(function (r) {
+      return '<div class="alert">「' + esc(r.employee_label || r.employee_id) + '」' + esc(stamp(r.scheduled_at).replace('-', '/')) + ' 考核，請準時上線。' + (r.reply_note ? '備註：' + esc(r.reply_note) : '') + '</div>';
     }).join('');
   }
 
