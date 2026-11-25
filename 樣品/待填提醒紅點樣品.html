@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>待填提醒紅點樣品（假資料）</title>
+<style>
+:root{
+  --ink:#0A0A0A;--ink-2:#4A4F5A;--ink-3:#94A3B8;--line:rgba(15,23,42,.10);
+  --ci-black:#0A0A0A;--ci-blue:#0669EB;--ci-yellow:#D9FF00;
+  --danger:#DC2626;--danger-soft:rgba(220,38,38,.10);--warn:#D97706;--warn-soft:rgba(217,119,6,.14);
+  --font:-apple-system,BlinkMacSystemFont,"PingFang TC","Helvetica Neue",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);background:linear-gradient(180deg,#FAFAFA,#F0F2F5);min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+[hidden]{display:none!important}
+.note{max-width:1000px;margin:12px auto 0;padding:10px 16px;font-size:13px;color:var(--ink-2)}
+.who{max-width:1000px;margin:0 auto;padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap}
+.who button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px}
+.who button.on{background:var(--ci-black);color:#fff;border-color:var(--ci-black)}
+
+/* 導覽列 */
+.bar{background:var(--ci-black);padding:10px 16px}
+.tabs{display:flex;gap:4px;max-width:1000px;margin:0 auto;overflow-x:auto;padding:4px;border-radius:999px;background:rgba(255,255,255,.09)}
+.tab{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;font-size:14px;font-weight:600;color:rgba(255,255,255,.82);white-space:nowrap}
+.tab.on{background:var(--ci-yellow);color:var(--ci-black)}
+/* 紅點：放大、帶光圈（尊重減少動態設定） */
+.dot{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:var(--danger);color:#fff;font-size:13px;font-weight:800;box-shadow:0 0 0 3px rgba(220,38,38,.35);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}70%{box-shadow:0 0 0 8px rgba(220,38,38,0)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+
+main{max-width:1000px;margin:16px auto;padding:0 16px}
+h1{font-size:20px;margin:4px 0 12px}
+/* 頁內分頁（膠囊） */
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 18px;font-size:15px;font-weight:700;color:var(--ink-2)}
+.pill.on{background:var(--ci-blue);border-color:var(--ci-blue);color:#fff}
+/* 有待填的分頁：紅底白字＋大紅點，比其他分頁都醒目 */
+.pill.alert{background:var(--danger);border-color:var(--danger);color:#fff;box-shadow:0 4px 14px rgba(220,38,38,.35)}
+.pill.alert .dot{background:#fff;color:var(--danger);box-shadow:none;animation:none}
+
+.banner{display:flex;gap:12px;align-items:center;padding:14px 18px;border-radius:16px;background:var(--danger-soft);border:1.5px solid var(--danger);color:#7F1D1D;font-weight:800;font-size:16px;margin-bottom:14px}
+.banner small{display:block;font-weight:500;font-size:13px;color:#7F1D1D;margin-top:2px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:center}
+.card.todo{border-left:8px solid var(--danger)}
+.card .m{flex:1;min-width:0}
+.card .t{font-weight:800;font-size:16px}
+.card .s{font-size:13px;color:var(--ink-2);margin-top:3px}
+.btn{border:0;border-radius:12px;padding:10px 18px;font-weight:800;font-size:15px;background:var(--ci-blue);color:#fff}
+.tag{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;background:#EEF2F7;color:var(--ink-2)}
+.tag.red{background:var(--danger-soft);color:var(--danger)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.gray{background:#EEF2F7;color:var(--ink-2)}
+.done{opacity:.65}
+.info{background:#EEF4FF;border:1px solid #cfe0ff;border-radius:14px;padding:12px 16px;font-size:14px;color:#1e3a8a;margin-top:6px}
+
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}
+th{background:#F6F8FB;font-size:12px;color:var(--ink-2)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;font-size:13px;color:var(--ink-2);align-items:center}
+.mail{background:#fff;border:1px dashed var(--ink-3);border-radius:14px;padding:14px 16px;font-size:14px;margin-top:16px;line-height:1.7}
+.mail b{display:block;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="note">樣品（全部是假資料）。上方切換「店長」「客服部」，再點導覽或頁內分頁看提醒怎麼出現。</div>
+<div class="who" id="who">
+  <button class="on" data-r="mgr">店長（中和店）</button>
+  <button data-r="cs">客服部</button>
+</div>
+
+<div class="bar"><div class="tabs" id="nav"></div></div>
+
+<main id="main"></main>
+
+<script>
+var role='mgr', page='coach', sub='coach';
+var NAVS={
+  mgr:[['exam','進行考核',0],['coach','成績單&考核後台',3],['check','登記&健檢',2],['req','待考回報',2],['bank','題庫',0]],
+  cs :[['exam','進行考核',0],['coach','成績單&考核後台',5],['check','登記&健檢',4],['req','待考回報',3],['bank','題庫',0]]
+};
+function dot(n){return n>0?'<span class="dot">'+n+'</span>':''}
+function renderNav(){
+  document.getElementById('nav').innerHTML=NAVS[role].map(function(t){
+    return '<a class="tab'+(page===t[0]?' on':'')+'" href="#" data-p="'+t[0]+'">'+t[1]+dot(t[2])+'</a>';
+  }).join('');
+}
+function pills(list){
+  return '<div class="pills">'+list.map(function(p){
+    var c='pill'+(sub===p[0]?' on':'')+(p[2]>0&&sub!==p[0]?' alert':'')+(p[2]>0&&sub===p[0]?' alert':'');
+    return '<button class="'+c+'" data-s="'+p[0]+'">'+p[1]+dot(p[2])+'</button>';
+  }).join('')+'</div>';
+}
+function chipDays(d){var c=d>7?'red':d>3?'warn':'gray';return '<span class="tag '+c+'">已開單 '+d+' 天</span>'}
+
+function mgrCoach(){
+  return '<h1>成績單&考核後台</h1>'+pills([['hist','人員歷史',0],['weak','弱項分析',0],['coach','回填輔導紀錄',3],['recent','近期考核',0]])+
+  (sub==='coach'?
+   '<div class="banner">你有 3 筆輔導紀錄還沒回填<small>勾選「已完成輔導＆溝通」並儲存後，這裡的紅點就會消失。</small></div>'+
+   card('王小明（MI-0123）','新人考核未通過・開單 2026-11-21',4,'回填輔導紀錄')+
+   card('陳小華（MI-0131）','新人考核未通過・開單 2026-11-24',1,'回填輔導紀錄')+
+   card('林小安（MI-0140）','新人考核需複訓・開單 2026-11-25',0,'回填輔導紀錄')+
+   '<div class="card done"><div class="m"><div class="t">張小美（MI-0098）</div><div class="s">已完成輔導＆溝通・2026-11-20</div></div><span class="tag">已回填</span></div>'
+   :'<div class="info">（其他分頁沒有待填事項，維持原樣）</div>');
+}
+function card(t,s,d,btn){return '<div class="card todo"><div class="m"><div class="t">'+t+'</div><div class="s">'+s+'</div></div>'+(role==='cs'?chipDays(d):'')+'<button class="btn">'+btn+'</button></div>'}
+
+function mgrCheck(){
+  return '<h1>登記&健檢</h1>'+pills([['reg','登記',0],['tickets','異常回覆單',2],['sheet','健檢單',0],['rank','預警榜',0]])+
+  '<div class="banner">你有 2 筆異常回覆單還沒回填輔導<small>點進單據，勾選「已完成輔導＆溝通」並儲存即可。</small></div>'+
+  card('周小傑（MI-0077）','異常回覆單・2026-11-22・資訊正確性、語氣與禮貌',3,'回填輔導紀錄')+
+  card('吳小玲（MI-0085）','異常回覆單・2026-11-24・問題掌握',1,'回填輔導紀錄');
+}
+function mgrReq(){
+  return '<h1>待考回報</h1>'+pills([['todo','還沒回報',2],['done','已回報',1]])+
+  '<div class="banner">有 2 位新人還沒回報待考<small>回報後這裡的紅點就會消失；之後由客服部排定考核日。</small></div>'+
+  '<div class="card todo"><div class="m"><div class="t">黃小宇（MI-0150）</div><div class="s">新人・考核期第 6 天</div></div><button class="btn">回報待考</button></div>'+
+  '<div class="card todo"><div class="m"><div class="t">李小琪（MI-0152）</div><div class="s">已輔導完成・尚未約考</div></div><button class="btn">回報待考</button></div>'+
+  '<div class="card done"><div class="m"><div class="t">鄭小雅（MI-0139）</div><div class="s">已送出回報，等客服部排定</div></div><span class="tag">已回報</span></div>'+
+  '<div class="info">客服部排定後，這位新人不再有紅點；頁面只用一般提示說明「11/28 14:00 考核，請準時上線」。</div>';
+}
+function csCoach(){
+  return '<h1>各店長還沒回填的輔導紀錄</h1><div class="legend">天數顏色：<span class="tag gray">3 天內</span><span class="tag warn">4–7 天</span><span class="tag red">超過 7 天</span><span>（只顯示，不會寄信催店長）</span></div>'+
+  '<table><tr><th>門市</th><th>人員</th><th>類型</th><th>狀態</th></tr>'+
+  row('中和','王小明','回填輔導紀錄（新人考核未通過）',4)+row('中和','陳小華','回填輔導紀錄（新人考核未通過）',1)+
+  row('新莊','林小安','回填輔導紀錄（需複訓）',9)+row('桃園','周小傑','異常回覆單',3)+row('桃園','吳小玲','異常回覆單',8)+
+  '</table>'+
+  '<div class="mail"><b>每週一早上 9:00 寄給客服部的彙整信（樣式）</b>'+
+  '主旨：本週店長端待填事項彙整（5 筆）<br>中和：2 筆（最久 4 天）｜新莊：1 筆（最久 9 天）｜桃園：2 筆（最久 8 天）<br>超過 7 天未填：新莊 林小安、桃園 吳小玲<br>※只寄給客服部，不寄店長。</div>';
+}
+function row(s,n,t,d){return '<tr><td>'+s+'</td><td>'+n+'</td><td>'+t+'</td><td>'+chipDays(d)+'</td></tr>'}
+function csSimple(title,msg){return '<h1>'+title+'</h1><div class="info">'+msg+'</div>'}
+
+function render(){
+  renderNav();
+  var h='';
+  if(role==='mgr'){
+    h = page==='coach'?mgrCoach():page==='check'?mgrCheck():page==='req'?mgrReq():'<div class="info">這個頁面沒有待填事項，沒有紅點。</div>';
+  }else{
+    h = page==='coach'?csCoach():page==='check'?csSimple('登記&健檢','客服部看到：各店「未回填輔導的異常回覆單」清單與天數（版面同左邊那張表，類型欄為異常回覆單），導覽紅點數字 = 未填筆數。'):
+        page==='req'?csSimple('待考回報','客服部看到的紅點維持原樣：待處理的待考回報＋待開通回覆權限。'):'<div class="info">這個頁面沒有待填事項，沒有紅點。</div>';
+  }
+  document.getElementById('main').innerHTML=h;
+}
+document.getElementById('who').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;role=b.dataset.r;page='coach';sub='coach';
+  [].forEach.call(document.querySelectorAll('#who button'),function(x){x.classList.toggle('on',x===b)});render()});
+document.getElementById('nav').addEventListener('click',function(e){var a=e.target.closest('a');if(!a)return;e.preventDefault();page=a.dataset.p;sub=page==='check'?'tickets':page==='req'?'todo':'coach';render()});
+document.getElementById('main').addEventListener('click',function(e){var b=e.target.closest('.pill');if(!b)return;sub=b.dataset.s;render()});
+render();
+</script>
+</body>
+</html>
