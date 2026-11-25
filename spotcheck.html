@@ -651,7 +651,7 @@ dialog::backdrop{background:var(--scrim)}
 
   function actVoid(t) {
     if (!canVoid(t)) return;
-    var D = makeDlg('<h2>作廢' + esc(t.kind) + '單</h2><p>' + esc(t.employee_label || t.employee_id) + '（' + esc(t.issued_on) + '）。作廢後不刪除、次數會少算。</p>' +
+    var D = makeDlg('<h2>作廢異常回覆單</h2><p>' + esc(t.employee_label || t.employee_id) + '（' + esc(t.issued_on) + '）。作廢後不刪除、次數會少算。</p>' +
       '<label class="field">作廢原因（必填）<textarea class="ctrl" id="vReason"></textarea></label>' +
       '<div class="msg err" id="vErr" role="alert" hidden></div>' +
       '<div class="actions"><button class="btn" type="button" data-no="1">返回</button><button class="btn danger" type="submit" id="vOk">確認作廢</button></div>');
@@ -665,9 +665,9 @@ dialog::backdrop{background:var(--scrim)}
   function actCoach(t) {
     if (!canCoach(t)) return;
     var had = !!t.coached_on;
-    var D = makeDlg('<h2>' + (had ? '編輯輔導紀錄' : '回填輔導') + '</h2><p>' + esc(t.employee_label || t.employee_id) + '（' + esc(t.kind) + '單，' + esc(t.issued_on) + '）</p>' +
+    var D = makeDlg('<h2>' + (had ? '編輯輔導紀錄' : '回填輔導') + '</h2><p>' + esc(t.employee_label || t.employee_id) + '（異常回覆單，' + esc(t.issued_on) + '）</p>' +
       '<label class="field">輔導日期<input class="ctrl" type="date" id="cDate" value="' + esc(had ? t.coached_on : today()) + '"></label>' +
-      '<label class="field" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="cDone" style="width:auto;margin:0"> 已完成輔導＆溝通</label>' +
+      '<label class="field" style="display:flex;gap:12px;align-items:center;font-size:18px;font-weight:700;margin-top:16px"><input type="checkbox" id="cDone" style="width:28px;height:28px;margin:0;flex:none"> 已完成輔導＆溝通</label>' +
       '<label class="field">其他（選填）<textarea class="ctrl" id="cNote" placeholder="想補充再寫，不寫也可以"></textarea></label>' +
       '<div class="msg err" id="cErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="cOk">儲存</button></div>');
     D.q('#cNote').value = had ? CoachedCore.otherOf(t.coach_note) : '';
