@@ -70,6 +70,10 @@ th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-sh
 .prevhead .grow{flex:1}
 /* 異常回覆預警榜（版面本身的樣式在 js/store-ranking-view.js，網頁與下載共用） */
 #rkSheet{min-width:640px;border:1px solid var(--ink-line);border-radius:var(--r-sm);padding:var(--sp-4)}
+#dmSheet{min-width:980px;border:1px solid var(--ink-line);border-radius:var(--r-sm);padding:var(--sp-4)}
+.rksw{display:inline-flex;max-width:100%;overflow-x:auto;background:var(--track);border-radius:var(--r-pill);padding:4px;gap:4px;margin-bottom:var(--sp-3)}
+.rksw button{border:0;background:transparent;padding:9px 20px;border-radius:var(--r-pill);font-weight:800;font-size:15px;color:var(--ink-2);cursor:pointer;font-family:inherit;white-space:nowrap}
+.rksw button.on{background:var(--accent);color:#fff}
 
 dialog{border:none;border-radius:var(--r-card);padding:0;max-width:460px;width:calc(100% - 32px);box-shadow:var(--shadow-lg);background:var(--surface-solid);margin:auto;color:var(--ink)}
 dialog::backdrop{background:var(--scrim)}
@@ -146,17 +150,27 @@ dialog::backdrop{background:var(--scrim)}
         <div class="prevhead">
           <label for="rkYear" class="sub">年度</label><select id="rkYear" class="ctrl"></select>
           <label for="rkPeriod" class="sub">期間</label><select id="rkPeriod" class="ctrl"></select>
-          <label for="rkSort" class="sub">排序</label>
+          <label for="rkSort" class="sub" id="rkSortLb">排序</label>
           <select id="rkSort" class="ctrl"><option value="tot">異常回覆總張數（預設）</option><option value="avg">平均每人張數</option></select>
+          <label for="dmSort" class="sub" id="dmSortLb" hidden>排序依據</label>
+          <select id="dmSort" class="ctrl" hidden></select>
           <span class="grow sub" id="rkInfo" aria-live="polite"></span>
           <button type="button" class="btn" id="rkPng" disabled>下載圖片</button>
           <button type="button" class="btn primary" id="rkPdf" disabled>下載 PDF</button>
         </div>
-        <p class="sub" style="margin-bottom:var(--sp-3)">期間是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以異常回覆的開單日計；被作廢的異常回覆不算，人員換門市時算開單當時所屬的門市。</p>
-        <div class="msg err" id="rkMsg" role="alert" hidden></div>
+        <div class="rksw" id="rkSw" role="group" aria-label="榜單切換"><button type="button" class="on" data-v="count" aria-pressed="true">異常回覆張數</button><button type="button" data-v="dim" aria-pressed="false">各門市面向分析</button></div>
         <div class="msg info" id="rkDlMsg" role="status" hidden></div>
-        <div class="scroll" tabindex="0" aria-label="各門市異常回覆預警榜，可左右捲動"><div class="srk" id="rkSheet"></div></div>
-        <div class="empty" id="rkEmpty" hidden>這個期間沒有門市資料。</div>
+        <div id="rkCount">
+          <p class="sub" style="margin-bottom:var(--sp-3)">期間是日曆季（Q1＝1–3 月、Q2＝4–6 月、Q3＝7–9 月、Q4＝10–12 月），以異常回覆的開單日計；被作廢的異常回覆不算，人員換門市時算開單當時所屬的門市。</p>
+          <div class="msg err" id="rkMsg" role="alert" hidden></div>
+          <div class="scroll" tabindex="0" aria-label="各門市異常回覆預警榜，可左右捲動"><div class="srk" id="rkSheet"></div></div>
+          <div class="empty" id="rkEmpty" hidden>這個期間沒有門市資料。</div>
+        </div>
+        <div id="rkDim" hidden>
+          <div class="msg err" id="dmMsg" role="alert" hidden></div>
+          <div class="scroll" tabindex="0" aria-label="各門市面向分析，可左右捲動"><div class="sdm" id="dmSheet"></div></div>
+          <div class="empty" id="dmEmpty" hidden>這個期間沒有門市資料。</div>
+        </div>
       </section>
     </section>
 
@@ -223,9 +237,11 @@ dialog::backdrop{background:var(--scrim)}
 <script src="js/checkup-sheet-pdf.js"></script>
 <script src="js/store-ranking-core.js"></script>
 <script src="js/store-ranking-view.js"></script>
+<script src="js/store-dim-core.js"></script>
+<script src="js/store-dim-view.js"></script>
 <script>
 (function () {
-  var C = CheckupCore, SC = CheckupSheetCore, SR = StoreRankingCore, SV = StoreRankingView, DC = CheckupDownloadCore;
+  var C = CheckupCore, SC = CheckupSheetCore, SR = StoreRankingCore, SV = StoreRankingView, DC = CheckupDownloadCore, SD = StoreDimCore, DV = StoreDimView;
   var JSZIP_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
   var ROLE_LABEL = { cs_admin: '客服部', hq_viewer: '總公司主管', store_manager: '店長' };
 
@@ -241,6 +257,7 @@ dialog::backdrop{background:var(--scrim)}
   var qrows = [];          // checkup_quarters_list 的結果（只用來查門市名稱，健檢單分頁的門市顯示與篩選用）
   var sheets = [], sheetSeq = 0, sheetsLoaded = false;   // 健檢單清單（現算自抽查紀錄）
   var rankRows = [], rankSeq = 0, rankLoaded = false, rankBusy = false;   // 異常回覆預警榜（資料庫函式彙總）
+  var rkView = 'count', dimRows = [], dimSeq = 0, dimLoaded = false, dimLoading = false;   // 榜單切換：'count' 異常回覆張數／'dim' 各門市面向分析
   var now = C.taipeiYearQuarter();
   var dlLoaded = false, dlSeq = 0, dlStoreOpts = null;   // 下載紀錄分頁
   var dlBusy = false;                                    // 單人下載或 ZIP 產生中（共用同一份隱藏版面，一次只做一件）
@@ -313,6 +330,7 @@ dialog::backdrop{background:var(--scrim)}
       ranked: SR.rank(rankRows, rkSort(), isMgr() ? me.store_code : null) };
   }
   function renderRank(loading) {
+    if (rkView === 'dim') { renderDim(); return; }
     var m = rkModel(), has = rankRows.length > 0, err = !!$('rkMsg').textContent;
     $('rkInfo').textContent = loading ? '載入中…' : err ? '' : SR.periodLabel(m.year, m.period) + '　共 ' + rankRows.length + ' 家門市';
     $('rkSheet').parentNode.hidden = !has;
@@ -339,11 +357,12 @@ dialog::backdrop{background:var(--scrim)}
   ['rkYear', 'rkPeriod'].forEach(function (id) { $(id).addEventListener('change', loadRank); });
   $('rkSort').addEventListener('change', function () { renderRank(false); });
   function rankDownload(kind, btn) {
-    if (rankBusy || !rankRows.length) return;
+    var isDim = rkView === 'dim';
+    if (rankBusy || !(isDim ? dimRows : rankRows).length) return;
     rankBusy = true; showMsg('rkDlMsg', '');
     var old = btn.textContent; btn.textContent = '產生中…'; renderRank(false); btn.textContent = '產生中…';
-    var m = rkModel();
-    (kind === 'pdf' ? SV.downloadPdf(m) : SV.downloadPng(m)).then(function (name) {
+    var m = isDim ? dmModel() : rkModel(), V = isDim ? DV : SV;
+    (kind === 'pdf' ? V.downloadPdf(m) : V.downloadPng(m)).then(function (name) {
       var el = $('rkDlMsg'); el.textContent = '已產生：' + name; el.className = 'msg info'; el.hidden = false;
     }, function (e) {
       var el = $('rkDlMsg'); el.textContent = errText(e); el.className = 'msg err'; el.hidden = false;
@@ -351,6 +370,60 @@ dialog::backdrop{background:var(--scrim)}
   }
   $('rkPng').addEventListener('click', function () { rankDownload('png', $('rkPng')); });
   $('rkPdf').addEventListener('click', function () { rankDownload('pdf', $('rkPdf')); });
+
+  // ====== ①-b 各門市面向分析（資料庫函式 checkup_store_dims 彙總；與異常回覆張數共用年度、期間與下載按鈕）======
+  $('dmSort').innerHTML = '<option value="total">全部面向合計</option>' + SD.DIMS.map(function (d, i) {
+    return '<option value="' + i + '">' + esc(d) + '</option>';
+  }).join('');
+  function dmModel() {
+    var g = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);   // 產生日期（台北）
+    var key = SD.normKey($('dmSort').value);
+    return { year: rkYear(), period: rkPeriod(), sortKey: key, generated: g,
+      rows: SD.rank(dimRows, key, isMgr() ? me.store_code : null) };
+  }
+  function renderDim() {
+    var has = dimRows.length > 0, err = !!$('dmMsg').textContent;
+    $('rkInfo').textContent = dimLoading ? '載入中…' : err ? '' : SR.periodLabel(rkYear(), rkPeriod()) + '　共 ' + dimRows.length + ' 家門市';
+    $('dmSheet').parentNode.hidden = !has;
+    $('dmEmpty').hidden = dimLoading || has || err;
+    DV.ensureStyle();
+    $('dmSheet').innerHTML = has ? DV.html(dmModel()) : '';
+    $('rkPng').disabled = $('rkPdf').disabled = dimLoading || !has || rankBusy;
+  }
+  function loadDim() {
+    var rg = SR.periodRange(rkYear(), rkPeriod()), seq = ++dimSeq;
+    dimLoaded = true; dimLoading = true;
+    showMsg('dmMsg', ''); showMsg('rkDlMsg', '');
+    dimRows = []; renderDim();
+    CheckupApi.storeDims(rg.start, rg.end).then(function (rows) {
+      if (seq !== dimSeq) return;        // 已切換年度或期間，舊回應不採用
+      dimRows = rows; dimLoading = false; renderDim();
+    }, function () {
+      if (seq !== dimSeq) return;
+      showMsg('dmMsg', '各門市面向分析暫時讀不到，請稍後再試');
+      dimRows = []; dimLoading = false; dimLoaded = false; renderDim();   // 下次切回來再試一次
+    });
+  }
+  function setRkView(v) {
+    rkView = v === 'dim' ? 'dim' : 'count';
+    var dim = rkView === 'dim';
+    Array.prototype.forEach.call($('rkSw').querySelectorAll('button'), function (b) {
+      var on = b.getAttribute('data-v') === rkView; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    $('rkCount').hidden = dim; $('rkDim').hidden = !dim;
+    $('rkSort').hidden = $('rkSortLb').hidden = dim;
+    $('dmSort').hidden = $('dmSortLb').hidden = !dim;
+    showMsg('rkDlMsg', '');
+    if (dim && !dimLoaded) loadDim();
+    renderRank(false);
+  }
+  $('rkSw').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (b) setRkView(b.getAttribute('data-v'));
+  });
+  ['rkYear', 'rkPeriod'].forEach(function (id) {
+    $(id).addEventListener('change', function () { dimLoaded = false; if (rkView === 'dim') loadDim(); });
+  });
+  $('dmSort').addEventListener('change', function () { renderDim(); });
 
   // ====== ② 健檢單（每季抽查彙整；清單與 PDF 都用 spot_inspections 該季資料現算，RLS 已限制可見範圍）======
   function selYear() { return Number($('listYear').value); }

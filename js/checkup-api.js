@@ -85,6 +85,20 @@
         return r.data || [];
       }, function (e) { fail(e); });
     },
+    // 各門市面向分析（只有彙總：門市、有勾面向的待加強回覆筆數、七面向被勾次數）。start、end：YYYY-MM-DD，含頭尾。
+    // 資料庫函式還沒部署時回傳固定的繁中提示（notDeployed），不顯示英文錯誤
+    storeDims: function (start, end) {
+      return sb.rpc('checkup_store_dims', { p_from: start, p_to: end }).then(function (r) {
+        if (r.error) {
+          var c = String(r.error.code || ''), m = String(r.error.message || '').toLowerCase();
+          if (c === '42883' || c === 'PGRST202' || m.indexOf('could not find the function') >= 0 || m.indexOf('does not exist') >= 0) {
+            var e = new Error('各門市面向分析暫時讀不到，請稍後再試'); e.userMessage = e.message; e.notDeployed = true; throw e;
+          }
+          fail(r.error);
+        }
+        return r.data || [];
+      }, function (e) { fail(e); });
+    },
 
     // ---- 健檢單下載管制與下載紀錄（supabase/checkup_download_schema.sql）----
     // 記一筆下載；店長日期沒到或不是自己門市資料庫會丟中文訊息。成功才可以產生檔案。
