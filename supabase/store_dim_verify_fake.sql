@@ -59,7 +59,7 @@ begin
   return pg_temp.vr_as(p_role, p_email,
     format($q$select coalesce(string_agg(store_code || '=' || weak_records || '[' || array_to_string(dim_counts, '-') || ']', ';' order by store_code), '(空)')
               from public.checkup_store_dims(%L, %L)
-              where store_code like 'ZZ-D%%'$q$, p_from, p_to));
+              where store_code like 'ZZ-D%%' and store_code <> 'ZZ-D5'$q$, p_from, p_to));
 end $$;
 
 -- 一筆假抽查登記
@@ -76,7 +76,7 @@ end $$;
 do $$
 begin
   insert into public.stores (code, name) values
-    ('ZZ-D1', 'ZZ面向甲店'), ('ZZ-D2', 'ZZ面向乙店'), ('ZZ-D3', 'ZZ面向丙店（無紀錄）'), ('ZZ-D4', 'ZZ面向丁店（無人只有紀錄）');
+    ('ZZ-D1', 'ZZ面向甲店'), ('ZZ-D2', 'ZZ面向乙店'), ('ZZ-D3', 'ZZ面向丙店（無紀錄）'), ('ZZ-D4', 'ZZ面向丁店（無人只有紀錄）'), ('ZZ-D5', 'ZZ面向戊店（無人無紀錄）');
   insert into public.employees (id, nickname, store_code, job_title, hire_date, status, include_in_assessment)
   values
     ('MI-9801', '假員9801', 'ZZ-D1', '業務', current_date - 200, '在職', true),
@@ -110,7 +110,7 @@ $$;
 do $$
 declare
   cs text := 'vd-cs@2motor.tw';
-  q1 text := 'ZZ-D1=2[1-0-2-0-0-0-1];ZZ-D2=1[1-1-1-1-1-1-1];ZZ-D3=0[0-0-0-0-0-0-0]';
+  q1 text := 'ZZ-D1=2[1-0-2-0-0-0-1];ZZ-D2=1[1-1-1-1-1-1-1];ZZ-D3=0[0-0-0-0-0-0-0];ZZ-D4=0[0-0-0-0-0-0-0]';
   yr text := 'ZZ-D1=3[1-0-2-0-0-1-1];ZZ-D2=1[1-1-1-1-1-1-1];ZZ-D3=0[0-0-0-0-0-0-0];ZZ-D4=1[0-0-0-0-1-0-0]';
 begin
   -- 1. 三種角色皆可呼叫（結果相同＝店長也看全部門市）
@@ -126,17 +126,17 @@ begin
   perform pg_temp.vr_eq('規則', 'Q1 甲店只有 2 筆（優良回覆勾面向、沒勾面向的待加強回覆都不算）', q1,
     pg_temp.vr_dims('authenticated', cs, date '2026-01-01', date '2026-03-31'));
   perform pg_temp.vr_eq('規則', '只查 2/1～2/2（只有優良回覆與沒勾面向）→ 甲店 0 筆全 0',
-    'ZZ-D1=0[0-0-0-0-0-0-0];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0]',
+    'ZZ-D1=0[0-0-0-0-0-0-0];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0];ZZ-D4=0[0-0-0-0-0-0-0]',
     pg_temp.vr_dims('authenticated', cs, date '2026-02-01', date '2026-02-02'));
   -- 4. 日期邊界含頭尾
   perform pg_temp.vr_eq('邊界', '只查 3/31 當天（含）→ 甲店 1 筆',
-    'ZZ-D1=1[0-0-1-0-0-0-1];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0]',
+    'ZZ-D1=1[0-0-1-0-0-0-1];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0];ZZ-D4=0[0-0-0-0-0-0-0]',
     pg_temp.vr_dims('authenticated', cs, date '2026-03-31', date '2026-03-31'));
   perform pg_temp.vr_eq('邊界', '只查 1/1 當天（含）→ 甲店 1 筆',
-    'ZZ-D1=1[1-0-1-0-0-0-0];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0]',
+    'ZZ-D1=1[1-0-1-0-0-0-0];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0];ZZ-D4=0[0-0-0-0-0-0-0]',
     pg_temp.vr_dims('authenticated', cs, date '2026-01-01', date '2026-01-01'));
   perform pg_temp.vr_eq('邊界', '只查 4/1 當天（含）→ 甲店 1 筆（語氣與禮貌）',
-    'ZZ-D1=1[0-0-0-0-0-1-0];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0]',
+    'ZZ-D1=1[0-0-0-0-0-1-0];ZZ-D2=0[0-0-0-0-0-0-0];ZZ-D3=0[0-0-0-0-0-0-0];ZZ-D4=0[0-0-0-0-0-0-0]',
     pg_temp.vr_dims('authenticated', cs, date '2026-04-01', date '2026-04-01'));
   -- 5. 沒紀錄門市：有人的門市 0 筆、dim_counts 長度 7；沒人也沒紀錄的不列
   perform pg_temp.vr_eq('門市', '丙店（有人、無紀錄）出現且 weak_records=0',
@@ -145,10 +145,13 @@ begin
     '7', pg_temp.vr_as('authenticated', cs, $q$select cardinality(dim_counts)::text from public.checkup_store_dims(date '2026-01-01', date '2026-12-31') where store_code = 'ZZ-D3'$q$));
   perform pg_temp.vr_eq('門市', '所有門市的 dim_counts 長度都是 7（不符合者數量）',
     '0', pg_temp.vr_as('authenticated', cs, $q$select count(*)::text from public.checkup_store_dims(date '2026-01-01', date '2026-12-31') where cardinality(dim_counts) <> 7$q$));
-  perform pg_temp.vr_eq('門市', '丁店（無人、無紀錄的期間）不列出；Q1 只列甲乙丙', q1,
+  perform pg_temp.vr_eq('門市', '丁店（無人、無紀錄的期間）Q1 為 0 筆（列出但全 0）；甲乙丙結果不變（戊店另測）', q1,
     pg_temp.vr_dims('authenticated', cs, date '2026-01-01', date '2026-03-31'));
   perform pg_temp.vr_eq('門市', '結果裡沒有「總公司」',
     '0', pg_temp.vr_as('authenticated', cs, $q$select count(*)::text from public.checkup_store_dims(date '2026-01-01', date '2026-12-31') where store_code = '總公司'$q$));
+  -- 5b. 沒人也沒紀錄的門市（老闆 2026-11-26：中和不見了）也要列出，weak_records=0、dim_counts 長度 7
+  perform pg_temp.vr_eq('門市', '戊店（無人、無紀錄）也列出且全 0', '0/7/0',
+    pg_temp.vr_as('authenticated', cs, $q$select weak_records::text || '/' || cardinality(dim_counts)::text || '/' || coalesce(array_to_string(dim_counts, '')::int, 0)::text from public.checkup_store_dims(date '2026-02-01', date '2026-02-02') where store_code = 'ZZ-D5'$q$));
   -- 6. 跨門市彙總與順序
   perform pg_temp.vr_eq('彙總', '全年跨門市 weak_records 合計＝5（甲3＋乙1＋丁1）',
     '5', pg_temp.vr_as('authenticated', cs, $q$select sum(weak_records)::text from public.checkup_store_dims(date '2026-01-01', date '2026-12-31') where store_code like 'ZZ-D%'$q$));
