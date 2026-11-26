@@ -1366,7 +1366,7 @@ begin
   perform pg_temp.vr_own($q$update public.app_settings set value = 'https://example.test/app/' where key = 'site_url'$q$);
   perform pg_temp.vr_sched('vr-cs1@2motor.tw','m3', $q$'2099-07-01 09:15+08'::timestamptz$q$, v_evil);
   v_body := pg_temp.vr_mf('m3','scheduled','body_html');
-  perform pg_temp.vr_eq('11 信件','排定信 1 封，收件人＝當初回報的人（vr-cs1）','1/{vr-cs1@2motor.tw}',
+  perform pg_temp.vr_eq('11 信件','排定信 1 封，收件人＝當初回報的人（vr-cs1，客服部代報）＋該門市店長（vr-sm1）','1/{vr-cs1@2motor.tw,vr-sm1@2motor.tw}',
     pg_temp.vr_mc('m3','scheduled') || '/' || pg_temp.vr_mf('m3','scheduled','to_emails'));
   perform pg_temp.vr_eq('11 信件','排定信主旨（【考核已排定】＋門市＋人員＋情況）','true',
     (pg_temp.vr_mf('m3','scheduled','subject') like '【考核已排定】ZZ測試門市甲 假員9747（新人）')::text);
@@ -1375,6 +1375,8 @@ begin
   perform pg_temp.vr_eq('11 信件','排定信的備註 script 被 escape','true',
     (v_body like '%&lt;script&gt;%' and v_body not like '%<script%' and v_body like '%&#39;q&#39;%')::text);
   perform pg_temp.vr_eq('11 信件','排定信帶登入連結','true', (v_body like '%href="https://example.test/app/requests.html"%')::text);
+  perform pg_temp.vr_eq('11 信件','新人排定信：請店長轉傳給考生、含「新人考核通知」與「不需要事先複習」','true',
+    (v_body like '%請店長轉傳給考生%' and v_body like '%新人考核通知%' and v_body like '%不需要事先複習%')::text);
 
   -- 退回信（寄回報人；原因 escape；不含準時上線）
   perform pg_temp.vr_okid('11 信件','店長甲替 9749 回報新人','m4','vr-sm1@2motor.tw','新人','MI-9749', pg_temp.vr_darr(1,2), 'true', null);
@@ -1394,8 +1396,11 @@ begin
   -- 收件人過濾：回報人信箱不是 @2motor.tw、或不在 app_users → 不寄，留 skipped 紀錄
   perform pg_temp.vr_okid('11 信件','店長甲替 9750 回報新人（之後把回報人信箱改成外部）','m5','vr-sm1@2motor.tw','新人','MI-9750', null, 'true');
   perform pg_temp.vr_own(format($q$update public.exam_requests set requested_by = 'vr-ext@example.com' where id = %L::uuid$q$, pg_temp.vr_get('m5')));
+  -- 排定信現在也寄該門市店長；為了單獨測「回報人不合格」，暫時讓 ZZ-X1 沒有店長（測完還原）
+  perform pg_temp.vr_own($q$update public.app_users set role = 'hq_viewer', store_code = null where email = 'vr-sm1@2motor.tw'$q$);
   perform pg_temp.vr_sched('vr-cs1@2motor.tw','m5', $q$now() + interval '1 day'$q$);
-  perform pg_temp.vr_eq('11 信件','回報人信箱不是 @2motor.tw：不寄（skipped、收件人為空、說明原因）','skipped/{}/true',
+  perform pg_temp.vr_own($q$update public.app_users set role = 'store_manager', store_code = 'ZZ-X1' where email = 'vr-sm1@2motor.tw'$q$);
+  perform pg_temp.vr_eq('11 信件','回報人信箱不是 @2motor.tw（且該門市沒有店長）：不寄（skipped、收件人為空、說明原因）','skipped/{}/true',
     pg_temp.vr_mf('m5','scheduled','status') || '/' || pg_temp.vr_mf('m5','scheduled','to_emails') || '/' ||
     (pg_temp.vr_mf('m5','scheduled','last_error') like '沒有可寄送的收件人%')::text);
   perform pg_temp.vr_okid('11 信件','店長甲替 9755 回報新人（之後把回報人改成不在 app_users 的 2motor 信箱）','m6','vr-sm1@2motor.tw','新人','MI-9755', null, 'true');
@@ -1405,6 +1410,28 @@ begin
     pg_temp.vr_mf('m6','returned','status') || '/' || pg_temp.vr_mf('m6','returned','to_emails'));
   perform pg_temp.vr_eq('11 信件','收件人過濾不影響排定／退回本身（m5 仍是已排定、m6 已取消）','已排定/已取消',
     pg_temp.vr_f('m5','status') || '/' || pg_temp.vr_f('m6','status'));
+
+  -- 排定信：外部回報人被濾掉、但該門市店長仍收得到（m5 的店長已還原後，重新排一次信）
+  perform pg_temp.vr_own(format($q$select public.exam_req_notify('scheduled', %L::uuid)$q$, pg_temp.vr_get('m5')));
+  perform pg_temp.vr_eq('11 信件','排定信：回報人是外部信箱時，只寄該門市店長','{vr-sm1@2motor.tw}',
+    pg_temp.vr_q1(format($q$select to_emails::text from public.mail_outbox where request_id = %L::uuid and kind = 'scheduled' and to_emails <> '{}'::text[] limit 1$q$, pg_temp.vr_get('m5'))) );
+
+  -- 複檢排定信：收件人＝客服部回報人＋乙店店長；有「請同仁準時上線」、沒有新人考前通知
+  perform pg_temp.vr_sched('vr-cs1@2motor.tw','m2', $q$now() + interval '1 day'$q$);
+  v_body := pg_temp.vr_mf('m2','scheduled','body_html');
+  perform pg_temp.vr_eq('11 信件','複檢排定信：收件人＝vr-cs1（代報）＋該門市（乙店）店長 vr-sm2','1/{vr-cs1@2motor.tw,vr-sm2@2motor.tw}',
+    pg_temp.vr_mc('m2','scheduled') || '/' || pg_temp.vr_mf('m2','scheduled','to_emails'));
+  perform pg_temp.vr_eq('11 信件','複檢排定信：不含「新人考核通知」、「不需要事先複習」，仍有「請同仁準時上線」與「請店長轉傳給考生」','false/false/true/true',
+    (v_body like '%新人考核通知%')::text || '/' || (v_body like '%不需要事先複習%')::text || '/' ||
+    (v_body like '%請同仁準時上線%')::text || '/' || (v_body like '%請店長轉傳給考生%')::text);
+
+  -- 店長自己回報：排定信 1 封，收件人只有他一個（回報人與店長是同一人，不重複）
+  perform pg_temp.vr_okid('11 信件','店長甲替 9748 回報新人（自己回報，用來測排定信不重複寄）','m7','vr-sm1@2motor.tw','新人','MI-9748', null, 'true');
+  perform pg_temp.vr_sched('vr-cs1@2motor.tw','m7', $q$now() + interval '1 day'$q$);
+  perform pg_temp.vr_eq('11 信件','店長自己回報：排定信 1 封，收件人只有 vr-sm1（不重複）','1/{vr-sm1@2motor.tw}',
+    pg_temp.vr_mc('m7','scheduled') || '/' || pg_temp.vr_mf('m7','scheduled','to_emails'));
+  perform pg_temp.vr_eq('11 信件','新回報信的收件人沒被改（只寄客服部、不含店長）','false',
+    (pg_temp.vr_mf('m7','new','to_emails') like '%vr-sm1%')::text);
 exception when others then
   perform pg_temp.vr_rec('區段 11','完整性意外中斷','無例外', sqlerrm, false);
 end

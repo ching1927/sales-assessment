@@ -322,7 +322,7 @@ $$;
 -- ============================================================
 -- 信件內容產生（subject 與 HTML body）
 -- 全部使用者文字（門市名稱、人員、備註、原因、連結）都先 HTML escape；備註只取前 80 字。
--- p_type：new（新回報，寄客服部）／scheduled（排定，寄回報人）／returned（退回，寄回報人）
+-- p_type：new（新回報，寄客服部）／scheduled（排定，寄回報人與該門市店長；新人附考前通知）／returned（退回，寄回報人）
 -- ============================================================
 create or replace function public.exam_req_mail_content(p_type text, p_id uuid)
 returns table(subject text, body_html text)
@@ -377,7 +377,7 @@ begin
 
   elsif p_type = 'scheduled' then
     v_subject := '【考核已排定】' || v_store || ' ' || r.employee_label || '（' || r.kind || '）';
-    v_intro := '客服部已排定考核時間。';
+    v_intro := '客服部已排定考核時間，請店長轉傳給考生。';
     v_rows := v_rows || '<tr><td style="padding:4px 12px 4px 0;color:#666">排定時間</td><td style="padding:4px 0">'
               || public.exam_req_esc(to_char(r.scheduled_at at time zone 'Asia/Taipei', 'YYYY-MM-DD HH24:MI')) || '</td></tr>';
     v_text := r.reply_note;
@@ -387,6 +387,16 @@ begin
                 || '</td></tr>';
     end if;
     v_extra := '<p style="margin:12px 0"><b>考核在線上進行，請同仁準時上線。</b></p>';
+    -- 新人才附「考前通知」（全部是固定文字，不放任何使用者輸入）
+    if r.kind = '新人' then
+      v_extra := v_extra
+        || '<p style="margin:16px 0 4px"><b>考前通知（請店長轉傳給考生）</b></p>'
+        || '<p style="margin:4px 0"><b>【新人考核通知】</b></p>'
+        || '<p style="margin:4px 0">請準時上線，用手機的 LINE 官方帳號參加（時間見上方「排定時間」）。</p>'
+        || '<p style="margin:4px 0">請準備：1. 手機（電量充足、網路穩定）　2. 登入 LINE 官方帳號聊天室　3. 找一個安靜、不會被打斷的地方。</p>'
+        || '<p style="margin:4px 0">不需要事先複習。考官會用私人 LINE 扮演客人傳訊息給你，你用官方 LINE 像平常回客人一樣回覆，可以查公司資料。共 6 個題組，由兩位考官輪流出題，考官 1 先考完再換考官 2。</p>'
+        || '<p style="margin:4px 0">考完不用交東西，成績由客服部通知。</p>';
+    end if;
 
   elsif p_type = 'returned' then
     v_subject := '【待考回報已退回】' || v_store || ' ' || r.employee_label || '（' || r.kind || '）';
@@ -469,6 +479,15 @@ begin
     if p_type = 'new' then
       select coalesce(array_agg(u.email order by u.email), '{}'::text[]) into v_to
       from public.app_users u where u.role = 'cs_admin';
+    elsif p_type = 'scheduled' then
+      -- 排定信：回報人＋該門市店長（轉傳給考生）；轉小寫去重，合格與否交給 exam_req_enqueue 過濾
+      select coalesce(array_agg(x.mail order by x.mail), '{}'::text[]) into v_to
+      from (select distinct lower(btrim(t.mail)) as mail
+            from (select r.requested_by as mail
+                  union all
+                  select u.email from public.app_users u
+                   where u.role = 'store_manager' and u.store_code = r.store_code) t
+            where t.mail is not null) x;
     else
       v_to := array[r.requested_by];
     end if;
