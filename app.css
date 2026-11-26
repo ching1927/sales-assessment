@@ -95,3 +95,19 @@ body .formcol{top:calc(var(--ab-h) + var(--sp-4))}
 /* 成績單上的面向備註列 */
 tr.g3-noterow td{background:rgba(15,23,42,0.06);font-size:13px;line-height:1.5;white-space:normal}
 tr.g3-noterow td b{color:#4A4F5A}
+
+/* 待填導引：頁面最上方的紅色（客服部橘色）提示條＋「帶我去填」，與被指到的那一列閃爍（店長才有箭頭） */
+.todo-guide{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px 18px;border-radius:16px;background:rgba(220,38,38,.10);border:2px solid #DC2626;color:#7F1D1D;font-weight:800;font-size:17px;margin:0 0 14px}
+.todo-guide .gt{flex:1;min-width:220px}
+.todo-guide small{display:block;font-weight:500;font-size:14px;margin-top:3px}
+.todo-guide .go{border:0;border-radius:12px;padding:12px 22px;font-weight:800;font-size:16px;background:#DC2626;color:#fff;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(220,38,38,.35);text-decoration:none;display:inline-block}
+.todo-guide.cs{background:#FFF7E6;border-color:#D97706;color:#7A3E00}
+.todo-guide.cs .go{background:#0A0A0A;box-shadow:none}
+.todo-scope{font-size:13px;color:#4A4F5A;margin:6px 0 10px}
+.todo-scope b{color:#DC2626}
+tr.todo-flash td{animation:todo-flash 1.1s ease-in-out 3}
+tr.todo-flash td.stick{animation:none;background:#FEE2E2}
+@keyframes todo-flash{0%,100%{background:transparent}50%{background:#FEE2E2}}
+.todo-arrow{display:inline-block;margin-right:8px;color:#DC2626;font-weight:800;white-space:nowrap;animation:todo-nudge .8s ease-in-out infinite alternate}
+@keyframes todo-nudge{from{transform:translateX(0)}to{transform:translateX(-6px)}}
+@media (prefers-reduced-motion:reduce){tr.todo-flash td{animation:none;background:#FEE2E2}.todo-arrow{animation:none}}

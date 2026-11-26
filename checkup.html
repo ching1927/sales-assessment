@@ -61,6 +61,8 @@ th.stick,td.stick{position:sticky;right:0;background:var(--surface-solid);box-sh
 .pgtab{text-decoration:none;display:inline-block}
 .pgtab:hover{color:var(--ink)}
 .pgtab.on{background:var(--ci-black);color:var(--ci-yellow);box-shadow:0 2px 10px rgba(10,10,10,.25)}
+.pgtab.alert,.pgtab.alert:hover{background:var(--danger);color:#fff;box-shadow:0 4px 14px rgba(220,38,38,.35)}
+.pgtab .badge{display:inline-block;min-width:20px;margin-left:6px;padding:1px 6px;border-radius:var(--r-pill);background:#fff;color:var(--danger);font-size:12px;font-weight:800;text-align:center}
 .pane[hidden]{display:none}
 @media (max-width:480px){.pgtab{padding:9px 12px;font-size:14px}}
 
@@ -129,12 +131,14 @@ dialog::backdrop{background:var(--scrim)}
     <div class="tophead">
       <div class="pgtabs" role="tablist" aria-label="登記&amp;健檢分頁">
         <a class="pgtab" id="tabReg" role="tab" aria-selected="false" href="spotcheck.html#reg" hidden>登記</a>
-        <a class="pgtab" role="tab" aria-selected="false" href="spotcheck.html#records">登記歷程</a>
+        <a class="pgtab" id="tabRecordsLink" role="tab" aria-selected="false" href="spotcheck.html#records">登記歷程<span class="badge" id="todoBadge" hidden></span></a>
         <button type="button" class="pgtab" role="tab" data-pane="paneList" aria-selected="false">健檢單</button>
         <button type="button" class="pgtab" id="tabDl" role="tab" data-pane="paneDl" aria-selected="false" hidden>下載紀錄</button>
         <button type="button" class="pgtab on" role="tab" data-pane="paneRank" aria-selected="true">異常回覆預警榜</button>
       </div>
     </div>
+
+    <div id="todoGuide"></div>
 
     <!-- ① 異常回覆預警榜：各門市在該期間被列為異常回覆的數量（資料庫函式彙總，三種角色都看得到全部門市的張數，看不到異常回覆內容） -->
     <section class="pane" id="paneRank" role="tabpanel">
@@ -243,6 +247,21 @@ dialog::backdrop{background:var(--scrim)}
 
   function isCS() { return !!me && me.role === 'cs_admin'; }
   function isMgr() { return !!me && me.role === 'store_manager'; }
+  // 異常回覆單還沒回填輔導：「登記歷程」分頁紅底＋數字，頁面最上方導引條帶到單據清單（張數由導覽列的 spot_badge 取得）
+  var spotTodo = 0;
+  function renderTodoGuide() {
+    var n = (window.AppBadge && window.AppBadge.spot) || spotTodo || 0;
+    var tab = $('tabRecordsLink'), bd = $('todoBadge'), g = $('todoGuide');
+    if (!tab || !bd || !g) return;
+    var show = n > 0 && (isMgr() || isCS());
+    tab.classList.toggle('alert', show);
+    bd.hidden = !show; bd.textContent = show ? n : '';
+    if (!show) { g.innerHTML = ''; return; }
+    g.innerHTML = isMgr()
+      ? '<div class="todo-guide" role="alert"><div class="gt">你有 ' + n + ' 筆異常回覆單還沒回填輔導<small>在「登記歷程」分頁最下面的「單據清單」，按該筆的「回填輔導」。按右邊按鈕，我帶你過去。</small></div><a class="go" href="spotcheck.html#todo">帶我去填 →</a></div>'
+      : '<div class="todo-guide cs" role="status"><div class="gt">店長還有 ' + n + ' 筆異常回覆單沒填輔導<small>只顯示，不會寄信催店長。想看是哪幾筆，按右邊按鈕。</small></div><a class="go" href="spotcheck.html#todo">帶我去看 →</a></div>';
+  }
+  window.addEventListener('appbadge-spot', function (e) { spotTodo = Number(e && e.detail) || 0; renderTodoGuide(); });
   function errText(e) { return (e && e.userMessage) || CheckupApi.explain(e); }
   function goLogin(reason) { location.replace('index.html' + (reason ? '?reason=' + reason : '')); }
   function doLogout() { CheckupApi.signOut().then(function () { goLogin(''); }); }
@@ -562,7 +581,7 @@ dialog::backdrop{background:var(--scrim)}
       $('rkYear').innerHTML = SR.yearOptions().map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
       $('rkPeriod').innerHTML = SR.PERIODS.map(function (p) { return '<option value="' + p + '">' + (p === 'Y' ? '全年' : '第' + p.slice(1) + '季') + '</option>'; }).join('');
       $('rkYear').value = String(dp.year); $('rkPeriod').value = dp.period;
-      applyRole(); openByHash();
+      applyRole(); openByHash(); renderTodoGuide();
       return CheckupApi.quarters().then(function (rows) {
         qrows = rows; applyRole(); refreshStoreOptions();
         if (sheets.length) renderSheets(false);   // 門市名稱晚到時，把已顯示的清單重畫一次

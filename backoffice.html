@@ -212,6 +212,8 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
 
     <div class="msg err" id="pageMsg" role="alert" hidden></div>
 
+    <div id="tGuide"></div>
+
     <div class="tabs" role="tablist" aria-label="考核後台分頁">
       <button class="tab" role="tab" id="tab-recent" data-tab="recent" aria-controls="p-recent" type="button">近期考核</button>
       <button class="tab" role="tab" id="tab-history" data-tab="history" aria-controls="p-history" type="button">人員歷史</button>
@@ -299,6 +301,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     <!-- 分頁 3：改善單 -->
     <section id="p-tickets" role="tabpanel" aria-labelledby="tab-tickets" hidden>
       <div id="tTodo"></div>
+      <div class="todo-scope" id="tScope"></div>
       <p class="intro">成績單判定為需複訓或不及格時，系統自動開單，預設 14 天內完成輔導；成績單作廢時，對應回填輔導紀錄自動取消。</p>
       <section class="toolbar glass" aria-label="篩選">
         <select class="ctrl" id="tStatus" aria-label="狀態篩選"></select>
@@ -730,13 +733,16 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     var mgrTodo = isMgr() && todoN > 0;
     $('tab-tickets').classList.toggle('alert', todoN > 0);
     $('tabTicketsDot').innerHTML = todoN > 0 ? '<span class="dot" aria-label="待填 ' + todoN + ' 筆">' + todoN + '</span>' : '';
-    $('tTodo').innerHTML = mgrTodo ? '<div class="todo-banner" role="status">你有 ' + todoN + ' 筆輔導紀錄還沒回填<small>勾選「已完成輔導＆溝通」並儲存後，這裡的紅點就會消失。</small></div>'
-      : isCS() ? '<div class="todo-legend">天數顏色：<span class="tag gray">3 天內</span><span class="tag warn">4–7 天</span><span class="tag red">超過 7 天</span><span>（只顯示，不會寄信催店長）</span></div>' : '';
+    var shownTodo = list.filter(function (t) { return t.status === 'open'; }).length;
+    $('tScope').innerHTML = todoN > 0 || list.length ? '目前顯示：' + esc(st ? sName(st) : (isMgr() ? '自己門市' : '全部門市')) + (sf ? '（有套用篩選）' : '') + '，共 ' + list.length + ' 張，其中 <b>' + shownTodo + ' 張還沒回填輔導</b>' +
+      (shownTodo < todoN ? '。全部共有 ' + todoN + ' 張未填，其餘被篩選條件隱藏' : '') : '';
+    renderGuide();
+    $('tTodo').innerHTML = isCS() ? '<div class="todo-legend">天數顏色：<span class="tag gray">3 天內</span><span class="tag warn">4–7 天</span><span class="tag red">超過 7 天</span><span>（只顯示，不會寄信催店長）</span></div>' : '';
     $('tBody').innerHTML = list.map(function (t) {
-      return '<tr class="' + ((t.status === 'cancelled' ? 'off' : '') + (mgrTodo && t.status === 'open' ? ' todo' : '')).trim() + '"><td>' + esc(tName(t)) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td><td>' + esc(sName(t.store_code)) + '</td><td>' + srcCell(t) + '</td>' +
+      return '<tr class="' + ((t.status === 'cancelled' ? 'off' : '') + (mgrTodo && t.status === 'open' ? ' todo' : '') + (t.status === 'open' ? ' todo-row' : '')).trim() + '"><td>' + esc(tName(t)) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td><td>' + esc(sName(t.store_code)) + '</td><td>' + srcCell(t) + '</td>' +
         '<td style="white-space:normal;min-width:160px">' + dimTags(t.target_dims) + '</td>' +
         '<td><span class="mono">' + esc(t.due_date) + '</span>' + (t.is_overdue ? ' <span class="tag out">逾期 ' + esc(t.days_overdue) + ' 天</span>' : '') + '</td><td>' + statusTags(t) + (isCS() && t.status === 'open' ? ' ' + TodoDays.chipHtml(TodoDays.daysSince(t.created_at)) : '') + '</td>' +
-        '<td class="stick"><button type="button" class="btn sm" data-tk="' + esc(t.id) + '">查看</button>' +
+        '<td class="stick"><button type="button" class="btn sm' + (mgrTodo && t.status === 'open' ? ' danger' : '') + '" data-tk="' + esc(t.id) + '">' + (mgrTodo && t.status === 'open' ? '查看並回填' : '查看') + '</button>' +
         (pendingBook[t.id] && (isCS() || isMgr()) ? ' <a class="btn sm primary" href="' + esc(CoachedCore.requestsUrl(t.id)) + '">前往預約</a>' : '') + '</td></tr>';
     }).join('');
     $('tEmpty').textContent = tickets.length ? '沒有符合條件的回填輔導紀錄' : '目前沒有回填輔導紀錄';
@@ -937,9 +943,34 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     fillStatusSel();
   }
 
+  // 頁面最上方的導引條：不在「回填輔導紀錄」分頁時顯示，按鈕帶到清單（店長指到「查看並回填」；客服部只捲到清單與閃一下，不指任何按鈕）
+  function renderGuide() {
+    var g = $('tGuide');
+    if (!g) return;
+    var open = (tickets || []).filter(function (t) { return t.status === 'open'; });
+    if (!(isMgr() || isCS()) || !open.length || curTab === 'tickets') { g.innerHTML = ''; return; }
+    if (isMgr()) {
+      g.innerHTML = '<div class="todo-guide" role="alert"><div class="gt">你有 ' + open.length + ' 筆輔導紀錄還沒回填<small>在「回填輔導紀錄」分頁，按該筆的「查看並回填」，勾選「已完成輔導＆溝通」並儲存。按右邊按鈕，我帶你過去。</small></div><button type="button" class="go" data-tkgo="1">帶我去填 →</button></div>';
+    } else {
+      var mx = 0;
+      open.forEach(function (t) { var d = TodoDays.daysSince(t.created_at); if (d != null && d > mx) mx = d; });
+      g.innerHTML = '<div class="todo-guide cs" role="status"><div class="gt">店長還有 ' + open.length + ' 筆輔導紀錄沒回填' + (mx ? '，最久 ' + mx + ' 天' : '') + '<small>只顯示，不會寄信催店長。想看是哪幾筆，按右邊按鈕。</small></div><button type="button" class="go" data-tkgo="1">帶我去看 →</button></div>';
+    }
+  }
+  function goTicketTodo() {
+    showTab('tickets', true);
+    var row = document.querySelector('#tBody tr.todo-row');
+    if (!row) { var p = $('p-tickets'); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    row.classList.add('todo-flash');
+    if (isMgr()) { var c = row.querySelector('td.stick'); if (c && !c.querySelector('.todo-arrow')) c.insertAdjacentHTML('afterbegin', '<span class="todo-arrow">👉 請按這裡</span>'); }
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-tkgo]')) goTicketTodo(); });
+
   function showTab(name, setHash) {
     if (TABS.indexOf(name) < 0) name = 'recent';
     curTab = name;
+    renderGuide();
     TABS.forEach(function (n) {
       $('p-' + n).hidden = n !== name;
       $('tab-' + n).setAttribute('aria-selected', n === name ? 'true' : 'false');

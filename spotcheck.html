@@ -173,6 +173,8 @@ dialog::backdrop{background:var(--scrim)}
       </div>
     </div>
 
+    <div id="todoGuide"></div>
+
     <!-- ① 登記（客服部） -->
     <section class="pane" id="paneReg" role="tabpanel" hidden>
     <div id="regWrap" hidden>
@@ -233,7 +235,8 @@ dialog::backdrop{background:var(--scrim)}
     </section>
 
     <div id="todoNotice"></div>
-    <h2 class="sec">單據清單（異常回覆）</h2>
+    <h2 class="sec" id="ticketList">單據清單（異常回覆）</h2>
+    <div class="todo-scope" id="todoScope"></div>
     <section class="toolbar glass" aria-label="篩選">
       <select class="ctrl grow" id="fEmp" aria-label="人員篩選"></select>
       <select class="ctrl" id="fStatus" aria-label="狀態篩選"><option value="">全部狀態</option><option value="有效">有效</option><option value="作廢">已作廢</option></select>
@@ -568,9 +571,41 @@ dialog::backdrop{background:var(--scrim)}
     tab.classList.toggle('alert', n > 0);
     bd.hidden = n === 0; bd.textContent = n;
     var html = '';
-    if (n > 0) html = '<div class="todo-banner" role="alert">你有 ' + n + ' 筆異常回覆單還沒回填輔導<small>點進單據，勾選「已完成輔導＆溝通」並儲存即可。</small></div>';
-    else if (isCS()) html = '<p class="todo-legend">天數顏色：<span class="tag gray">3 天內</span><span class="tag warn">4–7 天</span><span class="tag red">超過 7 天</span>（只顯示，不會寄信催店長）</p>';
+    if (isCS()) html = '<p class="todo-legend">天數顏色：<span class="tag gray">3 天內</span><span class="tag warn">4–7 天</span><span class="tag red">超過 7 天</span>（只顯示，不會寄信催店長）</p>';
     $('todoNotice').innerHTML = html;
+    // 清單上方說明：目前篩選到哪、共幾張、其中幾張還沒回填（避免「導覽紅點 3、清單只看到 1」卻不知道原因）
+    var st = $('rcStore').value, ps = $('fEmp').value, sf = $('fStatus').value;
+    var shown = tickets.filter(function (t) { return (!st || t.store_code === st) && (!ps || t.employee_id === ps) && (!sf || t.status === sf); });
+    var shownTodo = shown.filter(isTodo).length, allTodo = tickets.filter(isTodo).length;
+    var sc = $('todoScope');
+    sc.innerHTML = '目前顯示：' + esc(st ? sName(st) : '全部門市') + (ps || sf ? '（有套用篩選）' : '') + '，共 ' + shown.length + ' 張，其中 <b>' + shownTodo + ' 張還沒回填輔導</b>' +
+      (shownTodo < allTodo ? '。全部共有 ' + allTodo + ' 張未填，其餘被篩選條件隱藏' : '');
+    renderTodoGuide();
+  }
+  // 頁面最上方的導引條：不在「登記歷程」分頁時顯示，按鈕帶到單據清單（店長指到「回填輔導」按鈕；客服部只捲到清單與閃一下，不指任何按鈕）
+  var curPane = '';
+  function renderTodoGuide() {
+    var g = $('todoGuide');
+    var list = tickets.filter(isTodo);
+    if (!g) return;
+    if (!(isMgr() || isCS()) || !list.length || curPane === 'paneRecords') { g.innerHTML = ''; return; }
+    if (isMgr()) {
+      g.innerHTML = '<div class="todo-guide" role="alert"><div class="gt">你有 ' + list.length + ' 筆異常回覆單還沒回填輔導<small>在「登記歷程」分頁最下面的「單據清單」，按該筆的「回填輔導」。按右邊按鈕，我帶你過去。</small></div><button type="button" class="go" data-todogo="1">帶我去填 →</button></div>';
+    } else {
+      var TD = window.TodoDays, mx = 0;
+      list.forEach(function (t) { var d = TD && TD.daysSince ? TD.daysSince(t.issued_on, Date.now()) : null; if (d != null && d > mx) mx = d; });
+      g.innerHTML = '<div class="todo-guide cs" role="status"><div class="gt">店長還有 ' + list.length + ' 筆異常回覆單沒填輔導' + (mx ? '，最久 ' + mx + ' 天' : '') + '<small>只顯示，不會寄信催店長。想看是哪幾筆，按右邊按鈕。</small></div><button type="button" class="go" data-todogo="1">帶我去看 →</button></div>';
+    }
+  }
+  function goTodo() {
+    showPane('paneRecords');
+    try { history.replaceState(null, '', '#records'); } catch (x) {}
+    var row = document.querySelector('#tBody tr.todo, #tBody tr.todo-row');
+    var head = $('ticketList');
+    if (!row) { if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    row.classList.add('todo-flash');
+    if (isMgr()) { var c = row.querySelector('td.stick'); if (c && !c.querySelector('.todo-arrow')) c.insertAdjacentHTML('afterbegin', '<span class="todo-arrow">👉 請按這裡</span>'); }
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function renderTickets() {
     renderTodoNotice();
@@ -592,9 +627,9 @@ dialog::backdrop{background:var(--scrim)}
       var ci = vd || !coachStats ? null : coachEditInfo(coachStats[t.id]);
       if (ci) coach += (ci.lastText ? '<div class="sub">' + esc(ci.lastText) + '</div>' : '') + '<button class="btn sm" data-hist="' + esc(t.id) + '" type="button">' + esc(ci.btnText) + '</button>';
       var ops = '';
-      if (canCoach(t)) ops += '<button class="btn sm" data-coach="' + esc(t.id) + '" type="button">' + (t.coached_on ? '編輯輔導' : '回填輔導') + '</button> ';
+      if (canCoach(t)) ops += '<button class="btn sm' + (todoRow ? ' danger' : '') + '" data-coach="' + esc(t.id) + '" type="button">' + (t.coached_on ? '編輯輔導' : '回填輔導') + '</button> ';
       if (canVoid(t)) ops += '<button class="btn sm outdanger" data-void="' + esc(t.id) + '" type="button">作廢</button>';
-      return '<tr class="' + (vd ? 'void' : '') + (todoRow ? ' todo' : '') + '"><td class="mono ' + (vd ? 'strike' : '') + '">' + esc(t.issued_on) + '</td>' +
+      return '<tr class="' + (vd ? 'void' : '') + (todoRow ? ' todo' : '') + (!vd && isTodo(t) ? ' todo-row' : '') + '"><td class="mono ' + (vd ? 'strike' : '') + '">' + esc(t.issued_on) + '</td>' +
         '<td><span class="tag y">異常回覆</span></td>' +
         '<td class="' + (vd ? 'strike' : '') + '">' + esc(t.employee_label || t.employee_id) + ' <span class="mono sub">' + esc(t.employee_id) + '</span></td>' +
         '<td>' + esc(sName(t.store_code)) + '</td><td class="wrap">' + reason + '</td>' +
@@ -753,6 +788,7 @@ dialog::backdrop{background:var(--scrim)}
   // ====== 頁內分頁（登記、抽查紀錄）；網址 #reg、#records 直接開啟；非客服部沒有登記，預設與 #reg 都落到抽查紀錄 ======
   function showPane(id) {
     if (id === 'paneReg' && !isCS()) id = 'paneRecords';
+    curPane = id; renderTodoGuide();
     Array.prototype.forEach.call(document.querySelectorAll('.pane'), function (p) { p.hidden = p.id !== id; });
     Array.prototype.forEach.call(document.querySelectorAll('button.pgtab'), function (b) {
       var on = b.getAttribute('data-pane') === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -760,7 +796,12 @@ dialog::backdrop{background:var(--scrim)}
   }
   var HASH_PANE = { reg: 'paneReg', records: 'paneRecords' };
   var PANE_HASH = { paneReg: 'reg', paneRecords: 'records' };
-  function openByHash() { showPane(HASH_PANE[(location.hash || '').replace('#', '')] || (isCS() ? 'paneReg' : 'paneRecords')); }
+  function openByHash() {
+    var h = (location.hash || '').replace('#', '');
+    if (h === 'todo') { goTodo(); return; }   // 從健檢單、預警榜頁的提示條過來：直接帶到單據清單
+    showPane(HASH_PANE[h] || (isCS() ? 'paneReg' : 'paneRecords'));
+  }
+  $('todoGuide').addEventListener('click', function (e) { if (e.target.closest('[data-todogo]')) goTodo(); });
   document.querySelector('.pgtabs').addEventListener('click', function (e) {
     var b = e.target.closest('button.pgtab'); if (!b) return;
     var id = b.getAttribute('data-pane'); showPane(id);

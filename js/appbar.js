@@ -84,6 +84,11 @@
     return Promise.resolve(sb.rpc('spot_badge')).then(function (r) {
       if (!r || r.error) return;
       showOn(spotBadge, r.data);
+      // 讓頁內（例如健檢單、預警榜頁）也能拿到張數，顯示「登記歷程」分頁紅點與導引條
+      try {
+        if (window.AppBadge) window.AppBadge.spot = Number(r.data) > 0 ? Number(r.data) : 0;
+        if (typeof window.CustomEvent === 'function' && window.dispatchEvent) window.dispatchEvent(new window.CustomEvent('appbadge-spot', { detail: Number(r.data) > 0 ? Number(r.data) : 0 }));
+      } catch (e) {}
     }, function () {});
   }
   function refresh() {

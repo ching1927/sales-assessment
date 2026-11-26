@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>待填導引樣品（假資料）</title>
+<style>
+:root{
+  --ink:#0A0A0A;--ink-2:#4A4F5A;--ink-3:#94A3B8;--line:rgba(15,23,42,.10);
+  --ci-black:#0A0A0A;--ci-blue:#0669EB;--ci-yellow:#D9FF00;
+  --danger:#DC2626;--danger-soft:rgba(220,38,38,.10);--warn:#D97706;--warn-soft:rgba(217,119,6,.14);
+  --font:-apple-system,BlinkMacSystemFont,"PingFang TC","Helvetica Neue",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);background:linear-gradient(180deg,#FAFAFA,#F0F2F5);min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+[hidden]{display:none!important}
+.note{max-width:1000px;margin:12px auto 0;padding:10px 16px;font-size:13px;color:var(--ink-2)}
+.who{max-width:1000px;margin:0 auto;padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap}
+.who button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px}
+.who button.on{background:var(--ci-black);color:#fff;border-color:var(--ci-black)}
+.bar{background:var(--ci-black);padding:10px 16px}
+.tabs{display:flex;gap:4px;max-width:1000px;margin:0 auto;overflow-x:auto;padding:4px;border-radius:999px;background:rgba(255,255,255,.09)}
+.tab{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;font-size:14px;font-weight:600;color:rgba(255,255,255,.82);white-space:nowrap;text-decoration:none}
+.tab.on{background:var(--ci-yellow);color:var(--ci-black)}
+.dot{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:var(--danger);color:#fff;font-size:13px;font-weight:800;box-shadow:0 0 0 3px rgba(220,38,38,.35);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}70%{box-shadow:0 0 0 8px rgba(220,38,38,0)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+main{max-width:1000px;margin:16px auto;padding:0 16px}
+h1{font-size:20px;margin:4px 0 12px}
+h2{font-size:16px;margin:18px 0 8px}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 18px;font-size:15px;font-weight:700;color:var(--ink-2)}
+.pill.on{background:var(--ci-blue);border-color:var(--ci-blue);color:#fff}
+.pill.alert{background:var(--danger);border-color:var(--danger);color:#fff;box-shadow:0 4px 14px rgba(220,38,38,.35)}
+.pill.alert .dot{background:#fff;color:var(--danger);box-shadow:none;animation:none}
+
+/* 新：頁面最上方的導引提示條（不論在哪個分頁都看得到） */
+.guide{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px 18px;border-radius:16px;background:var(--danger-soft);border:2px solid var(--danger);color:#7F1D1D;font-weight:800;font-size:17px;margin-bottom:14px}
+.guide .gt{flex:1;min-width:220px}
+.guide small{display:block;font-weight:500;font-size:14px;margin-top:3px}
+.guide .go{border:0;border-radius:12px;padding:12px 22px;font-weight:800;font-size:16px;background:var(--danger);color:#fff;box-shadow:0 4px 14px rgba(220,38,38,.35)}
+.guide.cs{background:#FFF7E6;border-color:var(--warn);color:#7A3E00}
+.guide.cs .go{background:var(--ci-black);box-shadow:none}
+
+/* 表格：待填列左側粗紅線；操作欄固定在右邊不會被擠出畫面 */
+.scroll{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px}
+table{width:100%;min-width:760px;border-collapse:collapse;font-size:14px}
+th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{background:#F6F8FB;font-size:12px;color:var(--ink-2)}
+tr.todo td:first-child{border-left:8px solid var(--danger)}
+td.stick,th.stick{position:sticky;right:0;background:#fff;box-shadow:-8px 0 12px -8px rgba(15,23,42,.18)}
+th.stick{background:#F6F8FB}
+tr.todo td.stick{background:#FFF5F5}
+.tag{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:800;background:#EEF2F7;color:var(--ink-2)}
+.tag.red{background:var(--danger-soft);color:var(--danger)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.ok{background:#E6F6EC;color:#15803D}
+/* 待填列的主按鈕：紅底 */
+.btn{border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-weight:800;font-size:14px;background:#fff}
+.btn.fill{background:var(--danger);border-color:var(--danger);color:#fff;box-shadow:0 3px 10px rgba(220,38,38,.35)}
+/* 指到那一列：閃爍＋箭頭提示 */
+tr.flash td{animation:flash 1.1s ease-in-out 3}
+tr.flash td.stick{animation:none;background:#FEE2E2}
+@keyframes flash{0%,100%{background:#fff}50%{background:#FEE2E2}}
+.arrow{display:inline-block;margin-right:8px;color:var(--danger);font-weight:800;animation:nudge .8s ease-in-out infinite alternate}
+@keyframes nudge{from{transform:translateX(0)}to{transform:translateX(-6px)}}
+@media (prefers-reduced-motion:reduce){tr.flash td{animation:none;background:#FEE2E2}.arrow{animation:none}}
+.sub{font-size:13px;color:var(--ink-2)}
+.info{background:#EEF4FF;border:1px solid #cfe0ff;border-radius:14px;padding:12px 16px;font-size:14px;color:#1e3a8a;margin-top:6px}
+.scope{font-size:13px;color:var(--ink-2);margin:6px 0 10px}
+</style>
+</head>
+<body>
+<div class="note">樣品（全部是假資料）。上方切換「店長」「客服部」；在「登記&健檢」「成績單&考核後台」裡，先點別的分頁（例如「健檢單」），看最上方的紅色提示條，再按「帶我去填」。</div>
+<div class="who" id="who">
+  <button class="on" data-r="mgr">店長（桃園店）</button>
+  <button data-r="cs">客服部</button>
+</div>
+<div class="bar"><div class="tabs" id="nav"></div></div>
+<main id="main"></main>
+
+<script>
+var role='mgr', page='check', sub='sheet', flashId='';
+var NAVS={
+  mgr:[['bo','成績單&考核後台',2],['check','登記&健檢',3],['req','待考回報',0]],
+  cs :[['bo','成績單&考核後台',4],['check','登記&健檢',7],['req','待考回報',0]]
+};
+function dot(n){return n>0?'<span class="dot">'+n+'</span>':''}
+function renderNav(){
+  document.getElementById('nav').innerHTML=NAVS[role].map(function(t){
+    return '<a class="tab'+(page===t[0]?' on':'')+'" href="#" data-p="'+t[0]+'">'+t[1]+dot(t[2])+'</a>';
+  }).join('');
+}
+function pills(list){
+  return '<div class="pills">'+list.map(function(p){
+    var c='pill'+(sub===p[0]?' on':'')+(p[2]>0?' alert':'');
+    return '<button class="'+c+'" data-s="'+p[0]+'">'+p[1]+dot(p[2])+'</button>';
+  }).join('')+'</div>';
+}
+function chip(d){var c=d>7?'red':d>3?'warn':'';return '<span class="tag '+c+'">已開單 '+d+' 天</span>'}
+
+/* 假資料：異常回覆單 */
+var TK=[
+  {id:'t1',who:'周小傑 MI-0077',store:'桃園',day:'2026-11-22',why:'沒確認需求就報價',d:4,todo:true},
+  {id:'t2',who:'吳小玲 MI-0085',store:'桃園',day:'2026-11-24',why:'問A答B',d:2,todo:true},
+  {id:'t3',who:'林小安 MI-0140',store:'新莊',day:'2026-11-17',why:'語氣不佳',d:9,todo:true},
+  {id:'t4',who:'張小美 MI-0098',store:'桃園',day:'2026-11-10',why:'漏答保固',d:0,todo:false}
+];
+function ticketTable(){
+  var list=TK.filter(function(t){return role==='cs'||t.store==='桃園'});
+  var n=list.filter(function(t){return t.todo}).length;
+  var h='<h2 id="ticketList">單據清單（異常回覆）</h2>'+
+   '<div class="scope">目前顯示：全部門市，共 '+list.length+' 張，其中 <b style="color:var(--danger)">'+n+' 張還沒回填輔導</b></div>'+
+   '<div class="scroll"><table><tr><th>日期</th><th>人員</th><th>門市</th><th>原因</th><th>輔導</th><th class="stick">操作</th></tr>';
+  list.forEach(function(t){
+    var fl=flashId===t.id;
+    h+='<tr id="row-'+t.id+'" class="'+(t.todo?'todo':'')+(fl?' flash':'')+'"><td>'+t.day+'</td><td>'+t.who+'</td><td>'+t.store+'</td><td>'+t.why+'</td>'+
+      '<td>'+(t.todo?'<span class="sub">尚未輔導</span> '+(role==='cs'?chip(t.d):''):'<span class="tag ok">已輔導</span>')+'</td>'+
+      '<td class="stick">'+(fl?'<span class="arrow">👉 請按這裡</span>':'')+(t.todo&&role==='mgr'?'<button class="btn fill">回填輔導</button>':role==='cs'?'<button class="btn">作廢</button>':'<button class="btn">編輯輔導</button>')+'</td></tr>';
+  });
+  return h+'</table></div>';
+}
+function guideBar(target,label){
+  var mine=TK.filter(function(t){return t.todo&&(role==='cs'||t.store==='桃園')}).length;
+  if(role==='mgr') return '<div class="guide" role="alert"><div class="gt">你有 '+mine+' 筆異常回覆單還沒回填輔導<small>在「登記歷程」分頁最下面的「單據清單」，按該筆的「回填輔導」。按右邊按鈕，我帶你過去。</small></div><button class="go" data-go="'+target+'">帶我去填 →</button></div>';
+  return '<div class="guide cs" role="alert"><div class="gt">店長還有 '+mine+' 筆異常回覆單沒填輔導，最久 9 天<small>只顯示，不會寄信催店長。想看是哪幾筆，按右邊按鈕。</small></div><button class="go" data-go="'+target+'">帶我去看 →</button></div>';
+}
+
+function pageCheck(){
+  var pl=[['reg','登記',0],['rec','登記歷程',role==='mgr'?3:7],['sheet','健檢單',0],['rank','預警榜',0]];
+  if(role==='mgr') pl.shift();
+  var h='<h1>登記&健檢</h1>'+pills(pl);
+  /* 不論在哪個分頁，最上方都有導引（已在登記歷程就不用再放） */
+  if(sub!=='rec') h+=guideBar('rec','');
+  if(sub==='rec'){
+    h+='<h2>人員登記狀態</h2><div class="scroll"><table><tr><th>人員</th><th>門市</th><th>本月異常回覆</th></tr><tr><td>周小傑</td><td>桃園</td><td>1</td></tr><tr><td>吳小玲</td><td>桃園</td><td>1</td></tr></table></div>'+ticketTable();
+  } else h+='<div class="info">（'+(sub==='sheet'?'健檢單':sub==='rank'?'異常回覆預警榜':'登記')+'分頁的內容，維持原樣）</div>';
+  return h;
+}
+function pageBo(){
+  var pl=[['hist','人員歷史',0],['coach','回填輔導紀錄',role==='mgr'?2:4],['recent','近期考核',0]];
+  var sb=sub==='hist'||sub==='coach'||sub==='recent'?sub:'hist';
+  var h='<h1>成績單&考核後台</h1>'+pills(pl);
+  if(sb!=='coach'){
+    h+='<div class="guide'+(role==='cs'?' cs':'')+'" role="alert"><div class="gt">'+(role==='mgr'?'你有 2 筆輔導紀錄還沒回填<small>在「回填輔導紀錄」分頁，按該筆的「回填輔導」。按右邊按鈕，我帶你過去。</small>':'店長還有 4 筆輔導紀錄沒回填，最久 9 天<small>只顯示，不會寄信催店長。</small>')+'</div><button class="go" data-go="coach">'+(role==='mgr'?'帶我去填 →':'帶我去看 →')+'</button></div>'+
+      '<div class="info">（'+(sb==='hist'?'人員歷史':'近期考核')+'分頁的內容，維持原樣）</div>';
+  } else {
+    h+='<h2 id="ticketList">回填輔導紀錄</h2><div class="scroll"><table><tr><th>開單日</th><th>人員</th><th>原因</th><th>輔導</th><th class="stick">操作</th></tr>'+
+    [['b1','王小明 MI-0123','新人考核未通過',4],['b2','陳小華 MI-0131','需複訓',1]].map(function(r){
+      var fl=flashId===r[0];
+      return '<tr id="row-'+r[0]+'" class="todo'+(fl?' flash':'')+'"><td>2026-11-2'+(r[3]>2?1:4)+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td><span class="sub">尚未輔導</span> '+(role==='cs'?chip(r[3]):'')+'</td><td class="stick">'+(fl?'<span class="arrow">👉 請按這裡</span>':'')+(role==='mgr'?'<button class="btn fill">回填輔導</button>':'<button class="btn">作廢</button>')+'</td></tr>';
+    }).join('')+'</table></div>';
+  }
+  return h;
+}
+function render(){
+  renderNav();
+  document.getElementById('main').innerHTML= page==='check'?pageCheck():page==='bo'?pageBo():'<h1>待考回報</h1><div class="info">這頁沒有變動（已有自己的待填提示）。</div>';
+}
+function goFirst(){
+  setTimeout(function(){
+    var row=document.querySelector('tr.todo');
+    if(row){ flashId=row.id.replace('row-',''); render(); var r=document.getElementById(row.id); r.scrollIntoView({behavior:'smooth',block:'center'}); }
+  },50);
+}
+document.getElementById('who').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;role=b.dataset.r;flashId='';sub=page==='check'?'sheet':'hist';
+  [].forEach.call(document.querySelectorAll('#who button'),function(x){x.classList.toggle('on',x===b)});render()});
+document.getElementById('nav').addEventListener('click',function(e){var a=e.target.closest('a');if(!a)return;e.preventDefault();page=a.dataset.p;flashId='';sub=page==='check'?'sheet':'hist';render()});
+document.getElementById('main').addEventListener('click',function(e){
+  var g=e.target.closest('[data-go]'); if(g){ sub=g.dataset.go; flashId=''; render(); goFirst(); return; }
+  var b=e.target.closest('.pill'); if(b){ sub=b.dataset.s; flashId=''; render(); }
+});
+render();
+</script>
+</body>
+</html>
