@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>店長操作說明（樣品）</title>
+<style>
+@page{size:A4;margin:0}
+:root{--ink:#0A0A0A;--ink-2:#4A4F5A;--line:#E3E7ED;--blue:#0669EB;--yellow:#D9FF00;--red:#DC2626;--soft:#F5F7FA}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;color:var(--ink);background:#d8dce2}
+.page{width:210mm;height:297mm;background:#fff;margin:0 auto 10mm;position:relative;overflow:hidden;page-break-after:always;padding:16mm 16mm 18mm}
+@media print{body{background:#fff}.page{margin:0}}
+.foot{position:absolute;left:16mm;right:16mm;bottom:9mm;display:flex;justify-content:space-between;font-size:10px;color:#94A3B8;border-top:1px solid var(--line);padding-top:6px}
+/* 封面 */
+.cover{background:#0A0A0A;color:#fff;padding:0}
+.cover .bar{position:absolute;left:0;top:0;bottom:0;width:9mm;background:var(--yellow)}
+.cover .in{position:absolute;left:28mm;right:20mm;top:60mm}
+.cover img{height:20mm;margin-bottom:22mm;display:block}
+.cover small{color:var(--yellow);letter-spacing:3px;font-weight:700;font-size:13px}
+.cover h1{font-size:44px;line-height:1.25;margin:6mm 0 8mm}
+.cover p{font-size:16px;color:rgba(255,255,255,.75);line-height:1.8}
+.cover .ver{position:absolute;left:28mm;bottom:18mm;font-size:12px;color:rgba(255,255,255,.5)}
+/* 標題 */
+.hd{display:flex;align-items:center;gap:10px;margin-bottom:8mm}
+.hd .no{background:var(--ink);color:var(--yellow);border-radius:10px;width:34px;height:34px;display:grid;place-items:center;font-weight:900;font-size:18px}
+.hd h2{font-size:26px;font-weight:900}
+.hd .sub{margin-left:auto;font-size:12px;color:var(--ink-2)}
+h3{font-size:16px;margin:7mm 0 3mm;display:flex;align-items:center;gap:8px}
+h3::before{content:"";width:6px;height:18px;background:var(--blue);border-radius:3px}
+.lead{font-size:14px;color:var(--ink-2);line-height:1.8;margin-bottom:5mm}
+/* 步驟 */
+.steps{list-style:none}
+.steps li{display:flex;gap:12px;margin-bottom:5mm;font-size:14.5px;line-height:1.7}
+.steps .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-weight:900;display:grid;place-items:center;font-size:14px;margin-top:1px}
+.steps b{font-weight:800}
+.k{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-weight:700;white-space:nowrap}
+.k.red{background:rgba(220,38,38,.1);border-color:var(--red);color:var(--red)}
+.k.y{background:var(--yellow);border-color:var(--yellow)}
+.note{background:#FFF8D6;border-left:6px solid #E0B800;border-radius:8px;padding:10px 14px;font-size:13.5px;line-height:1.7;margin:5mm 0}
+.warn{background:rgba(220,38,38,.08);border-left:6px solid var(--red);border-radius:8px;padding:10px 14px;font-size:13.5px;line-height:1.7;margin:5mm 0}
+/* 示意畫面 */
+.mock{border:1.5px solid #CBD2DC;border-radius:12px;overflow:hidden;background:#fff;margin:4mm 0 6mm;box-shadow:0 2px 8px rgba(15,23,42,.08)}
+.mock .cap{background:#EEF1F5;font-size:11px;color:var(--ink-2);padding:4px 10px;border-bottom:1px solid #CBD2DC}
+.mock .body{padding:10px 12px}
+.nav{background:#0A0A0A;border-radius:999px;padding:5px;display:flex;gap:4px}
+.tab{padding:6px 12px;border-radius:999px;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.tab.on{background:var(--yellow);color:#0A0A0A}
+.dot{background:var(--red);color:#fff;border-radius:999px;min-width:18px;height:18px;padding:0 5px;display:inline-grid;place-items:center;font-size:11px;font-weight:800;box-shadow:0 0 0 2px rgba(220,38,38,.35)}
+.callout{position:relative}
+.cn{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;font-size:12px;font-weight:900;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);z-index:3}
+.ring{outline:3px solid var(--red);outline-offset:2px;border-radius:10px}
+.pills{display:flex;gap:6px;margin:10px 0 8px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.pill.alert{background:var(--red);color:#fff;border-color:var(--red)}
+.guide{display:flex;gap:10px;align-items:center;background:rgba(220,38,38,.1);border:2px solid var(--red);border-radius:12px;padding:8px 12px;font-size:12px;font-weight:800;color:#7F1D1D;margin-bottom:8px}
+.guide small{display:block;font-weight:500;font-size:10.5px}
+.guide .go{margin-left:auto;background:var(--red);color:#fff;border-radius:8px;padding:6px 12px;font-size:11.5px;white-space:nowrap}
+table.t{width:100%;border-collapse:collapse;font-size:11.5px}
+table.t th{background:#F3F5F8;padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);font-size:11px;color:var(--ink-2)}
+table.t td{padding:7px 8px;border-bottom:1px solid var(--line)}
+table.t tr.todo td:first-child{border-left:6px solid var(--red)}
+.btn{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-weight:800;font-size:11px;background:#fff}
+.btn.red{background:var(--red);color:#fff;border-color:var(--red)}
+.dlg{width:78%;margin:0 auto;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fff;box-shadow:0 6px 20px rgba(15,23,42,.18)}
+.dlg h4{font-size:15px;margin-bottom:6px}
+.dlg .lb{font-size:11px;color:var(--ink-2);font-weight:700;margin:8px 0 3px}
+.dlg .in{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px}
+.dlg .ck{display:flex;gap:8px;align-items:center;color:var(--red);font-weight:800;font-size:14px;margin-top:10px}
+.dlg .box{width:20px;height:20px;border:2px solid var(--red);border-radius:4px;display:grid;place-items:center;color:var(--red);font-size:14px}
+.dlg .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.dlg .btns .p{background:var(--blue);color:#fff;border-radius:8px;padding:5px 14px;font-weight:800;font-size:12px}
+/* 目錄 */
+.toc li{list-style:none;display:flex;align-items:baseline;gap:10px;font-size:16px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.toc .no{background:var(--ink);color:var(--yellow);border-radius:8px;width:28px;height:28px;display:grid;place-items:center;font-weight:900;flex:none}
+.toc .d{margin-left:auto;font-size:12px;color:var(--ink-2)}
+.tag{font-size:11px;background:var(--yellow);border-radius:6px;padding:1px 7px;font-weight:800;margin-left:6px}
+</style>
+</head>
+<body>
+
+<!-- 封面 -->
+<section class="page cover">
+  <div class="bar"></div>
+  <div class="in">
+    <img src="../img/logo-white.png" alt="貳輪嶼 MOTOR ISLAND">
+    <small>STORE MANAGER GUIDE</small>
+    <h1>業務考核系統<br>店長操作說明</h1>
+    <p>登入、看成績、回填輔導紀錄、登記與健檢、待考回報<br>一步一步照著做就可以。</p>
+  </div>
+  <div class="ver">樣品版・2026 年 11 月　　貳輪嶼 MOTOR ISLAND</div>
+</section>
+
+<!-- 目錄 -->
+<section class="page">
+  <div class="hd"><h2>目錄</h2></div>
+  <ul class="toc">
+    <li><span class="no">1</span>登入與認識畫面<span class="d">第 3 頁</span></li>
+    <li><span class="no">2</span>回填輔導紀錄（成績單&amp;考核後台）<span class="d">第 4 頁</span></li>
+    <li><span class="no">3</span>看成績單、下載成績單 PDF<span class="d">下一版</span></li>
+    <li><span class="no">4</span>登記歷程：回填異常回覆單的輔導<span class="d">下一版</span></li>
+    <li><span class="no">5</span>健檢單與異常回覆預警榜、各門市面向分析<span class="d">下一版</span></li>
+    <li><span class="no">6</span>待考回報：回報新人待考、確認考核時間<span class="d">下一版</span></li>
+    <li><span class="no">7</span>紅點對照表與常見問題<span class="d">下一版</span></li>
+  </ul>
+  <div class="note"><b>這是樣品：</b>先放封面、目錄與 2 頁內容（第 1、2 章），確認版面和寫法 OK，再把其餘章節補完。示意畫面都是簡化後的圖示，不是真實截圖。</div>
+  <div class="foot"><span>業務考核系統｜店長操作說明</span><span>2</span></div>
+</section>
+
+<!-- 第 1 章 -->
+<section class="page">
+  <div class="hd"><span class="no">1</span><h2>登入與認識畫面</h2><span class="sub">第一次使用先看這頁</span></div>
+  <ol class="steps">
+    <li><span class="n">1</span><div><b>打開系統網址</b>，按 <span class="k">使用公司 Google 帳號登入</span>。<br>網址：<b>（請填入系統網址）</b></div></li>
+    <li><span class="n">2</span><div>選你的公司帳號（<b>@2motor.tw</b>）。用私人信箱無法登入。</div></li>
+    <li><span class="n">3</span><div>登入後，最上方是<b>導覽列</b>，店長會看到下面 4 個功能。點一下就切換。</div></li>
+  </ol>
+
+  <div class="mock"><div class="cap">示意畫面：最上方的導覽列</div><div class="body callout">
+    <div class="nav">
+      <span class="tab">人員名冊</span>
+      <span class="tab">成績單&amp;考核後台 <span class="dot">2</span></span>
+      <span class="tab">待考回報 <span class="dot">1</span></span>
+      <span class="tab on">登記&amp;健檢 <span class="dot">3</span></span>
+    </div>
+    <span class="cn" style="left:14px;top:-2px">A</span>
+    <span class="cn" style="right:40px;top:-2px;display:none">B</span>
+  </div></div>
+
+  <h3>4 個功能各做什麼</h3>
+  <table class="t">
+    <tr><th style="width:26%">導覽列</th><th>你可以做什麼</th></tr>
+    <tr><td><b>人員名冊</b></td><td>查看自己門市的人員名單（只能看，不能改）。</td></tr>
+    <tr><td><b>成績單&amp;考核後台</b></td><td>看門市人員的成績單與分析；回填新人考核沒過的輔導紀錄。</td></tr>
+    <tr><td><b>待考回報</b></td><td>回報新人或需複檢的夥伴準備好要考核；查看客服部排定的考核時間。</td></tr>
+    <tr><td><b>登記&amp;健檢</b></td><td>查看異常回覆單並回填輔導；下載健檢單；看各門市排名與面向分析。</td></tr>
+  </table>
+
+  <h3>導覽列上的紅色數字是什麼？</h3>
+  <div class="note"><b>紅色數字＝你還有事情沒做。</b>點進去把事情做完，數字就會消失。<br>數字沒有消失，代表還有沒填完的，頁面最上方會出現紅色提示條，按 <span class="k red">帶我去填 →</span> 就會帶你到要填的地方。</div>
+  <div class="foot"><span>業務考核系統｜店長操作說明</span><span>3</span></div>
+</section>
+
+<!-- 第 2 章 -->
+<section class="page">
+  <div class="hd"><span class="no">2</span><h2>回填輔導紀錄</h2><span class="sub">成績單&amp;考核後台</span></div>
+  <p class="lead">夥伴的新人考核沒通過時，系統會開一筆「回填輔導紀錄」。你跟夥伴完成輔導與溝通後，要到系統回填。</p>
+  <ol class="steps">
+    <li><span class="n">1</span><div>點導覽列的 <span class="k">成績單&amp;考核後台</span>。如果你在別的頁面，頁面最上方會有紅色提示條，按 <span class="k red">帶我去填 →</span>。</div></li>
+    <li><span class="n">2</span><div>進入 <span class="k red">回填輔導紀錄</span> 分頁（有待填時會是紅色）。待填的那一列左邊有粗紅線。</div></li>
+    <li><span class="n">3</span><div>按該列最右邊紅色的 <span class="k red">查看並回填</span>。</div></li>
+  </ol>
+
+  <div class="mock"><div class="cap">示意畫面：回填輔導紀錄清單</div><div class="body">
+    <div class="pills"><span class="pill">人員歷史</span><span class="pill alert">回填輔導紀錄 <span class="dot" style="background:#fff;color:#DC2626;box-shadow:none">2</span></span><span class="pill">近期考核</span></div>
+    <table class="t">
+      <tr><th>考生</th><th>來源成績單</th><th>狀態</th><th style="text-align:right">操作</th></tr>
+      <tr class="todo"><td>王小明</td><td>2026-11-21</td><td>尚未輔導</td><td style="text-align:right;position:relative"><span class="btn red ring">查看並回填</span></td></tr>
+      <tr><td>張小美</td><td>2026-11-10</td><td>已輔導</td><td style="text-align:right"><span class="btn">查看</span></td></tr>
+    </table>
+  </div></div>
+
+  <ol class="steps" start="4">
+    <li><span class="n">4</span><div>跳出視窗後：<b>選輔導日期</b>，並<b>勾選紅字的「已完成輔導＆溝通」</b>（一定要勾）。想補充再寫在「其他」，不寫也可以。</div></li>
+  </ol>
+
+  <div class="mock"><div class="cap">示意畫面：回填視窗</div><div class="body" style="background:#F5F7FA">
+    <div class="dlg">
+      <h4>回填輔導</h4>
+      <div class="lb">輔導日期</div><div class="in">2026/11/26</div>
+      <div class="ck"><span class="box">✓</span>已完成輔導＆溝通</div>
+      <div class="lb">其他（選填）</div><div class="in" style="color:#94A3B8;height:34px">想補充再寫，不寫也可以</div>
+      <div class="btns"><span class="btn">取消</span><span class="p">儲存</span></div>
+    </div>
+  </div></div>
+
+  <ol class="steps" start="5">
+    <li><span class="n">5</span><div>按 <span class="k" style="background:var(--blue);color:#fff;border-color:var(--blue)">儲存</span>。這一筆就完成了，導覽列的紅色數字會少 1。</div></li>
+  </ol>
+  <div class="note"><b>第一次回填後：</b>如果是需要再考的夥伴，儲存後系統會直接帶你到「待考回報」，記得順手回報待考（見第 6 章）。</div>
+  <div class="foot"><span>業務考核系統｜店長操作說明</span><span>4</span></div>
+</section>
+
+</body>
+</html>
