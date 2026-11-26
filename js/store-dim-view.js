@@ -36,6 +36,11 @@
 '.sdm th.nm,.sdm td.nm{text-align:left}' +
 '.sdm td.nm{font-weight:700}' +
 '.sdm td.rk{font-weight:900;font-size:17px;width:50px}' +
+// 名次、門市兩欄固定在左邊，左右拖曳或捲動時不會被捲走
+'.sdm th:nth-child(1),.sdm td:nth-child(1){position:sticky;left:0;z-index:2;background:#fff;width:54px;min-width:54px}' +
+'.sdm th:nth-child(2),.sdm td:nth-child(2){position:sticky;left:54px;z-index:2;background:#fff;box-shadow:6px 0 8px -6px rgba(15,23,42,.28)}' +
+'.sdm th:nth-child(1),.sdm th:nth-child(2){background:#F3F5F8;z-index:3}' +
+'.sdm tr.me td:nth-child(1){background:#FFFBD6}' +
 '.sdm .cell{border-radius:6px;padding:5px 2px;font-weight:700;min-width:62px}' +
 '.sdm .cell small{display:block;font-weight:500;font-size:11px;opacity:.75}' +
 '.sdm th.sel{background:#FFF3C4}' +
@@ -134,7 +139,7 @@
       '<div class="rd"><div class="chart">' + chart + '</div><div class="side"><h4>' + esc(item.store_name) + (!isAll && item.mine ? '<span class="you">← 你的門市</span>' : '') + '</h4>' + summary +
       '<div class="sum">' + cardHtml('g', '被勾比例最低（' + lab + '）', sm.best) + cardHtml('r', '被勾比例最高（' + lab + '）', sm.worst) +
       cardHtml('b', '全公司最常被勾的面向', top) + '</div></div></div>' +
-      '<div class="tw"><table><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="tw scroll"><table><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
       '<p class="hint">・星狀圖半徑＝1 − 被勾比例；表格紅色越深＝該面向被勾的比例越高（越需要加強）；表格依「排序依據」排列，不影響星狀圖。<br>' +
       '・比例＝該面向被勾次數 ÷ 該門市期間內有勾面向的待加強回覆筆數；只算待加強回覆，優良回覆勾的面向、舊制紀錄不計入。<br>' +
       '・「全部面向合計」＝各面向被勾次數加總 ÷ 筆數，即平均每筆勾幾個面向，可能大於 1。<br>' +

@@ -411,31 +411,6 @@ dialog::backdrop{background:var(--scrim)}
     return { from: $('dmFrom').value, to: dmMode === 'one' ? $('dmFrom').value : $('dmTo').value, sortKey: key, generated: g, store: dmStore || '',
       rows: SD.rank(dimRows, key, isMgr() ? me.store_code : null) };
   }
-  // 數字表可以用滑鼠按住左右拖曳（原本只能拉最下面的捲軸）；手機觸控本來就能滑
-  (function () {
-    var drag = null, moved = false;
-    function scroller(el) {
-      for (var n = el; n && n !== document.body; n = n.parentNode) {
-        if (n.nodeType === 1 && n.scrollWidth > n.clientWidth + 2 && /(auto|scroll)/.test(getComputedStyle(n).overflowX)) return n;
-        if (n.id === 'dmSheet') break;
-      }
-      return null;
-    }
-    var box = $('dmSheet').parentNode;
-    box.style.cursor = 'grab';
-    box.addEventListener('mousedown', function (e) {
-      if (e.button !== 0 || e.target.closest('input,select,button,a,textarea')) return;
-      var sc = scroller(e.target); if (!sc) return;
-      drag = { sc: sc, x: e.clientX, left: sc.scrollLeft }; moved = false; box.style.cursor = 'grabbing'; e.preventDefault();
-    });
-    window.addEventListener('mousemove', function (e) {
-      if (!drag) return;
-      var dx = e.clientX - drag.x; if (Math.abs(dx) > 3) moved = true;
-      drag.sc.scrollLeft = drag.left - dx;
-    });
-    window.addEventListener('mouseup', function () { if (drag) { drag = null; box.style.cursor = 'grab'; } });
-    box.addEventListener('click', function (e) { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
-  })();
   function renderDim() {
     var has = dimRows.length > 0, err = !!$('dmMsg').textContent, rg = dmRange();
     $('rkInfo').textContent = dimLoading ? '載入中…' : err || !rg ? '' : rg.label + '　共 ' + dimRows.length + ' 家門市';
