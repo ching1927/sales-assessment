@@ -920,7 +920,7 @@ dialog.rr.lb img{display:block;max-width:100%;max-height:75vh;margin:0 auto;bord
     var openDate = dateOf(t.created_at), td = today(), had = t.status === 'coached';
     var D = makeDlg('<h2>' + (had ? '編輯輔導紀錄' : '回填已輔導') + '</h2><p>' + esc(tName(t)) + '（' + esc(t.employee_id) + '）</p>' +
       '<label class="field">輔導日期（不可早於開單日 ' + esc(openDate) + '、不可晚於今天）<input class="ctrl" type="date" id="gDate" min="' + esc(openDate) + '" max="' + esc(td) + '" value="' + esc(had && t.coached_on ? t.coached_on : td) + '"></label>' +
-      '<label class="field" style="display:flex;gap:12px;align-items:center;font-size:18px;font-weight:700;margin-top:16px"><input type="checkbox" id="gDone" style="width:28px;height:28px;margin:0;flex:none"> 已完成輔導＆溝通</label>' +
+      '<label class="field" style="display:flex;gap:12px;align-items:center;font-size:18px;font-weight:700;margin-top:16px;color:#DC2626"><input type="checkbox" id="gDone" style="width:28px;height:28px;margin:0;flex:none;accent-color:#DC2626"> 已完成輔導＆溝通</label>' +
       '<label class="field">其他（選填）<textarea class="ctrl" id="gNote" placeholder="想補充再寫，不寫也可以"></textarea></label>' +
       '<div class="msg err" id="gErr" role="alert" hidden></div><div class="actions"><button class="btn" type="button" data-no="1">取消</button><button class="btn primary" type="submit" id="gOk">儲存</button></div>');
     D.q('#gNote').value = had ? CoachedCore.otherOf(t.coach_note) : '';
