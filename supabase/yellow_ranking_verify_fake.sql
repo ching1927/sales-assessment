@@ -139,18 +139,18 @@ declare
   cs text := 'vr-cs@2motor.tw';
 begin
   -- 1. 數量：Q1 / Q2 / 全年
-  perform pg_temp.vr_eq('數量', 'Q1：甲店3張/5人、乙店2張/1人（MI-9709 已換到甲店，現況人數乙店只剩1人）、丙店無單不列',
-    'ZZ-Y1=3/5,ZZ-Y2=2/1', pg_temp.vr_rank('authenticated', cs, date '2026-01-01', date '2026-03-31'));
+  perform pg_temp.vr_eq('數量', 'Q1：甲店3張/5人、乙店2張/1人（MI-9709 已換到甲店，現況人數乙店只剩1人）、丙店無單無人也列出（0/0）',
+    'ZZ-Y1=3/5,ZZ-Y2=2/1,ZZ-Y3=0/0', pg_temp.vr_rank('authenticated', cs, date '2026-01-01', date '2026-03-31'));
   perform pg_temp.vr_eq('數量', 'Q2：甲店黃單 2 張（4/1 與 5/5）、丙店 1 張（6/30）、乙店只有人數',
     'ZZ-Y1=2/5,ZZ-Y2=0/1,ZZ-Y3=1/0', pg_temp.vr_rank('authenticated', cs, date '2026-04-01', date '2026-06-30'));
   perform pg_temp.vr_eq('數量', '全年：甲店5張、乙店2張、丙店1張',
     'ZZ-Y1=5/5,ZZ-Y2=2/1,ZZ-Y3=1/0', pg_temp.vr_rank('authenticated', cs, date '2026-01-01', date '2026-12-31'));
   -- 2. 日期邊界
   perform pg_temp.vr_eq('邊界', '3/31 當天算 Q1、4/1 當天算 Q2：只查 3/31 → 甲店 1 張',
-    'ZZ-Y1=1/5,ZZ-Y2=0/1', pg_temp.vr_rank('authenticated', cs, date '2026-03-31', date '2026-03-31'));
-  perform pg_temp.vr_eq('邊界', '只查 4/1 → 甲店 1 張', 'ZZ-Y1=1/5,ZZ-Y2=0/1', pg_temp.vr_rank('authenticated', cs, date '2026-04-01', date '2026-04-01'));
-  perform pg_temp.vr_eq('邊界', '沒有任何黃單的期間：只列有人數的門市（張數 0）',
-    'ZZ-Y1=0/5,ZZ-Y2=0/1', pg_temp.vr_rank('authenticated', cs, date '2025-01-01', date '2025-03-31'));
+    'ZZ-Y1=1/5,ZZ-Y2=0/1,ZZ-Y3=0/0', pg_temp.vr_rank('authenticated', cs, date '2026-03-31', date '2026-03-31'));
+  perform pg_temp.vr_eq('邊界', '只查 4/1 → 甲店 1 張', 'ZZ-Y1=1/5,ZZ-Y2=0/1,ZZ-Y3=0/0', pg_temp.vr_rank('authenticated', cs, date '2026-04-01', date '2026-04-01'));
+  perform pg_temp.vr_eq('邊界', '沒有任何黃單的期間：所有門市都列出（張數 0，沒人的門市人數 0）',
+    'ZZ-Y1=0/5,ZZ-Y2=0/1,ZZ-Y3=0/0', pg_temp.vr_rank('authenticated', cs, date '2025-01-01', date '2025-03-31'));
   -- 3. 作廢不算、紅單不算
   perform pg_temp.vr_eq('規則', '作廢的黃單與紅單都不算（Q1 乙店只有 2 張有效黃單）',
     '2', pg_temp.vr_as('authenticated', cs, $q$select tickets::text from public.checkup_yellow_ranking(date '2026-01-01', date '2026-03-31') where store_code = 'ZZ-Y2'$q$));
