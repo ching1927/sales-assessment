@@ -17,7 +17,20 @@
  *   StoreDimCore.maxRate(ranked)              全表最大的單格比例（紅色深淺的基準）
  *   StoreDimCore.formatPct(count, weak)       '12%'；weak 為 0 回 '—'
  *   StoreDimCore.formatAvg(row)               '1.3'（平均每筆勾幾個面向，小數 1 位）；weak 為 0 回 '—'
- *   StoreDimCore.fileBase(year, period)       下載檔名（不含副檔名）：各門市面向分析_2026_第4季
+ *   StoreDimCore.fileBase(year, period)       下載檔名（不含副檔名）：各門市面向分析_2026_第4季（舊版，年度／期間用）
+ *
+ * 月份期間與星狀圖（老闆 2026-11-26 改版）：
+ *   StoreDimCore.SHORT                        七面向簡稱（星狀圖軸標籤）
+ *   StoreDimCore.monthRange(from, to)         'YYYY-MM' 起訖 -> { from:'YYYY-MM-01', to:'YYYY-MM-最後一天', label }；空值、格式錯、迄早於起回 null
+ *   StoreDimCore.monthLabel(from, to)         '2026年11月'（同月）或 '2026年10月～2026年12月'
+ *   StoreDimCore.monthFileBase(from, to)      各門市面向分析_2026-11（同月）或 各門市面向分析_2026-10_2026-12
+ *   StoreDimCore.taipeiToday(nowMs)           台北今天 'YYYY-MM-DD'
+ *   StoreDimCore.presetRange(kind, today)     快速鈕 'cur'本月／'prev'上月／'q'本季／'y'今年 -> { from, to }（'YYYY-MM'）；today 為台北今天
+ *   StoreDimCore.companyTotal(ranked)         全公司彙總列（各門市 weak 與 counts 加總），格式同 rank 的列，store_name＝'全公司'
+ *   StoreDimCore.pickItem(ranked, code)       code 為空或找不到＝全公司彙總，否則該門市那一列
+ *   StoreDimCore.radii(item)                  星狀圖七軸半徑＝1 − 被勾比例（0~1）；weak 為 0（沒資料）回 null
+ *   StoreDimCore.weakest(item)                { idx:[…], names:[…], rate }：比例最高的面向（並列全列）；沒資料或最高比例為 0 時 idx 為 []
+ *   StoreDimCore.storeOptions(rows)           門市下拉選項 [{code,name}]，依門市固定順序
  */
 (function (root) {
   var isNode = typeof module !== 'undefined' && module.exports;
@@ -105,7 +118,82 @@
     return '各門市面向分析_' + year + '_' + (period === 'Y' ? '全年' : '第' + String(period).slice(1) + '季');
   }
 
+  // ===== 月份期間 =====
+  var SHORT = ['資訊正確', '預設訊息', '問題掌握', '主動引導', '風險意識', '語氣禮貌', '文字品質'];
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function parseMonth(s) {
+    var m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(String(s == null ? '' : s));
+    return m ? { y: Number(m[1]), m: Number(m[2]) } : null;
+  }
+  function ym(y, m) { return y + '-' + p2(m); }
+  function monthLabel(from, to) {
+    var a = parseMonth(from), b = parseMonth(to);
+    if (!a || !b) return '';
+    var x = a.y + '年' + a.m + '月', y = b.y + '年' + b.m + '月';
+    return x === y ? x : x + '～' + y;
+  }
+  function monthRange(from, to) {
+    var a = parseMonth(from), b = parseMonth(to);
+    if (!a || !b || a.y * 12 + a.m > b.y * 12 + b.m) return null;
+    var last = new Date(Date.UTC(b.y, b.m, 0)).getUTCDate();   // 迄月最後一天（閏年自動處理）
+    return { from: ym(a.y, a.m) + '-01', to: ym(b.y, b.m) + '-' + p2(last), label: monthLabel(from, to) };
+  }
+  function monthFileBase(from, to) {
+    return '各門市面向分析_' + from + (from === to ? '' : '_' + to);
+  }
+  function taipeiToday(nowMs) {
+    return new Date((typeof nowMs === 'number' ? nowMs : Date.now()) + 8 * 3600000).toISOString().slice(0, 10);
+  }
+  function presetRange(kind, today) {
+    var t = parseMonth(String(today || '').slice(0, 7)) || parseMonth(taipeiToday().slice(0, 7));
+    var cur = ym(t.y, t.m);
+    if (kind === 'prev') { var py = t.m === 1 ? t.y - 1 : t.y, pm = t.m === 1 ? 12 : t.m - 1; return { from: ym(py, pm), to: ym(py, pm) }; }
+    if (kind === 'y') return { from: ym(t.y, 1), to: cur };
+    if (kind === 'q') return { from: ym(t.y, Math.floor((t.m - 1) / 3) * 3 + 1), to: cur };
+    return { from: cur, to: cur };
+  }
+
+  // ===== 星狀圖 =====
+  function companyTotal(ranked) {
+    var counts = DIMS.map(function () { return 0; }), weak = 0;
+    (ranked || []).forEach(function (r) {
+      weak += r.weak;
+      r.counts.forEach(function (c, i) { counts[i] += c; });
+    });
+    var o = { store_code: '', store_name: '全公司', weak: weak, counts: counts, mine: false, rank: null };
+    o.total = counts.reduce(function (a, v) { return a + v; }, 0);
+    o.rates = counts.map(function (c) { return weak > 0 ? c / weak : null; });
+    o.avg = weak > 0 ? o.total / weak : null;
+    o.tops = topsOf(counts);
+    return o;
+  }
+  function pickItem(ranked, code) {
+    if (code) {
+      var hit = (ranked || []).filter(function (r) { return r.store_code === code; })[0];
+      if (hit) return hit;
+    }
+    return companyTotal(ranked);
+  }
+  function radii(item) {
+    if (!item || !(item.weak > 0)) return null;
+    return item.rates.map(function (r) { return Math.max(0, Math.min(1, 1 - r)); });
+  }
+  function weakest(item) {
+    if (!item || !(item.weak > 0)) return { idx: [], names: [], rate: 0 };
+    var mx = item.rates.reduce(function (a, v) { return v > a ? v : a; }, 0);
+    if (!(mx > 0)) return { idx: [], names: [], rate: 0 };
+    var idx = [];
+    item.rates.forEach(function (v, i) { if (v === mx) idx.push(i); });
+    return { idx: idx, names: idx.map(function (i) { return DIMS[i]; }), rate: mx };
+  }
+  function storeOptions(rows) {
+    var list = (rows || []).map(function (r) { return { store_code: r.store_code, store_name: r.store_name || r.store_code }; });
+    return CheckupCore.sortStores(list, 'store_code').map(function (r) { return { code: r.store_code, name: r.store_name }; });
+  }
+
   var api = {
+    SHORT: SHORT, monthRange: monthRange, monthLabel: monthLabel, monthFileBase: monthFileBase, taipeiToday: taipeiToday,
+    presetRange: presetRange, companyTotal: companyTotal, pickItem: pickItem, radii: radii, weakest: weakest, storeOptions: storeOptions,
     DIMS: DIMS, normKey: normKey, keyLabel: keyLabel, rank: rank, summary: summary, maxRate: maxRate,
     formatPct: formatPct, formatAvg: formatAvg, fileBase: fileBase
   };

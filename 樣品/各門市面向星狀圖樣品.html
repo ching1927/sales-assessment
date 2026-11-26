@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>各門市面向星狀圖樣品（假資料）</title>
+<style>
+:root{--ink:#0A0A0A;--ink-2:#4A4F5A;--line:rgba(15,23,42,.10);--ci-black:#0A0A0A;--ci-blue:#0669EB;--ci-yellow:#D9FF00;--danger:#DC2626;
+--font:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Helvetica Neue",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);background:linear-gradient(180deg,#FAFAFA,#F0F2F5);min-height:100vh;padding-bottom:40px}
+.note{max-width:1100px;margin:12px auto 0;padding:10px 16px;font-size:13px;color:var(--ink-2)}
+main{max-width:1100px;margin:0 auto;padding:0 16px}
+.pgtabs{display:flex;gap:6px;padding:5px;border-radius:999px;background:#E6E9EE;width:max-content;max-width:100%;overflow-x:auto;margin-bottom:14px}
+.pgtab{padding:9px 22px;border-radius:999px;border:0;background:transparent;font-size:15px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.pgtab.on{background:var(--ci-black);color:var(--ci-yellow)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px}
+.sw{display:inline-flex;background:#EEF1F5;border-radius:999px;padding:4px;gap:4px;margin-bottom:12px}
+.sw button{border:0;background:transparent;padding:9px 20px;border-radius:999px;font-weight:800;font-size:15px;color:var(--ink-2);font-family:inherit}
+.sw button.on{background:var(--ci-blue);color:#fff}
+.ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:14px;color:var(--ink-2)}
+select,input[type=month]{font:inherit;padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.seg{display:inline-flex;background:#EEF1F5;border-radius:12px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:10px;font-weight:800;font-size:14px;color:var(--ink-2);font-family:inherit;cursor:pointer}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.dl{display:flex;gap:8px;margin-left:auto}
+.btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 16px;font-weight:800;font-size:14px}
+.btn.p{background:var(--ci-blue);color:#fff;border-color:var(--ci-blue)}
+.hd{background:#0A0A0A;color:#fff;padding:10px 24px;border-radius:8px;position:relative;margin:6px 0 14px;overflow:hidden}
+.hd::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:#D9FF00}
+.hd small{color:#D9FF00;font-weight:700;letter-spacing:1.5px;font-size:11px}
+.hd h3{font-size:20px;font-weight:800}
+.hd p{font-size:12.5px;color:rgba(255,255,255,.75)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:16px;padding:10px 10px 12px;background:#fff;text-align:center}
+.card.all{background:#F6F8FB}
+.card.me{border:2px solid #E0B800;background:#FFFDF0}
+.card h4{font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:6px;padding:0 4px}
+.card h4 small{font-weight:600;font-size:12px;color:var(--ink-2)}
+.you{font-size:11px;color:#8A6D00;font-weight:800}
+.weak{margin-top:4px;font-size:12.5px;color:var(--ink-2)}
+.weak b{color:#B53A2D}
+.empty{height:190px;display:grid;place-items:center;color:#94A3B8;font-size:14px}
+.leg{display:flex;gap:16px;font-size:12.5px;color:var(--ink-2);margin:6px 0 12px;flex-wrap:wrap}
+.leg i{display:inline-block;width:22px;height:0;border-top:3px solid #1F6FD1;vertical-align:middle;margin-right:6px}
+.leg i.d{border-top:2px dashed #94A3B8}
+.hint{font-size:12px;color:#6B7280;margin-top:12px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="note">樣品（全部是假資料）。「異常回覆預警榜」→「各門市面向分析」：期間改成可選「單月」或「月份區間」，結果用星狀圖呈現（每家門市一張，旁邊有全公司的灰色虛線可比較）。試著切換單月／區間、改月份、按快速鈕、改排序。</div>
+<main>
+  <div class="pgtabs"><button class="pgtab">登記</button><button class="pgtab">登記歷程</button><button class="pgtab">健檢單</button><button class="pgtab on">異常回覆預警榜</button></div>
+  <section class="panel">
+    <div class="sw"><button>異常回覆張數</button><button class="on">各門市面向分析</button></div>
+    <div class="ctl">
+      範圍 <span class="seg" id="mode"><button data-m="one">單月</button><button data-m="range" class="on">月份區間</button></span>
+      <span id="rng"></span>
+      <span id="presets"><button class="chip" data-p="cur">本月</button> <button class="chip" data-p="prev">上月</button> <button class="chip" data-p="q">本季</button> <button class="chip" data-p="y">今年</button></span>
+      <div class="dl"><button class="btn">下載圖片</button><button class="btn p">下載 PDF</button></div>
+    </div>
+    <div class="ctl">排序依據 <select id="sk"></select><span id="info"></span></div>
+    <div id="view"></div>
+  </section>
+</main>
+<script>
+var DIMS=['資訊正確性','預設訊息運用','問題掌握','主動引導','風險意識','語氣與禮貌','文字品質'];
+var SHORT=['資訊正確','預設訊息','問題掌握','主動引導','風險意識','語氣禮貌','文字品質'];
+// 假資料：以「月」為單位的 待加強回覆筆數 w 與各面向被勾次數 d（月 1..12 → 這裡只示範 10、11、12 月）
+var DATA={
+ '新莊':{10:{w:6,d:[2,0,3,1,0,3,0]},11:{w:8,d:[3,1,4,2,0,3,1]},12:{w:5,d:[1,1,2,2,0,2,1]}},
+ '樹林':{10:{w:3,d:[1,0,1,0,0,1,0]},11:{w:2,d:[0,0,1,1,0,1,0]},12:{w:4,d:[1,0,2,1,1,1,0]}},
+ '桃園中壢':{10:{w:9,d:[5,2,5,3,1,2,1]},11:{w:11,d:[6,2,7,4,1,3,2]},12:{w:8,d:[4,1,5,3,2,2,1]}},
+ '新竹':{10:{w:5,d:[2,0,2,3,0,1,0]},11:{w:4,d:[1,1,1,2,0,0,1]},12:{w:6,d:[2,1,3,4,0,1,1]}},
+ '旗艦':{10:{w:12,d:[4,3,5,3,2,6,3]},11:{w:10,d:[3,2,4,2,2,5,3]},12:{w:14,d:[5,4,6,4,3,7,5]}},
+ '台南':{10:{w:4,d:[3,1,2,0,2,1,3]},11:{w:3,d:[2,1,2,1,1,1,3]},12:{w:5,d:[3,1,3,1,2,1,4]}},
+ '台中':{10:{w:2,d:[1,0,0,0,0,1,0]},11:{w:3,d:[1,1,1,0,0,1,1]},12:{w:2,d:[1,0,0,1,0,0,0]}},
+ '高雄':{10:{w:0,d:[0,0,0,0,0,0,0]},11:{w:1,d:[1,0,1,0,0,0,0]},12:{w:0,d:[0,0,0,0,0,0,0]}}
+};
+var ME='桃園中壢', mode='range', from='2026-10', to='2026-12', sortKey='total';
+function mnum(s){return +s.slice(5)}
+function agg(st){var w=0,d=[0,0,0,0,0,0,0];for(var m=mnum(from);m<=mnum(to);m++){var r=DATA[st]&&DATA[st][m];if(r){w+=r.w;r.d.forEach(function(x,i){d[i]+=x})}}return {n:st,w:w,d:d}}
+function rate(s,i){return s.w?s.d[i]/s.w:null}
+function val(s){if(!s.w)return Infinity;return sortKey==='total'?s.d.reduce(function(a,b){return a+b},0)/s.w:rate(s,+sortKey)}
+// 星狀圖：半徑＝1 − 被勾比例（越往外越穩、凹進去＝弱項；與健檢單、弱項分析同一種看法）
+function radar(s,base){
+  var R=70,cx=110,cy=100,n=7;
+  function pt(i,k){var a=-Math.PI/2+i*2*Math.PI/n;return [cx+R*k*Math.cos(a),cy+R*k*Math.sin(a)]}
+  function poly(vals){return vals.map(function(v,i){var p=pt(i,Math.max(0,Math.min(1,v)));return p[0].toFixed(1)+','+p[1].toFixed(1)}).join(' ')}
+  var g='';[0.25,0.5,0.75,1].forEach(function(k){g+='<polygon points="'+poly([k,k,k,k,k,k,k])+'" fill="none" stroke="'+(k==1?'#8F99A8':'#D3D9E2')+'"/>'});
+  for(var i=0;i<n;i++){var p=pt(i,1);g+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0].toFixed(1)+'" y2="'+p[1].toFixed(1)+'" stroke="#D3D9E2"/>'}
+  if(base)g+='<polygon points="'+poly(base)+'" fill="none" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5 4"/>';
+  var mine=DIMS.map(function(_,i){return 1-rate(s,i)});
+  g+='<polygon points="'+poly(mine)+'" fill="rgba(31,111,209,.18)" stroke="#1F6FD1" stroke-width="2.4"/>';
+  // 最弱面向（比例最高）標紅點
+  var mx=Math.max.apply(null,DIMS.map(function(_,i){return rate(s,i)}));
+  mine.forEach(function(v,i){var p=pt(i,v),weak=rate(s,i)===mx&&mx>0;g+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(weak?5:3.2)+'" fill="'+(weak?'#DC2626':'#1F6FD1')+'" stroke="#fff" stroke-width="1.2"/>'});
+  SHORT.forEach(function(t,i){var p=pt(i,1.2),a=p[0]<cx-4?'end':p[0]>cx+4?'start':'middle';var wk=rate(s,i)===mx&&mx>0;g+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]+4).toFixed(1)+'" font-size="11.5" text-anchor="'+a+'" fill="'+(wk?'#B53A2D':'#334155')+'" font-weight="'+(wk?800:600)+'">'+t+'</text>'});
+  return '<svg viewBox="0 0 220 200" width="100%" role="img" aria-label="'+s.n+' 面向星狀圖">'+g+'</svg>';
+}
+function render(){
+  document.getElementById('rng').innerHTML=mode==='one'
+    ? '月份 <input type="month" id="m1" value="'+from+'">'
+    : '從 <input type="month" id="m1" value="'+from+'"> 到 <input type="month" id="m2" value="'+to+'">';
+  var sk=document.getElementById('sk');sk.innerHTML='<option value="total">全部面向合計</option>'+DIMS.map(function(d,i){return '<option value="'+i+'">'+d+'</option>'}).join('');sk.value=sortKey;
+  var names=Object.keys(DATA),rows=names.map(agg);
+  var all={n:'全公司',w:0,d:[0,0,0,0,0,0,0]};rows.forEach(function(s){all.w+=s.w;s.d.forEach(function(x,i){all.d[i]+=x})});
+  var base=all.w?DIMS.map(function(_,i){return 1-rate(all,i)}):null;
+  var withData=rows.filter(function(s){return s.w>0}).sort(function(a,b){return val(a)-val(b)}),noData=rows.filter(function(s){return !s.w});
+  var label=from===to||mode==='one'?from.replace('-','年')+'月':from.replace('-','年')+'月～'+to.replace('-','年')+'月';
+  document.getElementById('info').textContent=label+'　共 '+names.length+' 家門市';
+  var h='<div class="hd"><small>STORE DIMENSION RADAR</small><h3>各門市面向星狀圖｜'+label+'</h3><p>登記時被勾選的「可改善面向」，只算待加強回覆。越往外＝該面向越少被勾（越穩），凹進去的地方＝弱項，紅點＝該門市最弱面向。</p></div>'+
+   '<div class="leg"><span><i></i>該門市</span><span><i class="d"></i>全公司</span></div><div class="grid">';
+  h+='<div class="card all"><h4>全公司<small>待加強回覆 '+all.w+' 筆</small></h4>'+(all.w?radar(all,null):'<div class="empty">這段期間沒有資料</div>')+'<div class="weak">各門市合計</div></div>';
+  withData.concat(noData).forEach(function(s){
+    var mx=Math.max.apply(null,DIMS.map(function(_,i){return rate(s,i)})),tops=DIMS.filter(function(_,i){return rate(s,i)===mx&&mx>0});
+    h+='<div class="card'+(s.n===ME?' me':'')+'"><h4><span>'+s.n+(s.n===ME?' <span class="you">← 你的門市</span>':'')+'</span><small>待加強回覆 '+s.w+' 筆</small></h4>'+
+      (s.w?radar(s,base)+'<div class="weak">最弱：<b>'+(tops.length?tops.join('、'):'—')+'</b>'+(mx>0?'（'+Math.round(mx*100)+'%）':'')+'</div>':'<div class="empty">這段期間沒有待加強回覆</div>')+'</div>';
+  });
+  h+='</div><p class="hint">・星狀圖半徑＝1 − 被勾比例；被勾比例＝該面向被勾次數 ÷ 該門市期間內有勾面向的待加強回覆筆數。<br>・只算待加強回覆勾的面向；優良回覆、舊制（沒勾面向）不計入。<br>・卡片依「排序依據」由穩到弱排列，沒有資料的門市排最後。只顯示門市彙總，不含登記內容與人員姓名。</p>';
+  document.getElementById('view').innerHTML=h;
+  var m1=document.getElementById('m1'),m2=document.getElementById('m2');
+  m1.onchange=function(){from=this.value;if(mode==='one')to=from;else if(to<from)to=from;render()};
+  if(m2)m2.onchange=function(){to=this.value;if(to<from)from=to;render()};
+  [].forEach.call(document.querySelectorAll('#mode button'),function(b){b.classList.toggle('on',b.dataset.m===mode)});
+}
+document.getElementById('sk').onchange=function(){sortKey=this.value;render()};
+document.getElementById('mode').onclick=function(e){var b=e.target.closest('button');if(!b)return;mode=b.dataset.m;if(mode==='one')to=from;render()};
+document.getElementById('presets').onclick=function(e){var b=e.target.closest('button');if(!b)return;var p=b.dataset.p;
+  if(p==='cur'){from=to='2026-12';mode='one'}else if(p==='prev'){from=to='2026-11';mode='one'}else if(p==='q'){from='2026-10';to='2026-12';mode='range'}else{from='2026-10';to='2026-12';mode='range'}render()};
+render();
+</script>
+</body>
+</html>

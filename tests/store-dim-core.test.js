@@ -132,4 +132,73 @@ eq(D.summary([], 'total'), { best: null, worst: null, topDim: null }, '空資料
 eq(D.maxRate(D.rank([row('a', 4, [1, 0, 0, 0, 0, 0, 0]), row('b', 2, [0, 0, 0, 0, 0, 1, 0]), row('c', 0, [0, 0, 0, 0, 0, 0, 0])], 'total')), 0.5, '全表最大單格比例');
 eq(D.maxRate([]), 0, '空資料最大比例 0');
 
+// ---- 月份期間 monthRange ----
+eq(D.monthRange('2026-10', '2026-12'), { from: '2026-10-01', to: '2026-12-31', label: '2026年10月～2026年12月' }, '三個月區間');
+eq(D.monthRange('2026-11', '2026-11'), { from: '2026-11-01', to: '2026-11-30', label: '2026年11月' }, '單月 30 天');
+eq(D.monthRange('2024-02', '2024-02').to, '2024-02-29', '閏年 2 月 29 天');
+eq(D.monthRange('2026-02', '2026-02').to, '2026-02-28', '平年 2 月 28 天');
+eq(D.monthRange('1900-02', '1900-02').to, '1900-02-28', '1900 不是閏年');
+eq(D.monthRange('2000-02', '2000-02').to, '2000-02-29', '2000 是閏年');
+eq(D.monthRange('2025-11', '2026-02'), { from: '2025-11-01', to: '2026-02-28', label: '2025年11月～2026年2月' }, '跨年區間');
+eq(D.monthRange('2026-01', '2026-01').label, '2026年1月', '月份不補 0');
+eq(D.monthRange('2026-12', '2026-10'), null, '迄早於起不合法');
+eq(D.monthRange('', '2026-10'), null, '起空值不合法');
+eq(D.monthRange('2026-10', null), null, '迄空值不合法');
+eq(D.monthRange('2026-13', '2026-13'), null, '13 月不合法');
+eq(D.monthRange('2026-1', '2026-10'), null, '格式不對不合法');
+eq(D.monthLabel('2026-11', '2026-11'), '2026年11月', '單月文字');
+eq(D.monthFileBase('2026-10', '2026-12'), '各門市面向分析_2026-10_2026-12', '區間檔名');
+eq(D.monthFileBase('2026-11', '2026-11'), '各門市面向分析_2026-11', '單月檔名');
+
+// ---- 快速鈕（今天一律台北時間）----
+eq(D.presetRange('cur', '2026-11-26'), { from: '2026-11', to: '2026-11' }, '本月');
+eq(D.presetRange('prev', '2026-11-26'), { from: '2026-10', to: '2026-10' }, '上月');
+eq(D.presetRange('prev', '2026-01-05'), { from: '2025-12', to: '2025-12' }, '一月的上月是去年 12 月');
+eq(D.presetRange('q', '2026-11-26'), { from: '2026-10', to: '2026-11' }, '本季：本季第一個月到本月');
+eq(D.presetRange('q', '2026-03-31'), { from: '2026-01', to: '2026-03' }, '三月屬第一季');
+eq(D.presetRange('q', '2026-07-01'), { from: '2026-07', to: '2026-07' }, '七月是第三季第一個月');
+eq(D.presetRange('y', '2026-11-26'), { from: '2026-01', to: '2026-11' }, '今年：1 月到本月');
+eq(D.taipeiToday(Date.UTC(2026, 10, 25, 17, 0, 0)), '2026-11-26', '台北時間跨日（UTC 17:00＝台北隔天 01:00）');
+eq(D.taipeiToday(Date.UTC(2026, 10, 25, 15, 59, 59)), '2026-11-25', '台北時間未跨日');
+
+// ---- 全公司彙總、選擇項目 ----
+var CR = D.rank([row('甲', 4, [1, 2, 0, 4, 0, 0, 0]), row('乙', 6, [3, 0, 0, 2, 0, 0, 0]), row('丙', 0, [0, 0, 0, 0, 0, 0, 0])], 'total', '甲');
+var co = D.companyTotal(CR);
+eq(co.store_name, '全公司', '全公司名稱');
+eq(co.weak, 10, '全公司筆數加總');
+eq(co.counts, [4, 2, 0, 6, 0, 0, 0], '全公司各面向次數加總');
+eq(co.total, 12, '全公司合計');
+eq(co.rates, [0.4, 0.2, 0, 0.6, 0, 0, 0], '全公司比例＝加總次數÷加總筆數');
+eq(co.tops, ['主動引導'], '全公司最常被勾');
+eq(D.pickItem(CR, '').store_name, '全公司', '空代碼＝全公司');
+eq(D.pickItem(CR, '不存在').store_name, '全公司', '找不到門市＝全公司');
+eq(D.pickItem(CR, '乙').store_code, '乙', '指定門市');
+eq(D.pickItem(CR, '乙').counts, [3, 0, 0, 2, 0, 0, 0], '指定門市資料');
+var coE = D.companyTotal(D.rank([row('甲', 0, [0, 0, 0, 0, 0, 0, 0])], 'total'));
+eq(coE.weak, 0, '全公司沒資料：筆數 0');
+eq(coE.rates, [null, null, null, null, null, null, null], '全公司沒資料：比例 null（分母為 0）');
+eq(D.radii(coE), null, '全公司沒資料：不畫圖（半徑 null）');
+eq(D.companyTotal([]).weak, 0, '空資料全公司筆數 0');
+eq(D.radii(D.companyTotal([])), null, '空資料不畫圖');
+eq(D.radii(null), null, 'null 不畫圖');
+
+// ---- 星狀圖半徑＝1 − 比例 ----
+eq(D.radii(co), [0.6, 0.8, 1, 0.4, 1, 1, 1], '全公司半徑＝1 − 比例');
+eq(D.radii(D.pickItem(CR, '甲')), [0.75, 0.5, 1, 0, 1, 1, 1], '單店半徑：比例 100% 時半徑 0、比例 0 時半徑 1');
+eq(D.radii({ weak: 2, rates: [1.5, -0.2, 0, 0, 0, 0, 0] }), [0, 1, 1, 1, 1, 1, 1], '半徑限制在 0~1');
+eq(D.SHORT.length, 7, '簡稱七個');
+eq(D.SHORT[0], '資訊正確', '第一個簡稱');
+
+// ---- 最弱面向：並列全標、比例 0 不標 ----
+eq(D.weakest(D.pickItem(CR, '甲')), { idx: [3], names: ['主動引導'], rate: 1 }, '單一最弱');
+eq(D.weakest(D.rank([row('x', 4, [2, 0, 0, 2, 0, 1, 0])], 'total')[0]), { idx: [0, 3], names: ['資訊正確性', '主動引導'], rate: 0.5 }, '並列最弱全標');
+eq(D.weakest(D.rank([row('x', 4, [0, 0, 0, 0, 0, 0, 0])], 'total')[0]), { idx: [], names: [], rate: 0 }, '比例全 0 不標');
+eq(D.weakest(coE), { idx: [], names: [], rate: 0 }, '沒資料不標');
+eq(D.weakest(null), { idx: [], names: [], rate: 0 }, 'null 不標');
+
+// ---- 門市下拉選項（固定順序）----
+eq(D.storeOptions([row('b', 1, []), row('a', 1, [])]).map(function (o) { return o.code; }).sort(), ['a', 'b'], '下拉含所有門市');
+eq(D.storeOptions([{ store_code: 'zz', store_name: '' }])[0], { code: 'zz', name: 'zz' }, '沒名稱用代碼');
+eq(D.storeOptions(null), [], '空資料沒有選項');
+
 console.log('通過 ' + passed + ' 項');
