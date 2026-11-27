@@ -194,7 +194,7 @@
       (m.hasExtra ? '<br><b>加考題（弱項追加題）不計入總分與判定，也不計入面向得分率。</b>' : '') + '</div>');
     var t = m.trend, tl = '歷次總分走勢：' + t.points.map(function (x) { return x.date + ' ' + fmt(x.total); }).join('、');
     h += blk('blk', '<div class="sec">歷次總分走勢</div>' + trendSvg(t.points, t.curIdx, tl), ' style="padding-top:8px" data-keep="1"', 'trend');
-    h += blk('blk', '<div class="ft">本成績單由業務考核系統產生，僅供內部使用</div>', ' style="padding-bottom:0"');
+    h += blk('blk', '<div class="ft">本成績單由訊息考核&amp;健檢平臺產生，僅供內部使用</div>', ' style="padding-bottom:0"');
     return h;
   }
 

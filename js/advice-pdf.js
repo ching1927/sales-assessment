@@ -159,7 +159,7 @@
     h += blk('<div class="sec">與上一次健檢比較</div>' + cmpHtml);
     var t = m.trend, tl = '歷年健檢總分：' + t.points.map(function (x) { return x.label + ' ' + fmt(x.total); }).join('、');
     h += blk('<div class="sec">歷年健檢總分</div>' + trendSvg(t.points, t.curIdx, tl, trendH), ' style="padding-top:8px"', 'trend');
-    h += blk('<div class="ft">本建議單由業務考核系統產生，僅供內部使用</div>', ' style="padding-bottom:0"');
+    h += blk('<div class="ft">本建議單由訊息考核&amp;健檢平臺產生，僅供內部使用</div>', ' style="padding-bottom:0"');
     return h;
   }
 
