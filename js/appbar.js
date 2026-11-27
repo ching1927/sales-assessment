@@ -91,10 +91,21 @@
       } catch (e) {}
     }, function () {});
   }
+  // 店長端導覽順序：「待考回報」移到「成績單&考核後台」前面（其他角色順序不變）；查不到角色或失敗就維持原順序
+  var reordered = false;
+  function reorderForManager(sb) {
+    if (reordered || !impTab || !impTab.parentNode || typeof impTab.parentNode.insertBefore !== 'function') return Promise.resolve();
+    return Promise.resolve(sb.rpc('roster_my_role')).then(function (r) {
+      if (!r || r.error || r.data !== 'store_manager' || reordered) return;
+      reordered = true;
+      impTab.parentNode.insertBefore(tab, impTab);
+    }, function () {});
+  }
   function refresh() {
     try {
       var sb = getClient();
       if (!sb) return Promise.resolve();
+      reorderForManager(sb);
       // 待考回報數字＝exam_req_badge()（店長端已包含「已輔導未約考」的人，不再另外加總）
       var imp = refreshImp(sb);
       var spot = refreshSpot(sb);

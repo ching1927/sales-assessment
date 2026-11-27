@@ -25,6 +25,8 @@ function makeEl() {
 function run(rpcs, opts) {
   opts = opts || {};
   var reqTab = makeEl(), boTab = makeEl(), spotTab = makeEl(), email = makeEl(), av = makeEl();
+  var moves = [];
+  if (opts.withParent) { boTab.parentNode = { insertBefore: function (a, b) { moves.push([a === reqTab ? 'req' : 'other', b === boTab ? 'bo' : 'other']); } }; }
   email.textContent = 'bl-sm1@2motor.tw';
   var calls = [], storageWrites = [];
   var doc = {
@@ -57,7 +59,7 @@ function run(rpcs, opts) {
   };
   var ctx = { document: doc, window: win, MutationObserver: function () { this.observe = function () {}; }, Promise: Promise, Number: Number, String: String, Math: Math, JSON: JSON };
   vm.runInNewContext(SRC, ctx);
-  return { win: win, reqBadge: reqTab.children[0], boBadge: boTab.children[0], spotBadge: spotTab.children[0], calls: calls, storageWrites: storageWrites };
+  return { win: win, reqBadge: reqTab.children[0], boBadge: boTab.children[0], spotBadge: spotTab.children[0], calls: calls, storageWrites: storageWrites, moves: moves };
 }
 function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
 
@@ -141,6 +143,26 @@ function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
   var l = run({ exam_req_badge: { data: 0, error: null }, spot_badge: { data: 150, error: null } });
   await tick();
   eq(l.spotBadge.textContent, '99+', '健檢紅點超過 99 顯示 99+');
+
+    // 9. 店長端導覽順序：待考回報移到成績單&考核後台前面；其他角色、失敗、沒有父節點都維持原順序
+  var m1 = run({ exam_req_badge: { data: 1, error: null }, roster_my_role: { data: 'store_manager', error: null } }, { withParent: true });
+  await tick();
+  eq(m1.moves, [['req', 'bo']], '店長：待考回報移到成績單&考核後台前面');
+  await m1.win.AppBadge.refresh(); await tick();
+  eq(m1.moves.length, 1, '店長：重抓紅點不會重複搬');
+  var m2 = run({ exam_req_badge: { data: 1, error: null }, roster_my_role: { data: 'cs_admin', error: null } }, { withParent: true });
+  await tick();
+  eq(m2.moves, [], '客服部：順序不變');
+  var m3 = run({ exam_req_badge: { data: 1, error: null }, roster_my_role: { data: 'hq_viewer', error: null } }, { withParent: true });
+  await tick();
+  eq(m3.moves, [], '總公司主管：順序不變');
+  var m4 = run({ exam_req_badge: { data: 1, error: null }, roster_my_role: { data: null, error: { message: 'x' } } }, { withParent: true });
+  await tick();
+  eq([m4.moves, m4.reqBadge.textContent], [[], '1'], '查角色失敗：順序不變、紅點照常');
+  var m5 = run({ exam_req_badge: { data: 1, error: null }, roster_my_role: function () { return Promise.reject(new Error('網路')); } }, { withParent: true });
+  await tick();
+  eq([m5.moves, m5.reqBadge.textContent], [[], '1'], '查角色丟例外：順序不變、紅點照常');
+  eq(m1.storageWrites, [], '搬順序不寫 storage');
 
   console.log('appbar-badge 測試通過：' + passed + ' 項');
 })().catch(function (err) { console.error(err); process.exit(1); });
